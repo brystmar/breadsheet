@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <div class="recipes">
+    <table>
+        <tr>
+            <th>Recipe ID</th>
+            <th>Name</th>
+            <th>Author</th>
+            <th>Source</th>
+            <th>Difficulty</th>
+            <th>Date Added</th>
+        </tr>
+        {% for recipe in recipes %}
+            <tr>
+                <td>{{ recipe.id }}</td>
+                <td>{{ recipe.name }}</td>
+                <td>{{ recipe.author }}</td>
+                <td>{{ recipe.source }}</td>
+                <td>{{ recipe.difficulty }}</td>
+                <td>{{ recipe.date_added }}</td>
+            </tr>
+        {% endfor %}
+    </table>
+    </div>
+{% endblock %}
