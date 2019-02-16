@@ -4,7 +4,7 @@ from app import db
 
 class Recipe(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(64), index=True, unique=True)
+    name = db.Column(db.String(64), index=True, unique=True, nullable=False)
     author = db.Column(db.String(64), index=True)
     source = db.Column(db.String(128), index=True)
     difficulty = db.Column(db.String(6), index=True)
@@ -17,7 +17,7 @@ class Recipe(db.Model):
 
 class Step(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    recipe_id = db.Column(db.Integer, db.ForeignKey('recipe.id'))
+    recipe_id = db.Column(db.Integer, db.ForeignKey('recipe.id'), nullable=False)
     number = db.Column(db.Integer, index=True)
     text = db.Column(db.LargeBinary, index=True)
     then_wait = db.Column(db.Integer, index=True)
