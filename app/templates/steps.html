@@ -1,29 +1,25 @@
-{% extends "base.html" %}
+{% extends "recipe.html" %}
 
-{% block content %}
-    <h1>Recipe: {{ step.recipe.name }}!</h1>
-    <div class="steps">
-        <table>
-            <tr>
-                <th>Step #</th>
+{% block show_steps %}
+    <div id="steps">
+        <table id="steps_list">
+            <tr id="step_header_row">
+                <th>Step</th>
                 <th>Directions</th>
-                <th>When</th>
+                <th>When?</th>
                 <th>Then Wait...</th>
-                <th>Wait Time Range</th>
+                <th>Time Range</th>
             </tr>
-            {% for step in steps %}
-            {% when = datetime.datetime.now() %}
             
-            <tr>
-                <td>{{ step.number }}</td>
-                <td>{{ step.text }}</td>
-                <td>{{ when }}</td>
-                <td>{{ step.then_wait }}</td>
-                <td>{{ step.then_wait }}</td>
-            </tr>
-            {% when += timedelta(seconds=step.then_wait) %}
+            {% for step in steps %}
+                <tr id="step_row">
+                    <td>{{ step.number }}</td>
+                    <td>{{ step.text }}</td>
+                    <td>{{ step.when }}</td>
+                    <td>{{ step.then_wait }}</td>
+                    <td>{{ step.wait_time_range }}</td>
+                </tr>
             {% endfor %}
         </table>
     </div>
-    {% endfor %}
 {% endblock %}
