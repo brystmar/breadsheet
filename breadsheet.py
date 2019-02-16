@@ -1,8 +1,8 @@
 # script for Flask to obtain our application instance
-from app import app, db
-from app.models import Recipe
+from app import breadapp, db
+from app.models import Recipe, Step
 
 
-@app.shell_context_processor
+@breadapp.shell_context_processor
 def make_shell_context():
-    return {'db': db, 'Recipe': Recipe}
+    return {'db': db, 'Recipe': Recipe, 'Step': Step}

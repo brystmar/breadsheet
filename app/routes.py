@@ -4,22 +4,22 @@ from werkzeug.urls import url_parse
 from datetime import datetime, timedelta
 from random import randint
 
-from app import app, db
+from app import breadapp, db
 from app.forms import RecipeForm, StepForm
 from app.models import Recipe, Step
 
 
 # map the desired URL to this function
-@app.route('/')
-@app.route('/index')
-@app.route('/breadsheet')
+@breadapp.route('/')
+@breadapp.route('/index')
+@breadapp.route('/breadsheet')
 def index():
     recipes = get_recipe_data()
 
     return render_template('index.html', title='Breadsheet Home', recipes=recipes)
 
 
-@app.route('/recipe')
+@breadapp.route('/recipe')
 def view_recipe():
     steps = get_step_data()
 
@@ -31,7 +31,7 @@ def view_recipe():
     return render_template('steps.html', title='View Recipe', recipe=get_recipe_data()[2], steps=steps)
 
 
-@app.route('/add_recipe', methods=['GET', 'POST'])
+@breadapp.route('/add_recipe', methods=['GET', 'POST'])
 def add_recipe():
     rform = RecipeForm()
     sform = StepForm()

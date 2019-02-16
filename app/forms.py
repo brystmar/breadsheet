@@ -26,4 +26,3 @@ class StepForm(FlaskForm):
     number = IntegerField('Step Number', validators=[DataRequired(), Length(min=1, max=3)])
     text = TextAreaField('Directions', validators=[DataRequired(), Length(min=1, max=512)])
     then_wait = DecimalField('Then Wait... (minutes)', places=2)
-
