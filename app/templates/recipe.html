@@ -1,30 +1,29 @@
 {% extends "base.html" %}
 
 {% block content %}
-    <h1>Recipe: {{ recipe.name }}!</h1>
-    <div class="recipe">
-        <table>
-            <tr>
-                <th>Recipe ID</th>
-                <th>Name</th>
-                <th>Author</th>
-                <th>Source</th>
-                <th>Then Wait...</th>
-                <th>Wait Time Range</th>
+    <div id="recipe_display">
+        <table id="single_recipe">
+            <tr id="recipe_title_row">
+                <td colspan="4"><h2>{{ recipe.name }} [{{ recipe.id }}]</h2></td>
             </tr>
-            {% for step in steps %}
-            {% when = datetime.datetime.now() %}
             
-            <tr>
-                <td>{{ step.number }}</td>
-                <td>{{ step.text }}</td>
-                <td>{{ when }}</td>
-                <td>{{ step.then_wait }}</td>
-                <td>{{ step.then_wait }}</td>
+            <tr id="recipe_row1">
+                <th>Author:</th>
+                <td>{{ recipe.author }}</td>
+                <th>Difficulty:</th>
+                <td>{{ recipe.difficulty }}</td>
             </tr>
-            {% when += timedelta(seconds=step.then_wait) %}
-            {% endfor %}
+            
+            <tr id="recipe_row2">
+                <th>Source:</th>
+                <td>{{ recipe.source }}</td>
+                <th>Date Added:</th>
+                <td>{{ recipe.date_added }}</td>
+            </tr>
         </table>
     </div>
-    {% endfor %}
+    <br>
+    {% block show_steps %}
+    {% endblock %}
+
 {% endblock %}

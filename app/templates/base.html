@@ -1,18 +1,85 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     {% if title %}
-    <title>{{ title }} - breadsheet</title>
+    <title>{{ title }} - Breadsheet</title>
     {% else %}
-    <title>Breadsheet Baking Scheduler</title>
+    <title>Breadsheet Baking Tool</title>
     {% endif %}
+    
+    <style>
+        table tr#recipe_title_row {
+            text-align:         center;
+            border:             none;
+            }
+        
+        table#recipe th {
+            background-color:   black;
+            color:              white;
+            }
+        
+        table#recipe tr:nth-child(even) {
+            background-color:   #eee;
+            border:             none;
+            padding:            5;
+            }
+            
+        table#recipe tr:nth-child(odd) {
+            background-color:   #fff;
+            border:             none;
+            padding:            5;
+            }
+            
+        table#steps_list tr:nth-child(even) {
+            background-color:   #eee;
+            border:             none;
+            padding:            5;
+            }
+            
+        table#steps_list tr:nth-child(odd) {
+            background-color:   #fff;
+            border:             none;
+            padding:            5;
+            }
+        
+        table#steps_list th {
+            background-color:   black;
+            color:              white;
+            }
+        
+        table#single_recipe th {
+            font-weight:        bold;
+            text-align:         right;
+            }
+            
+        table#single_recipe tr#recipe_row_1 {
+            padding:            0 5px 0 0px;
+            }
+        
+        table#single_recipe tr#recipe_row_2 {
+            padding:            0 5px 0 0px;
+            }
+        
+        table#recipe_form th {
+            font-weight:        bold;
+            text-align:         right;
+            padding:            0 5px 0 0px;
+            }
+        
+        td, th {
+            padding:            0 20px 0 10px;
+        }
+        
+    </style>
 </head>
+
 <body>
-    <div class="nav">
+    <div id="nav">
         <a href="/index">Home</a> |
-        <a href="/addrecipe">Add Recipe</a> |
-        <a href="/viewrecipes">View All Recipes</a>
+        <a href="/add_recipe">Add Recipe</a> |
+        <a href="/recipe">View Recipe</a>
     </div>
     <!-- Retrieve messages from the flash msg -->
     {% with messages = get_flashed_messages() %}
@@ -27,6 +94,7 @@
     
     <p></p>
     
-    {% block content %}{% endblock %}
+    {% block content %}
+    {% endblock %}
 </body>
 </html>

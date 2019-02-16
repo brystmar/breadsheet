@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <div id="add_recipe">
+        <h1>Add Recipe</h1>
+        <form action="" method="post">
+            {{ rform.hidden_tag() }}
+            <table id="recipe_form">
+                <tr>
+                    <th>{{ rform.name.label }}</th>
+                    <td>{{ rform.name(size=40) }}</td>
+                    {% for error in rform.name.errors %}
+                        <td>
+                            <span style="color: red;">[{{ error }}]</span>
+                        </td>
+                    {% endfor %}
+                </tr>
+                <tr>
+                    <th>{{ rform.author.label }}</th>
+                    <td>{{ rform.author(size=40) }}</td>
+                    {% for error in rform.author.errors %}
+                        <td>
+                            <span style="color: red;">[{{ error }}]</span>
+                        </td>
+                    {% endfor %}
+                </tr>
+                <tr>
+                    <th>{{ rform.source.label }}</th>
+                    <td>{{ rform.source(size=40) }}</td>
+                    {% for error in rform.source.errors %}
+                        <td>
+                            <span style="color: red;">[{{ error }}]</span>
+                        </td>
+                    {% endfor %}
+                </tr>
+                <tr>
+                    <th>{{ rform.difficulty.label }}</th>
+                    <td>{{ rform.difficulty(size=8) }}</td>
+                    {% for error in rform.difficulty.errors %}
+                        <td>
+                            <span style="color: red;">[{{ error }}]</span>
+                        </td>
+                    {% endfor %}
+                </tr>
+            </table>
+            <p>{{ rform.submit() }}</p>
+        </form>
+    </div>
+    
+    <div id="add_steps">
+        <h1>Steps</h1>
+        <form action="" method="post">
+            <div id="add_steps">
+                
+                <br>
+                add_steps form goes here
+        </form>
+    </div>
+{% endblock %}

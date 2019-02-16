@@ -5,7 +5,7 @@ from app.models import Recipe
 
 
 class RecipeForm(FlaskForm):
-    name = StringField('Recipe Name', validators=[DataRequired(), Length(min=5, max=64)])
+    name = StringField('Name', validators=[DataRequired(), Length(min=5, max=64)])
     author = StringField('Author', validators=[Length(min=0, max=64)])
     source = StringField('Source', validators=[Length(min=0, max=128)])
     difficulty = StringField('Difficulty', validators=[Length(min=0, max=6)])
