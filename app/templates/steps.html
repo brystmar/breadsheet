@@ -1,6 +1,6 @@
 {% extends "recipe.html" %}
 
-{% block show_steps %}
+{% block steps_list %}
     <div id="steps">
         <table id="steps_list">
             <tr id="step_header_row">
@@ -22,4 +22,8 @@
             {% endfor %}
         </table>
     </div>
+
+    {% block add_step %}
+    {% endblock %}
+
 {% endblock %}
