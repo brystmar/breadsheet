@@ -35,7 +35,7 @@
                 </tr>
                 <tr>
                     <th>{{ rform.difficulty.label }}</th>
-                    <td>{{ rform.difficulty(size=8) }}</td>
+                    <td>{{ rform.difficulty(size=1) }}</td>
                     {% for error in rform.difficulty.errors %}
                         <td>
                             <span style="color: red;">[{{ error }}]</span>
@@ -46,14 +46,5 @@
             <p>{{ rform.submit() }}</p>
         </form>
     </div>
-    
-    <div id="add_steps">
-        <h1>Steps</h1>
-        <form action="" method="post">
-            <div id="add_steps">
-                
-                <br>
-                add_steps form goes here
-        </form>
-    </div>
+
 {% endblock %}
