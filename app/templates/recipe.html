@@ -4,21 +4,26 @@
     <div id="recipe_display">
         <table id="single_recipe">
             <tr id="recipe_title_row">
-                <td colspan="4"><h2>{{ recipe.name }} [{{ recipe.id }}]</h2></td>
+                <td colspan="4"><h2>{{ recipe.name }}</h2></td>
             </tr>
             
             <tr id="recipe_row1">
                 <th>Author:</th>
                 <td>{{ recipe.author }}</td>
-                <th>Difficulty:</th>
-                <td>{{ recipe.difficulty }}</td>
+                <th>ID:</th>
+                <td>{{ recipe.id }}</td>
             </tr>
             
             <tr id="recipe_row2">
                 <th>Source:</th>
                 <td>{{ recipe.source }}</td>
+                <th>Difficulty:</th>
+                <td>{{ recipe.difficulty_ui }}</td>
+            </tr>
+            
+            <tr id="recipe_row3">
                 <th>Date Added:</th>
-                <td>{{ recipe.date_added }}</td>
+                <td>{{ recipe.date_added_ui }}</td>
             </tr>
         </table>
     </div>

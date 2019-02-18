@@ -2,19 +2,10 @@
 
 {% block add_step %}
     <div id="add_step">
-        <h1>Add Steps</h1>
+        <h1>Add Step</h1>
         <form action="" method="post">
             {{ sform.hidden_tag() }}
             <table id="step_form">
-                <tr>
-                    <th>{{ sform.recipe_id.label }}</th>
-                    <td>{{ sform.recipe_id(size=5) }}</td>
-                    {% for error in sform.recipe_id.errors %}
-                        <td>
-                            <span style="color: red;">[{{ error }}]</span>
-                        </td>
-                    {% endfor %}
-                </tr>
                 <tr>
                     <th>{{ sform.number.label }}</th>
                     <td>{{ sform.number(size=5) }}</td>
@@ -35,7 +26,8 @@
                 </tr>
                 <tr>
                     <th>{{ sform.then_wait.label }}</th>
-                    <td>{{ sform.then_wait(size=5) }} minutes</td>
+                    <td>{{ sform.then_wait(size=5) }} {{ sform.then_wait_units }}
+                    </td>
                     {% for error in sform.then_wait.errors %}
                     <td>
                         <span style="color: red;">[{{ error }}]</span>

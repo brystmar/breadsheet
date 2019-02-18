@@ -13,15 +13,22 @@
             
             {% for step in steps %}
                 <tr id="step_row">
-                    <td>{{ step.number }}</td>
+                    <td id="step_number">{{ step.number }}.</td>
                     <td>{{ step.text }}</td>
                     <td>{{ step.when }}</td>
-                    <td>{{ step.then_wait }}</td>
+                    <td>{{ step.then_wait_ui }}</td>
                     <td>{{ step.wait_time_range }}</td>
                 </tr>
             {% endfor %}
         </table>
     </div>
+
+    {% if not sform %}
+        <!-- hide this link when the Add Step form is displayed -->
+        <div id="ask_add_step">
+            <p><a href="/add_step?id={{ recipe.id }}">Click to add a step</a></p>
+        </div>
+    {% endif %}
 
     {% block add_step %}
     {% endblock %}
