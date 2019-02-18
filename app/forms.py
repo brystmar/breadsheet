@@ -1,6 +1,6 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, SubmitField, TextAreaField, IntegerField, DecimalField
-from wtforms.validators import DataRequired, ValidationError, Length
+from wtforms import StringField, SubmitField, TextAreaField, IntegerField, DecimalField, SelectField
+from wtforms.validators import DataRequired, ValidationError, Length, Optional, NumberRange
 from app.models import Recipe
 
 
@@ -8,7 +8,7 @@ class RecipeForm(FlaskForm):
     name = StringField('Name', validators=[DataRequired(), Length(min=5, max=64)])
     author = StringField('Author', validators=[Length(max=64)])
     source = StringField('Source', validators=[Length(max=128)])
-    difficulty = StringField('Difficulty', validators=[Length(max=1)])
+    difficulty = SelectField('Difficulty', validators=[DataRequired()], default='M', choices=[('E', 'Easy'), ('M', 'Medium'), ('H', 'Hard')])
     submit = SubmitField('Add Recipe')
 
     # ensure recipe name is unique
@@ -22,10 +22,12 @@ class RecipeForm(FlaskForm):
 
 
 class StepForm(FlaskForm):
-    recipe_id = IntegerField('recipe_id', validators=[DataRequired()])
+    recipe_id = IntegerField('Recipe ID')
     number = IntegerField('Step Number')
     text = TextAreaField('Directions', validators=[DataRequired(), Length(max=512)])
-    then_wait = DecimalField('Then Wait...', places=2)
+    then_wait = DecimalField('Then Wait...', validators=[Optional(), NumberRange(min=0)])
+    then_wait_units = SelectField('Units', validators=[DataRequired()], default='minutes',
+                                  choices=[('hours', 'Hours'), ('minutes', 'Minutes'), ('seconds', 'Seconds')])
     wait_time_range = StringField('Time Range')
     submit = SubmitField('Add Step')
 
