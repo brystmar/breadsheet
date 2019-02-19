@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <div id="convert_text">
+        <table id="convert_ingredients">
+            <tr>
+                <th>{{ ctform.ingredients_input.label }}</th>
+                <th>{{ ctform.ingredients_output.label }}</th>
+            </tr>
+            <tr>
+                <td>{{ ctform.ingredients_input(cols=60, rows=15) }}</td>
+                <td>{{ ctform.ingredients_output(cols=60, rows=15) }}</td>
+            </tr>
+            <tr>
+                <td>{{ ctform.convert_ingredients }}</td>
+            </tr>
+        </table>
+        <p></p>
+        <table id="convert_directions">
+            <tr>
+                <th>{{ ctform.directions_input.label }}</th>
+                <th>{{ ctform.directions_output.label }}</th>
+            </tr>
+            <tr>
+                <td>{{ ctform.directions_input(cols=60, rows=15) }}</td>
+                <td>{{ ctform.directions_output(cols=60, rows=15) }}</td>
+            </tr>
+            <tr>
+                <td>{{ ctform.convert_directions }}</td>
+            </tr>
+        </table>
+        <p></p>
+        <ul id="replist">
+            {% for r in replist %}
+                <li>{{ r }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+{% endblock %}

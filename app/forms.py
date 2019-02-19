@@ -31,5 +31,19 @@ class StepForm(FlaskForm):
     wait_time_range = StringField('Time Range')
     submit = SubmitField('Add Step')
 
-    def __repr__(self):  # tells python how to print objects of this class to the console while debugging
+    def __repr__(self):
         return '<StepForm #{} for recipe_id: {}>'.format(self.number, self.name)
+
+
+class ConvertTextForm(FlaskForm):
+    ingredients_input = TextAreaField('Ingredients Input')
+    ingredients_output = TextAreaField('Ingredients Output')
+    convert_ingredients = SubmitField('Convert Ingredients')
+
+    directions_input = TextAreaField('Directions Input')
+    directions_output = TextAreaField('Directions Output')
+    convert_directions = SubmitField('Convert Directions')
+
+
+    def __repr__(self):
+        return '<ConvertText form>'

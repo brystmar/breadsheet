@@ -5,8 +5,8 @@ from werkzeug.urls import url_parse
 from datetime import datetime, timedelta
 
 from app import breadapp, db
-from app.forms import RecipeForm, StepForm
-from app.models import Recipe, Step, Difficulty
+from app.forms import RecipeForm, StepForm, ConvertTextForm
+from app.models import Recipe, Step, Difficulty, Replacement
 
 
 now = datetime.now()
@@ -84,9 +84,46 @@ def add_step():
     return render_template('add_step.html', title='Add Step', recipe=recipe, steps=steps, sform=sform)
 
 
+@breadapp.route('/convert_text', methods=['GET', 'POST'])
+def convert_text():
+    ctform = ConvertTextForm()
+
+    # i_input = ctform.ingredients_input.data
+    # d_input = ctform.directions_input.data
+
+    """if ctform.ingredients_input.data is None:
+        i_input = ''
+    if ctform.directions_input.data is None:
+        d_input = ''"""
+
+    if ctform.is_submitted():
+        print("Went to the SUBMIT block")
+        i_input = ctform.ingredients_input.data
+        d_input = ctform.directions_input.data
+
+        ctform.ingredients_output.data = replace_text(i_input, 'i')
+        ctform.directions_output.data = replace_text(d_input, 'd')
+        return redirect(url_for('convert_text'))
+    elif request.method == 'GET':
+        print("Went to the GET block")
+
+    return render_template('convert_text.html', title='Convert Text for Paprika Recipes', ctform=ctform)
+
+
+def replace_text(text, scope):
+    # execute replacements in the provided text
+    replist = Replacement.query.filter_by(scope=scope).all()
+
+    for r in replist:
+        text = text.replace(r[0],r[1])
+        print(scope, r)
+    return text
+
+
 def time_string(num):
     # accepts a number of seconds (int), returns a formatted string with hrs/min/sec
-    if num is None: return ''
+    if num is None:
+        return ''
     else:
         hours = num // 3600
         if hours == 0:

@@ -33,3 +33,12 @@ class Difficulty(db.Model):
 
     def __repr__(self):
         return '<Difficulty id: {}>'.format(self.id)
+
+
+class Replacement(db.Model):
+    old = db.Column(db.String(20), primary_key=True)
+    new = db.Column(db.String(20))
+    scope = db.Column(db.String(1))
+
+    def __repr__(self):
+        return '<Replacement Text old: {}, new: {}, scope: {}>'.format(self.old, self.new, self.scope)
