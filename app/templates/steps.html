@@ -21,6 +21,17 @@
                 </tr>
             {% endfor %}
         </table>
+        <p></p>
+        <table id="steps_time_summary">
+            <tr id="step_header_row">
+                <th>Start:</th>
+                <td>{{ recipe.start_time }}</td>
+            </tr>
+            <tr id="step_header_row">
+                <th>End:</th>
+                <td>{{ recipe.end_time }}</td>
+            </tr>
+        </table>
     </div>
 
     {% if not sform %}
