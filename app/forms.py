@@ -36,14 +36,13 @@ class StepForm(FlaskForm):
 
 
 class ConvertTextForm(FlaskForm):
-    ingredients_input = TextAreaField('Ingredients Input')
+    ingredients_input = TextAreaField('Ingredients Input', validators=[DataRequired()])
     ingredients_output = TextAreaField('Ingredients Output')
     convert_ingredients = SubmitField('Convert Ingredients')
 
     directions_input = TextAreaField('Directions Input')
     directions_output = TextAreaField('Directions Output')
     convert_directions = SubmitField('Convert Directions')
-
 
     def __repr__(self):
         return '<ConvertText form>'
