@@ -2,33 +2,39 @@
 
 {% block content %}
     <div id="convert_text">
-        <table id="convert_ingredients">
-            <tr>
-                <th>{{ ctform.ingredients_input.label }}</th>
-                <th>{{ ctform.ingredients_output.label }}</th>
-            </tr>
-            <tr>
-                <td>{{ ctform.ingredients_input(cols=60, rows=15) }}</td>
-                <td>{{ ctform.ingredients_output(cols=60, rows=15) }}</td>
-            </tr>
-            <tr>
-                <td>{{ ctform.convert_ingredients }}</td>
-            </tr>
-        </table>
+        <h1>Text Replacement</h1>
+        <form action="" method="post">
+            {{ ctform.hidden_tag() }}
+            <table id="convert_ingredients">
+                <tr>
+                    <th>{{ ctform.ingredients_input.label }}</th>
+                    <th>{{ ctform.ingredients_output.label }}</th>
+                </tr>
+                <tr>
+                    <td>{{ ctform.ingredients_input(cols=60, rows=15, autofocus=true) }}</td>
+                    <td>{{ ctform.ingredients_output(cols=60, rows=15, disabled=true) }}</td>
+                </tr>
+                <tr>
+                    <td>{{ ctform.convert_ingredients() }}</td>
+                </tr>
+            </table>
+        </form>
         <p></p>
-        <table id="convert_directions">
-            <tr>
-                <th>{{ ctform.directions_input.label }}</th>
-                <th>{{ ctform.directions_output.label }}</th>
-            </tr>
-            <tr>
-                <td>{{ ctform.directions_input(cols=60, rows=15) }}</td>
-                <td>{{ ctform.directions_output(cols=60, rows=15) }}</td>
-            </tr>
-            <tr>
-                <td>{{ ctform.convert_directions }}</td>
-            </tr>
-        </table>
+        <form action="" method="post">
+            <table id="convert_directions">
+                <tr>
+                    <th>{{ ctform.directions_input.label }}</th>
+                    <th>{{ ctform.directions_output.label }}</th>
+                </tr>
+                <tr>
+                    <td>{{ ctform.directions_input(cols=60, rows=15) }}</td>
+                    <td>{{ ctform.directions_output(cols=60, rows=15, disabled=true) }}</td>
+                </tr>
+                <tr>
+                    <td>{{ ctform.convert_directions() }}</td>
+                </tr>
+            </table>
+        </form>
         <p></p>
         <ul id="replist">
             {% for r in replist %}

@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <div id="convert_text_d">
+        <table id="convert_directions">
+            <tr>
+                <th>{{ ctform_d.directions_input.label }}</th>
+                <th>{{ ctform_d.directions_output.label }}</th>
+            </tr>
+            <tr>
+                <td>{{ ctform_d.directions_input(cols=60, rows=15) }}</td>
+                <td>{{ ctform_d.directions_output(cols=60, rows=15) }}</td>
+            </tr>
+            <tr>
+                <td>{{ ctform_d.convert_directions() }}</td>
+            </tr>
+        </table>
+        <p></p>
+        <ul id="replist">
+            {% for r in replist %}
+                <li>{{ r }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+{% endblock %}

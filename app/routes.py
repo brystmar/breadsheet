@@ -88,13 +88,11 @@ def add_step():
 def convert_text():
     ctform = ConvertTextForm()
 
-    # i_input = ctform.ingredients_input.data
-    # d_input = ctform.directions_input.data
+    if ctform.ingredients_input.data == '':
+        ctform.ingredients_output.data = ''
 
-    """if ctform.ingredients_input.data is None:
-        i_input = ''
-    if ctform.directions_input.data is None:
-        d_input = ''"""
+    if ctform.directions_input.data == '':
+        ctform.directions_output.data = ''
 
     if ctform.is_submitted():
         print("Went to the SUBMIT block")
@@ -103,7 +101,6 @@ def convert_text():
 
         ctform.ingredients_output.data = replace_text(i_input, 'i')
         ctform.directions_output.data = replace_text(d_input, 'd')
-        return redirect(url_for('convert_text'))
     elif request.method == 'GET':
         print("Went to the GET block")
 
@@ -115,8 +112,8 @@ def replace_text(text, scope):
     replist = Replacement.query.filter_by(scope=scope).all()
 
     for r in replist:
-        text = text.replace(r[0],r[1])
-        print(scope, r)
+        # print(scope, r.old, r.new)
+        text = text.replace(r.old, r.new)
     return text
 
 
