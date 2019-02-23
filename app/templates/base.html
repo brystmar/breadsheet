@@ -79,6 +79,10 @@
             padding:            0 2px 0 0px;
             }
             
+        table#convert_text th#title {
+            text-align:         center;
+            }
+        
         td, th {
             padding:            0 10px 0 5px;
         }
@@ -107,5 +111,17 @@
     
     {% block content %}
     {% endblock %}
+
+    <script>
+        function ClearFields() {
+            document.getElementById("input1").value = "";
+            document.getElementById("input2").value = "";
+            document.getElementById("output1").value = "";
+            document.getElementById("output2").value = "";
+            document.getElementById("input1").focus();
+            };
+    </script>
+
 </body>
 </html>
+

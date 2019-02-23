@@ -2,44 +2,30 @@
 
 {% block content %}
     <div id="convert_text">
-        <h1>Text Replacement</h1>
-        <form action="" method="post">
-            {{ ctform.hidden_tag() }}
-            <table id="convert_ingredients">
+        <h1>Convert Recipe Text</h1>
+        <form action="" method="POST">
+            {{ form.hidden_tag() }}
+            <table id="convert_text">
                 <tr>
-                    <th>{{ ctform.ingredients_input.label }}</th>
-                    <th>{{ ctform.ingredients_output.label }}</th>
+                    <th>Ingredients {{ form.input1.label }}</th>
+                    <th>Ingredients {{ form.output1.label }}</th>
                 </tr>
                 <tr>
-                    <td>{{ ctform.ingredients_input(cols=60, rows=15, autofocus=true) }}</td>
-                    <td>{{ ctform.ingredients_output(cols=60, rows=15, disabled=true) }}</td>
+                    <td>{{ form.input1(cols=60, rows=15, autofocus=true) }}</td>
+                    <td>{{ form.output1(cols=60, rows=15, disabled=true) }}</td>
                 </tr>
                 <tr>
-                    <td>{{ ctform.convert_ingredients() }}</td>
-                </tr>
-            </table>
-        </form>
-        <p></p>
-        <form action="" method="post">
-            <table id="convert_directions">
-                <tr>
-                    <th>{{ ctform.directions_input.label }}</th>
-                    <th>{{ ctform.directions_output.label }}</th>
+                    <th>Directions {{ form.input2.label }}</th>
+                    <th>Directions {{ form.output2.label }}</th>
                 </tr>
                 <tr>
-                    <td>{{ ctform.directions_input(cols=60, rows=15) }}</td>
-                    <td>{{ ctform.directions_output(cols=60, rows=15, disabled=true) }}</td>
+                    <td>{{ form.input2(cols=60, rows=15) }}</td>
+                    <td>{{ form.output2(cols=60, rows=15, disabled=true) }}</td>
                 </tr>
                 <tr>
-                    <td>{{ ctform.convert_directions() }}</td>
+                    <td>{{ form.submit() }} <button type="button" onclick="ClearFields();">Reset</button></td>
                 </tr>
             </table>
         </form>
-        <p></p>
-        <ul id="replist">
-            {% for r in replist %}
-                <li>{{ r }}</li>
-            {% endfor %}
-        </ul>
     </div>
 {% endblock %}

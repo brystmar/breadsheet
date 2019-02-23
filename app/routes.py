@@ -5,7 +5,7 @@ from werkzeug.urls import url_parse
 from datetime import datetime, timedelta
 
 from app import breadapp, db
-from app.forms import RecipeForm, StepForm, ConvertTextForm
+from app.forms import RecipeForm, StepForm, ConvertTextFormFull
 from app.models import Recipe, Step, Difficulty, Replacement
 
 
@@ -86,25 +86,17 @@ def add_step():
 
 @breadapp.route('/convert_text', methods=['GET', 'POST'])
 def convert_text():
-    ctform = ConvertTextForm()
+    print("Top of convert_text")
+    form1 = ConvertTextFormFull(prefix="form1")
 
-    if ctform.ingredients_input.data == '':
-        ctform.ingredients_output.data = ''
-
-    if ctform.directions_input.data == '':
-        ctform.directions_output.data = ''
-
-    if ctform.is_submitted():
-        print("Went to the SUBMIT block")
-        i_input = ctform.ingredients_input.data
-        d_input = ctform.directions_input.data
-
-        ctform.ingredients_output.data = replace_text(i_input, 'i')
-        ctform.directions_output.data = replace_text(d_input, 'd')
+    if form1.is_submitted() and form1.submit.data:
+        print("SUBMIT form_i")
+        form1.output1.data = replace_text(form1.input1.data, 'i')
+        form1.output2.data = replace_text(form1.input2.data, 'd')
     elif request.method == 'GET':
-        print("Went to the GET block")
+        print("Went to the GET block form1")
 
-    return render_template('convert_text.html', title='Convert Text for Paprika Recipes', ctform=ctform)
+    return render_template('convert_text.html', title='Convert Text for Paprika Recipes', form=form1)
 
 
 def replace_text(text, scope):
