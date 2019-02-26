@@ -3,3 +3,5 @@
 .git/
 __pycache__/
 logs/
+venv/
+app/creds.py
