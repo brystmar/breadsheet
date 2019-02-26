@@ -2,3 +2,4 @@
 .idea/
 .git/
 __pycache__/
+logs/
