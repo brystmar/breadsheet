@@ -19,15 +19,6 @@
         <a href="/convert_text">Convert Text</a>
     </div>
     <!-- Retrieve messages from the flash msg -->
-    {% with messages = get_flashed_messages() %}
-        {% if messages %}
-            <ul>
-                {% for message in messages %}
-                <li>{{ message }}</li>
-                {% endfor %}
-            </ul>
-        {% endif %}
-    {% endwith %}
     
     <p></p>
     
@@ -36,11 +27,12 @@
 
     <script>
         function ClearFields() {
-            document.getElementById("input1").value = "";
-            document.getElementById("input2").value = "";
-            document.getElementById("output1").value = "";
-            document.getElementById("output2").value = "";
-            document.getElementById("input1").focus();
+            document.getElementById("ingredients_input").value = "";
+            document.getElementById("directions_input").value = "";
+            document.getElementById("ingredients_output").value = "";
+            document.getElementById("directions_output").value = "";
+            document.getElementById("ingredients_input").focus();
+            document.getElementById("convert_text_flash_msg").style.display = "none";
             };
     </script>
 
