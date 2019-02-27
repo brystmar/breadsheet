@@ -3,9 +3,10 @@ from flask import render_template, flash, redirect, url_for, request
 from sqlalchemy import func
 from werkzeug.urls import url_parse
 from datetime import datetime, timedelta
+import pyperclip
 
 from app import breadapp, db
-from app.forms import RecipeForm, StepForm, ConvertTextFormFull
+from app.forms import RecipeForm, StepForm, ConvertTextForm, ThenWaitForm
 from app.models import Recipe, Step, Difficulty, Replacement
 
 
@@ -17,7 +18,6 @@ now = datetime.now()
 @breadapp.route('/breadsheet')
 def index():
     recipes = add_recipe_ui_fields(Recipe.query.order_by('id').all())
-
     return render_template('index.html', title='Breadsheet Home', recipes=recipes)
 
 
@@ -26,8 +26,9 @@ def view_recipe():
     recipe_id = request.args.get('id') or 1
     recipe = add_recipe_ui_fields(Recipe.query.filter_by(id=recipe_id).first())
     steps = set_when(Step.query.filter_by(recipe_id=recipe_id).order_by(Step.number).all(), now)
+    twforms = create_tw_forms(steps)
 
-    return render_template('steps.html', title='View Recipe', recipe=recipe, steps=steps)
+    return render_template('steps.html', title='View Recipe', recipe=recipe, steps=steps, twforms=twforms)
 
 
 @breadapp.route('/add_recipe', methods=['GET', 'POST'])
@@ -35,8 +36,8 @@ def add_recipe():
     rform = RecipeForm()
 
     if rform.validate_on_submit():
-        rdata = Recipe(name=rform.name.data, author=rform.author.data, source=rform.source.data, difficulty=rform.difficulty.data,
-                       date_added=datetime.utcnow())
+        rdata = Recipe(name=rform.name.data, author=rform.author.data, source=rform.source.data,
+                       difficulty=rform.difficulty.data, date_added=datetime.utcnow())
         db.session.add(rdata)
         db.session.commit()
 
@@ -53,20 +54,14 @@ def add_step():
 
     recipe = add_recipe_ui_fields(Recipe.query.filter_by(id=recipe_id).first())
     steps = set_when(Step.query.filter_by(recipe_id=recipe_id).order_by(Step.number).all(), now)
+    twforms = create_tw_forms(steps)
 
     if sform.validate_on_submit():
         # convert then_wait decimal value to seconds
-        units = sform.then_wait_units.data
-        then_wait = sform.then_wait.data
-        if then_wait is None:
-            then_wait = 0
-        elif units == 'minutes':
-            then_wait = int(round(then_wait * 60, 0))
-        elif units == 'hours':
-            then_wait = int(round(then_wait * 60 * 60, 0))
+        then_wait = hms_to_seconds([sform.then_wait_h.data, sform.then_wait_m.data, sform.then_wait_s.data])
 
-        sdata = Step(recipe_id=recipe_id, number=sform.number.data, text=sform.text.data, then_wait=then_wait,
-                     wait_time_range=sform.wait_time_range.data)
+        sdata = Step(recipe_id=recipe_id, number=sform.number.data, text=sform.text.data,
+                     then_wait=then_wait, wait_time_range=sform.wait_time_range.data)
 
         db.session.add(sdata)
         db.session.commit()
@@ -81,78 +76,104 @@ def add_step():
         else:
             sform.number.data = max_step.number + 1
 
-    return render_template('add_step.html', title='Add Step', recipe=recipe, steps=steps, sform=sform)
+    return render_template('add_step.html', title='Add Step', recipe=recipe, steps=steps, sform=sform, twforms=twforms)
 
 
 @breadapp.route('/convert_text', methods=['GET', 'POST'])
 def convert_text():
     print("Top of convert_text")
-    form1 = ConvertTextFormFull(prefix="form1")
+    form = ConvertTextForm(prefix="form1")
 
-    if form1.is_submitted() and form1.submit.data:
-        print("SUBMIT form_i")
-        form1.output1.data = replace_text(form1.input1.data, 'i')
-        form1.output2.data = replace_text(form1.input2.data, 'd')
+    if form.is_submitted() and form.submit.data:
+        ing = replace_text(form.ingredients_input.data, 'i')
+        dir = replace_text(form.directions_input.data, 'd')
+
+        form.ingredients_output.data = ing
+        form.directions_output.data = dir
+
+        # copy converted data to the clipboard
+        if len(ing) > 0 and len(dir) > 0:
+            clip = ing + '\n\n' + dir
+            pyperclip.copy(clip)
+            flash('Copied to clipboard')
+        elif len(ing) > 0:
+            clip = ing
+            pyperclip.copy(clip)
+            flash('Copied to clipboard')
+        elif len(dir) > 0:
+            clip = dir
+            pyperclip.copy(clip)
+            flash('Copied to clipboard')
+
     elif request.method == 'GET':
         print("Went to the GET block form1")
 
-    return render_template('convert_text.html', title='Convert Text for Paprika Recipes', form=form1)
+    return render_template('convert_text.html', title='Convert Text for Paprika Recipes', form=form)
 
 
 def replace_text(text, scope):
     # execute replacements in the provided text
     replist = Replacement.query.filter_by(scope=scope).all()
-
     for r in replist:
-        # print(scope, r.old, r.new)
         text = text.replace(r.old, r.new)
     return text
 
 
-def time_string(num):
-    # accepts a number of seconds (int), returns a formatted string with hrs/min/sec
+def seconds_to_hms(num):
+    # accepts a number of seconds (int), returns a three-str list: [hours, minutes, seconds]
     if num is None:
         return ''
     else:
-        hours = num // 3600
-        if hours == 0:
-            hstr = ''
-        else:
-            hstr = str(hours) + 'h'
+        h = str(num // 3600)
         num %= 3600
-
-        minutes = num // 60
-        if minutes == 0:
-            mstr = ''
-        else:
-            mstr = str(minutes) + 'm'
+        m = str(num // 60)
         num %= 60
+        s = str(num)
 
-        seconds = num
-        if seconds == 0:
-            sstr = ''
-        else:
-            sstr = str(seconds) + 's'
+        result = [h, m, s]
+        i = 0
+        while i <= 2:
+            if result[i] == '0':
+                result[i] = '00'
+            if len(result[i]) == 1:
+                result[i] = '0' + result[i]
+            i += 1
+    return result
 
-        return hstr + mstr + sstr
+
+def hms_to_seconds(hms):
+    # accepts a three-int list, returns a number of seconds (int)
+    if not (isinstance(hms, list) and len(hms) == 3):
+        flash('Error in hms_to_seconds function: Invalid input {}.'.format(hms))
+        return 0
+
+    try:
+        hms[0] = int(hms[0])
+        hms[1] = int(hms[1])
+        hms[2] = int(hms[2])
+        return (hms[0] * 24) + (hms[1] * 60) + (hms[2] * 60)
+    except:
+        flash('Error in hms_to_seconds function: List values {} cannot be converted to int.'.format(hms))
+        return 0
 
 
 def set_when(steps, when):
-    # calculates when each step should begin
+    # accepts a list of Step objects, plus the benchmark time, and calculates when each step should begin
     # also converts raw seconds to a text string, stored in a UI-specific value for 'then_wait'
+    # returns a list of Steps plus a list of forms
     i = 0
     for s in steps:
         if i == 0:
             s.when = when.strftime('%Y-%m-%d %H:%M')
-            s.then_wait_ui = time_string(s.then_wait)
+            s.then_wait_ui = seconds_to_hms(s.then_wait)
             when += timedelta(seconds=s.then_wait)
         else:
             if s.then_wait is None or s.then_wait == 0:
                 s.when = when.strftime('%Y-%m-%d %H:%M')
-                s.then_wait_ui = '--'
+                s.then_wait_ui = seconds_to_hms(s.then_wait)
             else:
                 s.when = when.strftime('%Y-%m-%d %H:%M')
-                s.then_wait_ui = time_string(s.then_wait)
+                s.then_wait_ui = seconds_to_hms(s.then_wait)
                 when += timedelta(seconds=s.then_wait)
         i += 1
 
@@ -188,3 +209,18 @@ def add_recipe_ui_fields(data):
             data.end_time = (now + timedelta(seconds=total_time)).strftime('%Y-%m-%d %H:%M')
 
     return data
+
+
+def create_tw_forms(steps):
+    twforms = []
+    for s in steps:
+        tw = ThenWaitForm()
+        tw.step_number = s.number
+        tw.then_wait_h.data = s.then_wait_ui[0]
+        tw.then_wait_m.data = s.then_wait_ui[1]
+        tw.then_wait_s.data = s.then_wait_ui[2]
+        twforms.append(tw)
+
+    twforms[0].date.data = now
+    twforms[0].time.data = now
+    return twforms

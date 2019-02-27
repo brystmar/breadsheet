@@ -3,7 +3,7 @@
 {% block add_step %}
     <div id="add_step">
         <h1>Add Step</h1>
-        <form action="" method="post">
+        <form action="" method="POST">
             {{ sform.hidden_tag() }}
             <table id="step_form">
                 <tr>
@@ -25,10 +25,13 @@
                     {% endfor %}
                 </tr>
                 <tr>
-                    <th>{{ sform.then_wait.label }}</th>
-                    <td>{{ sform.then_wait(size=5) }} {{ sform.then_wait_units }}
+                    <th>{{ sform.then_wait_h.label }}</th>
+                    <td>
+                        {{ sform.then_wait_h(size=2) }}
+                        {{ sform.then_wait_m(size=2) }}
+                        {{ sform.then_wait_s(size=2) }}
                     </td>
-                    {% for error in sform.then_wait.errors %}
+                    {% for error in sform.then_wait_h.errors %}
                     <td>
                         <span style="color: red;">[{{ error }}]</span>
                     </td>

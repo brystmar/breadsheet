@@ -1,14 +1,16 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, SubmitField, TextAreaField, IntegerField, DecimalField, SelectField
+from wtforms import StringField, SubmitField, TextAreaField, IntegerField, SelectField
+from wtforms.fields.html5 import DateTimeField, DateField, TimeField
 from wtforms.validators import DataRequired, ValidationError, Length, Optional, NumberRange
 from app.models import Recipe
 
 
 class RecipeForm(FlaskForm):
-    name = StringField('Name', validators=[DataRequired(), Length(min=5, max=64)])
+    name = StringField('Name', validators=[DataRequired(), Length(min=5, max=64)], render_kw={'autofocus': True})
     author = StringField('Author', validators=[Length(max=64)])
     source = StringField('Source', validators=[Length(max=128)])
-    difficulty = SelectField('Difficulty', validators=[DataRequired()], default='M', choices=[('E', 'Easy'), ('M', 'Medium'), ('H', 'Hard')])
+    difficulty = SelectField('Difficulty', validators=[DataRequired()], default='M',
+                             choices=[('E', 'Easy'), ('M', 'Medium'), ('H', 'Hard')])
     submit = SubmitField('Add Recipe')
 
     # ensure recipe name is unique
@@ -24,10 +26,10 @@ class RecipeForm(FlaskForm):
 class StepForm(FlaskForm):
     recipe_id = IntegerField('Recipe ID')
     number = IntegerField('Step Number')
-    text = TextAreaField('Directions', validators=[DataRequired(), Length(max=512)])
-    then_wait = DecimalField('Then Wait...', validators=[Optional(), NumberRange(min=0)])
-    then_wait_units = SelectField('Units', validators=[DataRequired()], default='minutes',
-                                  choices=[('hours', 'Hours'), ('minutes', 'Minutes'), ('seconds', 'Seconds')])
+    text = TextAreaField('Directions', validators=[DataRequired(), Length(max=512)], render_kw={'autofocus': True})
+    then_wait_h = IntegerField('Then Wait...', validators=[Optional(), NumberRange(min=0, max=999)], render_kw={'placeholder': 'h'})
+    then_wait_m = IntegerField('Then Wait...', validators=[Optional(), NumberRange(min=0, max=999)], render_kw={'placeholder': 'm'})
+    then_wait_s = IntegerField('Then Wait...', validators=[Optional(), NumberRange(min=0, max=999)], render_kw={'placeholder': 's'})
     wait_time_range = StringField('Time Range')
     submit = SubmitField('Add Step')
 
@@ -35,16 +37,21 @@ class StepForm(FlaskForm):
         return '<StepForm #{} for recipe_id: {}>'.format(self.number, self.name)
 
 
-class ConvertTextFormFull(FlaskForm):
-    input1 = TextAreaField('Input', id='input1')
-    output1 = TextAreaField('Output', id='output1')
-    input2 = TextAreaField('Input', id='input2')
-    output2 = TextAreaField('Output', id='output2')
+class ConvertTextForm(FlaskForm):
+    ingredients_input = TextAreaField('Input', id='ingredients_input', render_kw={'autofocus': True})
+    ingredients_output = TextAreaField('Output', id='ingredients_output')
+    directions_input = TextAreaField('Input', id='directions_input')
+    directions_output = TextAreaField('Output', id='directions_output')
     submit = SubmitField('Convert')
 
     def __repr__(self):
         return '<ConvertText form>'
 
-# directions_input = TextAreaField('Directions Input')
-# directions_output = TextAreaField('Directions Output')
-# convert_directions = SubmitField('Convert Directions')
+
+class ThenWaitForm(FlaskForm):
+    step_number = IntegerField('Step Number')
+    then_wait_h = IntegerField('Then Wait...', validators=[NumberRange(min=0, max=999)], render_kw={'placeholder': 'h'})
+    then_wait_m = IntegerField('Then Wait...', validators=[NumberRange(min=0, max=999)], render_kw={'placeholder': 'm'})
+    then_wait_s = IntegerField('Then Wait...', validators=[NumberRange(min=0, max=999)], render_kw={'placeholder': 's'})
+    date = DateField('Start Date')
+    time = TimeField('Start Time')

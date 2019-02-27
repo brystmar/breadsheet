@@ -7,23 +7,31 @@
             {{ form.hidden_tag() }}
             <table id="convert_text">
                 <tr>
-                    <th>Ingredients {{ form.input1.label }}</th>
-                    <th>Ingredients {{ form.output1.label }}</th>
+                    <th>Ingredients {{ form.ingredients_input.label }}</th>
+                    <th>Ingredients {{ form.ingredients_output.label }}</th>
                 </tr>
                 <tr>
-                    <td>{{ form.input1(cols=60, rows=15, autofocus=true) }}</td>
-                    <td>{{ form.output1(cols=60, rows=15, disabled=true) }}</td>
+                    <td>{{ form.ingredients_input(cols=60, rows=15, autofocus=true) }}</td>
+                    <td>{{ form.ingredients_output(cols=60, rows=15, disabled=true) }}</td>
                 </tr>
                 <tr>
-                    <th>Directions {{ form.input2.label }}</th>
-                    <th>Directions {{ form.output2.label }}</th>
+                    <th>Directions {{ form.directions_input.label }}</th>
+                    <th>Directions {{ form.directions_output.label }}</th>
                 </tr>
                 <tr>
-                    <td>{{ form.input2(cols=60, rows=15) }}</td>
-                    <td>{{ form.output2(cols=60, rows=15, disabled=true) }}</td>
+                    <td>{{ form.directions_input(cols=60, rows=15) }}</td>
+                    <td>{{ form.directions_output(cols=60, rows=15, disabled=true) }}</td>
                 </tr>
                 <tr>
-                    <td>{{ form.submit() }} <button type="button" onclick="ClearFields();">Reset</button></td>
+                    <td>
+                        {{ form.submit() }}
+                        <button type="button" onclick="ClearFields();" id="reset">Reset</button>
+                    </td>
+                </tr>
+                <tr>
+                    <td id="convert_text_flash_msg" style="font-size:small; color:Green">
+                        {{ get_flashed_messages()[0] }}
+                    </td>
                 </tr>
             </table>
         </form>

@@ -12,11 +12,17 @@
             </tr>
             
             {% for step in steps %}
-                <tr id="step_row">
-                    <td id="step_number">{{ step.number }}.</td>
+                <tr id="step_row{{ step.number }}">
+                    <td id="step_number{{ step.number }}">{{ step.number }}.</td>
                     <td>{{ step.text }}</td>
                     <td>{{ step.when }}</td>
-                    <td>{{ step.then_wait_ui }}</td>
+                    <!--<td>{{ step.then_wait_ui[0] }}:{{ step.then_wait_ui[1] }}:{{ step.then_wait_ui[2] }}</td>-->
+                    <td id="step_wait{{ step.number}}">
+                        <form action="" method="POST" id="form_step_wait{{ step.number }}">
+                            {{ twforms[step.number-1].then_wait_h(size=2) }}:{{ twforms[step.number-1].then_wait_m(size=2) }}:{{ twforms[step.number-1].then_wait_s(size=2) }}
+                        </form>
+                        
+                    </td>
                     <td>{{ step.wait_time_range }}</td>
                 </tr>
             {% endfor %}
@@ -26,6 +32,7 @@
             <tr id="step_header_row">
                 <th>Start:</th>
                 <td>{{ recipe.start_time }}</td>
+                <td>{{ twforms[0].date }}{{ twforms[0].time }}</td>
             </tr>
             <tr id="step_header_row">
                 <th>End:</th>
