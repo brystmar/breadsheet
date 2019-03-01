@@ -1,5 +1,5 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, SubmitField, TextAreaField, IntegerField, SelectField
+from wtforms import StringField, SubmitField, TextAreaField, IntegerField, SelectField, SelectMultipleField
 from wtforms.fields.html5 import DateTimeField, DateField, TimeField
 from wtforms.validators import DataRequired, ValidationError, Length, Optional, NumberRange
 from app.models import Recipe
@@ -49,9 +49,23 @@ class ConvertTextForm(FlaskForm):
 
 
 class ThenWaitForm(FlaskForm):
-    step_number = IntegerField('Step Number')
+    step_id = IntegerField('Step Number')
     then_wait_h = IntegerField('Then Wait...', validators=[NumberRange(min=0, max=999)], render_kw={'placeholder': 'h'})
     then_wait_m = IntegerField('Then Wait...', validators=[NumberRange(min=0, max=999)], render_kw={'placeholder': 'm'})
     then_wait_s = IntegerField('Then Wait...', validators=[NumberRange(min=0, max=999)], render_kw={'placeholder': 's'})
-    date = DateField('Start Date')
-    time = TimeField('Start Time')
+
+    def __repr__(self):
+        return '<ThenWait form>'
+
+
+class StartFinishForm(FlaskForm):
+    recipe_id = IntegerField('Recipe ID')
+    start_date = DateField('Start Date', id='start_date', render_kw={'placeholder': 'date'})
+    start_time = TimeField('Start Time', id='start_time')
+    finish_date = DateField('Finish Date', id='finish_date', render_kw={'placeholder': 'date'})
+    finish_time = TimeField('Finish Time', id='finish_time')
+    solve_for_start = SelectField('Solve For', id='solve_for_start', default='F', validators=[DataRequired()],
+                                  choices=[('S', 'Start Time'), ('F', 'Finish Time')])
+
+    def __repr__(self):
+        return '<Start & End Times form>'
