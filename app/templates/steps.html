@@ -12,16 +12,19 @@
             </tr>
             
             {% for step in steps %}
-                <tr id="step_row{{ step.number }}">
-                    <td id="step_number{{ step.number }}">{{ step.number }}.</td>
+                <tr id="step_row{{ step.id }}">
+                    <td id="step_number{{ step.id }}">{{ step.id }}.</td>
                     <td>{{ step.text }}</td>
                     <td>{{ step.when }}</td>
                     <!--<td>{{ step.then_wait_ui[0] }}:{{ step.then_wait_ui[1] }}:{{ step.then_wait_ui[2] }}</td>-->
                     <td id="step_wait{{ step.number}}">
-                        <form action="" method="POST" id="form_step_wait{{ step.number }}">
-                            {{ twforms[step.number-1].then_wait_h(size=2) }}:{{ twforms[step.number-1].then_wait_m(size=2) }}:{{ twforms[step.number-1].then_wait_s(size=2) }}
-                        </form>
-                        
+                        {% for tw in twforms %}
+                            {% if tw.step_id == step.id %}
+                            <form action="" method="POST" id="form_step_wait{{ step.number }}">
+                                {{ tw.then_wait_h(size=2) }}:{{ tw.then_wait_m(size=2) }}:{{ tw.then_wait_s(size=2) }}
+                            </form>
+                            {% endif %}
+                        {% endfor %}
                     </td>
                     <td>{{ step.wait_time_range }}</td>
                 </tr>
@@ -29,14 +32,37 @@
         </table>
         <p></p>
         <table id="steps_time_summary">
-            <tr id="step_header_row">
+            <tr id="summary_start_row">
                 <th>Start:</th>
-                <td>{{ recipe.start_time }}</td>
-                <td>{{ twforms[0].date }}{{ twforms[0].time }}</td>
+                <td>
+                    <!-- <div id="start_time_text">{{ recipe.start_time_ui }}</div> -->
+                    <div id="start_time_controls">
+                        <form action="" method="POST" id="form_start_time">
+                            {{ seform.start_date }}{{ seform.start_time }}
+                        </form>
+                    </div>
+                </td>
+                <td><button type="button" onclick="StartNow();" id="now_start">Now</button></td>
+                <td></td>
+                <td style="text-align:center;"><b>{{ seform.solve_for_start.label }}</b></td>
             </tr>
-            <tr id="step_header_row">
-                <th>End:</th>
-                <td>{{ recipe.end_time }}</td>
+            <tr id="summary_finish_row">
+                <th>Finish:</th>
+                <td>
+                    <!-- <div id="finish_time_text">{{ recipe.finish_time_ui }}</div> -->
+                    <div id="finish_time_controls">
+                        <form action="" method="POST" id="form_finish_time">
+                            {{ seform.finish_date }}{{ seform.finish_time }}
+                        </form>
+                    </div>
+                </td>
+                <td><button type="button" onclick="FinishNow();" id="now_finish">Now</button></td>
+                <td></td>
+                <td>{{ seform.solve_for_start(size=2) }}</td>
+            </tr>
+            <tr id="total_time_row">
+                <th>Total:</th>
+                <td>{{ recipe.total_time_ui }}</td>
             </tr>
         </table>
     </div>
@@ -44,7 +70,7 @@
     {% if not sform %}
         <!-- hide this link when the Add Step form is displayed -->
         <div id="ask_add_step">
-            <p><a href="/add_step?id={{ recipe.id }}">Click to add a step</a></p>
+            <p><input type="submit" value="Add a step" onclick="window.location='/add_step';" /></p>
         </div>
     {% endif %}
 
