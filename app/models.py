@@ -10,7 +10,7 @@ class Recipe(db.Model):
     difficulty = db.Column(db.String(1), index=True)
     date_added = db.Column(db.DateTime, default=datetime.utcnow())
     start_time = db.Column(db.String(32), default=str(datetime.utcnow()))
-    solve_for_start = db.Column(db.String(1), index=True, default=True)
+    solve_for_start = db.Column(db.String(1), default=1)
     steps = db.relationship('Step', backref='recipe', lazy='dynamic')
 
     def __repr__(self):  # tells python how to print objects of this class to the console while debugging

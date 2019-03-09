@@ -1,6 +1,11 @@
-{% extends "steps.html" %}
+{% extends "start_finish.html" %}
 
 {% block add_step %}
+    <div id="ask_add_step">
+        <!-- <p><input type="submit" value="Add a step" onclick="window.location='/add_step';" /></p> -->
+        <p><button onclick="addStep()" id="ask_add_step_button">Add a step</button></p>
+    </div>
+
     <div id="add_step">
         <h1>Add Step</h1>
         <form action="" method="POST">

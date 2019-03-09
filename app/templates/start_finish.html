@@ -1,0 +1,45 @@
+{% extends "steps.html" %}
+
+{% block start_finish %}
+    <div id="start_finish">
+        <table id="start_finish_table">
+            <tr id="summary_start_row">
+                <th>Start:</th>
+                <td>
+                    <!-- <div id="start_time_text">{{ recipe.start_time_ui }}</div> -->
+                    <div id="start_time_controls">
+                        <form action="" method="POST" id="form_start_time">
+                            {{ seform.start_date }}{{ seform.start_time }}
+                        </form>
+                    </div>
+                </td>
+                <td><button onclick="startNow()" id="start_now">Now</button></td>
+                <td></td>
+                <td style="text-align:center;"><b>{{ seform.solve_for_start.label }}</b></td>
+            </tr>
+            <tr id="summary_finish_row">
+                <th>Finish:</th>
+                <td>
+                    <!-- <div id="finish_time_text">{{ recipe.finish_time_ui }}</div> -->
+                    <div id="finish_time_controls">
+                        <form action="" method="POST" id="form_finish_time">
+                            {{ seform.finish_date }}{{ seform.finish_time }}
+                        </form>
+                    </div>
+                </td>
+                <td><button onclick="finishNow()" id="finish_now">Now</button></td>
+                <td></td>
+                <td>{{ seform.solve_for_start(size=2) }}</td>
+                <td><button id="update" onclick="sfToggle()">Update</button></td>
+            </tr>
+            <tr id="total_time_row">
+                <th>Total:</th>
+                <td>{{ recipe.total_time_ui }}</td>
+            </tr>
+        </table>
+    </div>
+
+    {% block add_step %}
+    {% endblock %}
+
+{% endblock %}
