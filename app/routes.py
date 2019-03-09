@@ -23,18 +23,6 @@ def index():
     return render_template('index.html', title='Breadsheet Home', recipes=recipes)
 
 
-@breadapp.route('/recipe')
-def view_recipe():
-    recipe_id = request.args.get('id') or 1
-    recipe = add_recipe_ui_fields(Recipe.query.filter_by(id=recipe_id).first())
-    steps = set_when(Step.query.filter_by(recipe_id=recipe_id).order_by(Step.number).all(), recipe.start_time)
-    twforms = create_tw_forms(steps)
-    seform = create_start_finish_forms(recipe)
-
-    return render_template('steps.html', title='View Recipe', recipe=recipe, steps=steps,
-                           seform=seform, twforms=twforms)
-
-
 @breadapp.route('/add_recipe', methods=['GET', 'POST'])
 def add_recipe():
     rform = RecipeForm()
@@ -50,7 +38,21 @@ def add_recipe():
     return render_template('add_recipe.html', title='Add Recipe', rform=rform)
 
 
-@breadapp.route('/add_step', methods=['GET', 'POST'])
+"""
+@breadapp.route('/recipe', methods=['GET', 'POST'])
+def view_recipe():
+    recipe_id = request.args.get('id') or 1
+    recipe = add_recipe_ui_fields(Recipe.query.filter_by(id=recipe_id).first())
+    steps = set_when(Step.query.filter_by(recipe_id=recipe_id).order_by(Step.number).all(), recipe.start_time)
+    twforms = create_tw_forms(steps)
+    seform = create_start_finish_forms(recipe)
+
+    return render_template('add_step.html', title='View Recipe', recipe=recipe, steps=steps,
+                           seform=seform, twforms=twforms)
+"""
+
+
+@breadapp.route('/recipe', methods=['GET', 'POST'])
 def add_step():
     sform = StepForm()
     recipe_id = request.args.get('id') or 1
@@ -81,7 +83,7 @@ def add_step():
         else:
             sform.number.data = max_step.number + 1
 
-    return render_template('add_step.html', title='Add Step', recipe=recipe, steps=steps, sform=sform,
+    return render_template('add_step.html', title=recipe.name, recipe=recipe, steps=steps, sform=sform,
                            seform=seform, twforms=twforms)
 
 
@@ -282,16 +284,18 @@ def create_start_finish_forms(recipe):
 
 
 def se_toggle(seform, solve_for_start):
-    seform.solve_for_start.data = solve_for_start
-    if solve_for_start == 'S':
-        seform.start_date(disabled=True)
-        seform.start_time(disabled=True)
-        seform.finish_date(disabled=False)
-        seform.finish_time(disabled=False)
+    seform.solve_for_start.data = str(solve_for_start)
+    # return seform
+
+    if solve_for_start == '0':  # 0 = false
+        seform.start_date(disabled="true")
+        seform.start_time(disabled="true")
+        seform.finish_date(disabled="false")
+        seform.finish_time(disabled="false")
     else:
-        seform.start_date(disabled=False)
-        seform.start_time(disabled=False)
-        seform.finish_date(disabled=True)
-        seform.finish_time(disabled=True)
+        seform.start_date(disabled="false")
+        seform.start_time(disabled="false")
+        seform.finish_date(disabled="true")
+        seform.finish_time(disabled="true")
 
     return seform

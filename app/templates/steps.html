@@ -31,50 +31,9 @@
             {% endfor %}
         </table>
         <p></p>
-        <table id="steps_time_summary">
-            <tr id="summary_start_row">
-                <th>Start:</th>
-                <td>
-                    <!-- <div id="start_time_text">{{ recipe.start_time_ui }}</div> -->
-                    <div id="start_time_controls">
-                        <form action="" method="POST" id="form_start_time">
-                            {{ seform.start_date }}{{ seform.start_time }}
-                        </form>
-                    </div>
-                </td>
-                <td><button type="button" onclick="StartNow();" id="now_start">Now</button></td>
-                <td></td>
-                <td style="text-align:center;"><b>{{ seform.solve_for_start.label }}</b></td>
-            </tr>
-            <tr id="summary_finish_row">
-                <th>Finish:</th>
-                <td>
-                    <!-- <div id="finish_time_text">{{ recipe.finish_time_ui }}</div> -->
-                    <div id="finish_time_controls">
-                        <form action="" method="POST" id="form_finish_time">
-                            {{ seform.finish_date }}{{ seform.finish_time }}
-                        </form>
-                    </div>
-                </td>
-                <td><button type="button" onclick="FinishNow();" id="now_finish">Now</button></td>
-                <td></td>
-                <td>{{ seform.solve_for_start(size=2) }}</td>
-            </tr>
-            <tr id="total_time_row">
-                <th>Total:</th>
-                <td>{{ recipe.total_time_ui }}</td>
-            </tr>
-        </table>
     </div>
 
-    {% if not sform %}
-        <!-- hide this link when the Add Step form is displayed -->
-        <div id="ask_add_step">
-            <p><input type="submit" value="Add a step" onclick="window.location='/add_step';" /></p>
-        </div>
-    {% endif %}
-
-    {% block add_step %}
+    {% block start_finish %}
     {% endblock %}
 
 {% endblock %}

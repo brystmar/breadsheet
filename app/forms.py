@@ -64,8 +64,8 @@ class StartFinishForm(FlaskForm):
     start_time = TimeField('Start Time', id='start_time')
     finish_date = DateField('Finish Date', id='finish_date', render_kw={'placeholder': 'date'})
     finish_time = TimeField('Finish Time', id='finish_time')
-    solve_for_start = SelectField('Solve For', id='solve_for_start', default='F', validators=[DataRequired()],
-                                  choices=[('S', 'Start Time'), ('F', 'Finish Time')])
+    solve_for_start = SelectField('Solve For', id='solve_for_start', default='1', validators=[DataRequired()],
+                                  choices=[('1', 'Start Time'), ('0', 'Finish Time')], render_kw={'autofocus': True})
 
     def __repr__(self):
         return '<Start & End Times form>'
