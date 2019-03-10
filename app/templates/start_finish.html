@@ -30,7 +30,7 @@
         </tr>
         <tr id="total_time_row">
             <th>Total:</th>
-            <td>{{ recipe.total_time_ui }}</td>
+            <td id="total_time">{{ recipe.total_time_ui }}</td>
             <td></td>
             <td></td>
             <td><button id="calculate" onclick="calcTime()">Calculate</button></td>
@@ -42,6 +42,9 @@
 // add an event listener for the selection box
 document.getElementById("solve_for_start").addEventListener("change", sfToggle);
 
+// build a dictionary of step_ids with then_wait values (in seconds)
+var step_wait_times = {};
+
 function sfToggle() {
     var box = document.getElementById("solve_for_start");
     var sdate = document.getElementById("start_date");
@@ -51,7 +54,7 @@ function sfToggle() {
     var s_now = document.getElementById("start_now");
     var f_now = document.getElementById("finish_now");
 
-if (box.value == "1") {
+    if (box.value == "1") {
         sdate.disabled = true
         stime.disabled = true
         fdate.disabled = false
@@ -108,25 +111,130 @@ function finishNow() {
 }
 
 function calcTime() {
+    var solve_for_start = document.getElementById("solve_for_start");
     var sdate = document.getElementById("start_date");
     var stime = document.getElementById("start_time");
     var fdate = document.getElementById("finish_date");
     var ftime = document.getElementById("finish_time");
+    var ttime = document.getElementById("total_time");
 
     var start = moment(sdate.value + " " + stime.value);
     var finish = moment(fdate.value + " " + ftime.value);
 
-    // start timestamp must be before finish timestamp
-    if (sdate >= fdate && stime >= ftime) {
-        sdate.value = fdate.value;
-        stime.value = ftime.value;
+    // collect all the 'then_wait' inputs from the steps_list table
+    var table = document.getElementById("steps_list");
+    var ins = table.getElementsByTagName("input");
+
+    var step_id = 0;
+    var seconds = 0;
+    var total = 0;
+    var delta = 0;
+
+    // clear existing values in the step_wait_times dictionary
+    for (var key in step_wait_times) {
+        if (step_wait_times.hasOwnProperty(key)) {
+            step_wait_times[key] = 0;
+        }
     }
 
-    var output = document.getElementById("debug");
+    for (i=0; i < ins.length; i++) {
+        // convert text values to seconds
+        if (ins[i].id.indexOf("then_wait_h") == 0) {
+            seconds = Number(ins[i].value) * 60 * 60;
+        }
+        else if (ins[i].id.indexOf("then_wait_m") == 0) {
+            seconds = Number(ins[i].value) * 60;
+        }
+        else if (ins[i].id.indexOf("then_wait_s") == 0) {
+            seconds = Number(ins[i].value);
+        }
+        else {
+            seconds = 0;
+        }
 
-    output.innerHTML = "start: " + start.format();
-    output.innerHTML += "<br>start delta: " + start.add(18000, 'seconds').format();
-    output.innerHTML += "<br><br>finish: " + finish.format();
+        total += seconds;
 
+        step_id = ins[i].id.substring(11);
+        // only use use += if this step_id is already in the dictionary
+        if (step_wait_times.hasOwnProperty(step_id)) {
+            step_wait_times[step_id] += seconds;
+        }
+        else {
+            step_wait_times[step_id] = seconds;
+        }
+    }
+
+    step_wait_times["total"] = total;
+
+    // update start & finish times
+    if (solve_for_start.value == 0) {  // user entered their desired start time; system solves for finish
+        finish = start.add(total, 'seconds');
+        fdate.value = finish.format('YYYY-MM-DD');
+        ftime.value = finish.format('HH:mm');
+    }
+    else {  // user entered their desired finish time; system solves for start
+        start = finish.add(-total, 'seconds');
+        sdate.value = start.format('YYYY-MM-DD');
+        stime.value = start.format('HH:mm');
+    }
+
+    // update the total time
+    ttime.innerHTML = sec_to_hms(total);
+
+    // update the 'when' labels in the steps list
+    for (var key in step_wait_times) {
+        if (key != "total") {  // skip the total attribute
+            // go forwards when solving for the finish time
+            label = document.getElementById("step_when" + key);
+
+            label.innerHTML = label.innerHTML;
+
+        }
+    }
 }
+
+function sec_to_hms(sec) {
+    // accepts a number of seconds (int), returns a string for how many hrs, min, sec
+    var result = "";
+    var hours = "";
+    var minutes = "";
+    var seconds = "";
+
+    if (sec == 0) {
+        return "--";
+    }
+
+    var h = Math.floor(sec / 3600);
+    if (h != 0) {
+        hours = h.toString() + " hrs";
+        result = h.toString() + " hrs";
+    }
+
+    var m = Math.floor(sec / 60) % 60;
+    if (m != 0) {
+        minutes = m.toString() + " min";
+
+        if (result != "") {
+            result += ", " + minutes;
+        }
+        else {
+            result = minutes;
+        }
+    }
+
+    var s = sec % 60;
+    if (s != 0) {
+        seconds = s.toString() + " sec";
+
+        if (result != "") {
+            result += ", " + seconds;
+        }
+        else {
+            result = seconds;
+        }
+    }
+    return result;
+}
+
+
 </script>
