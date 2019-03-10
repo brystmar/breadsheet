@@ -1,47 +1,137 @@
-{% extends "steps.html" %}
+<div id="start_finish">
+    <table id="start_finish_table">
+        <tr id="summary_start_row">
+            <th>Start:</th>
+            <td>
+                <!-- <div id="start_time_text">{{ recipe.start_time_ui }}</div> -->
+                <div id="start_time_controls">
+                    <form action="" method="POST" id="form_start_time">
+                        {{ seform.start_date }}{{ seform.start_time }}
+                    </form>
+                </div>
+            </td>
+            <td><button onclick="startNow()" id="start_now">Now</button></td>
+            <td> </td>
+            <td style="text-align:center;"><b>{{ seform.solve_for_start.label }}</b></td>
+        </tr>
+        <tr id="summary_finish_row">
+            <th>Finish:</th>
+            <td>
+                <!-- <div id="finish_time_text">{{ recipe.finish_time_ui }}</div> -->
+                <div id="finish_time_controls">
+                    <form action="" method="POST" id="form_finish_time">
+                        {{ seform.finish_date }}{{ seform.finish_time }}
+                    </form>
+                </div>
+            </td>
+            <td><button onclick="finishNow()" id="finish_now">Now</button></td>
+            <td></td>
+            <td>{{ seform.solve_for_start(size=2) }}</td>
+        </tr>
+        <tr id="total_time_row">
+            <th>Total:</th>
+            <td>{{ recipe.total_time_ui }}</td>
+            <td></td>
+            <td></td>
+            <td><button id="calculate" onclick="calcTime()">Calculate</button></td>
+        </tr>
+    </table>
+</div>
 
-{% block start_finish %}
-    <div id="start_finish">
-        <table id="start_finish_table">
-            <tr id="summary_start_row">
-                <th>Start:</th>
-                <td>
-                    <!-- <div id="start_time_text">{{ recipe.start_time_ui }}</div> -->
-                    <div id="start_time_controls">
-                        <form action="" method="POST" id="form_start_time">
-                            {{ seform.start_date }}{{ seform.start_time }}
-                        </form>
-                    </div>
-                </td>
-                <td><button onclick="startNow()" id="start_now">Now</button></td>
-                <td> </td>
-                <td style="text-align:center;"><b>{{ seform.solve_for_start.label }}</b></td>
-            </tr>
-            <tr id="summary_finish_row">
-                <th>Finish:</th>
-                <td>
-                    <!-- <div id="finish_time_text">{{ recipe.finish_time_ui }}</div> -->
-                    <div id="finish_time_controls">
-                        <form action="" method="POST" id="form_finish_time">
-                            {{ seform.finish_date }}{{ seform.finish_time }}
-                        </form>
-                    </div>
-                </td>
-                <td><button onclick="finishNow()" id="finish_now">Now</button></td>
-                <td></td>
-                <td>{{ seform.solve_for_start(size=2) }}</td>
-            </tr>
-            <tr id="total_time_row">
-                <th>Total:</th>
-                <td>{{ recipe.total_time_ui }}</td>
-                <td></td>
-                <td></td>
-                <td><button id="calculate" onclick="calcTime()">Calculate</button></td>
-            </tr>
-        </table>
-    </div>
+<script>
+// add an event listener for the selection box
+document.getElementById("solve_for_start").addEventListener("change", sfToggle);
 
-    {% block add_step %}
-    {% endblock %}
+function sfToggle() {
+    var box = document.getElementById("solve_for_start");
+    var sdate = document.getElementById("start_date");
+    var stime = document.getElementById("start_time");
+    var fdate = document.getElementById("finish_date");
+    var ftime = document.getElementById("finish_time");
+    var s_now = document.getElementById("start_now");
+    var f_now = document.getElementById("finish_now");
 
-{% endblock %}
+if (box.value == "1") {
+        sdate.disabled = true
+        stime.disabled = true
+        fdate.disabled = false
+        ftime.disabled = false
+        s_now.disabled = true
+        f_now.disabled = false
+    }
+    else {
+        sdate.disabled = false
+        stime.disabled = false
+        fdate.disabled = true
+        ftime.disabled = true
+        s_now.disabled = false
+        f_now.disabled = true
+    }
+}
+
+function startNow() {
+    var date = new Date();
+    var day = date.getDate();
+    var month = date.getMonth() + 1;
+    var year = date.getFullYear();
+
+    if (month < 10) month = "0" + month;
+    if (day < 10) day = "0" + day;
+    var today = year + "-" + month + "-" + day;
+
+    document.getElementById('start_date').value = today;
+
+    var hour = date.getHours();
+    var minute = date.getMinutes();
+    var time = hour + ":" + minute;
+
+    document.getElementById('start_time').value = time;
+}
+
+function finishNow() {
+    var date = new Date();
+    var day = date.getDate();
+    var month = date.getMonth() + 1;
+    var year = date.getFullYear();
+
+    if (month < 10) month = "0" + month;
+    if (day < 10) day = "0" + day;
+    var today = year + "-" + month + "-" + day;
+
+    document.getElementById('finish_date').value = today;
+
+    var hour = date.getHours();
+    var minute = date.getMinutes();
+    var time = hour + ":" + minute;
+
+    document.getElementById('finish_time').value = time;
+}
+
+function calcTime() {
+    var sdate = document.getElementById("start_date");
+    var stime = document.getElementById("start_time");
+    var fdate = document.getElementById("finish_date");
+    var ftime = document.getElementById("finish_time");
+
+    var tz_string = "-08:00"
+
+    var start_string = sdate.value + "T" + stime.value + tz_string;
+    var finish_string = fdate.value + "T" + ftime.value + tz_string;
+
+    var start = new Date(start_string);
+    var finish = new Date(finish_string);
+
+    // start timestamp must be before finish timestamp
+    if (sdate >= fdate && stime >= ftime) {
+        sdate.value = fdate.value;
+        stime.value = ftime.value;
+    }
+
+    var output = document.getElementById("debug");
+
+    output.innerHTML = "start: " + start_string + " // " + start;
+    output.innerHTML += "<br>getSec(): " + start.getSeconds();
+    output.innerHTML += "<br><br>finish: " + finish_string + " // " + finish;
+
+}
+</script>

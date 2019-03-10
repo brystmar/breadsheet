@@ -3,14 +3,13 @@ from flask import render_template, flash, redirect, url_for, request
 from sqlalchemy import func
 from werkzeug.urls import url_parse
 from datetime import datetime, timedelta
+import json
 import pyperclip
 from wtforms.fields.html5 import DateField
 
 from app import breadapp, db
 from app.forms import RecipeForm, StepForm, ConvertTextForm, ThenWaitForm, StartFinishForm
 from app.models import Recipe, Step, Difficulty, Replacement
-
-
 now = datetime.now()
 
 
@@ -38,20 +37,6 @@ def add_recipe():
     return render_template('add_recipe.html', title='Add Recipe', rform=rform)
 
 
-"""
-@breadapp.route('/recipe', methods=['GET', 'POST'])
-def view_recipe():
-    recipe_id = request.args.get('id') or 1
-    recipe = add_recipe_ui_fields(Recipe.query.filter_by(id=recipe_id).first())
-    steps = set_when(Step.query.filter_by(recipe_id=recipe_id).order_by(Step.number).all(), recipe.start_time)
-    twforms = create_tw_forms(steps)
-    seform = create_start_finish_forms(recipe)
-
-    return render_template('add_step.html', title='View Recipe', recipe=recipe, steps=steps,
-                           seform=seform, twforms=twforms)
-"""
-
-
 @breadapp.route('/recipe', methods=['GET', 'POST'])
 def add_step():
     sform = StepForm()
@@ -61,7 +46,8 @@ def add_step():
     recipe = add_recipe_ui_fields(Recipe.query.filter_by(id=recipe_id).first())
     steps = set_when(Step.query.filter_by(recipe_id=recipe_id).order_by(Step.number).all(), recipe.start_time)
     twforms = create_tw_forms(steps)
-    seform = create_start_finish_forms(recipe)
+    seform = create_start_finish_forms(recipe, steps)
+    steps_js = json.dumps(create_steps_js(steps))
 
     if sform.validate_on_submit():
         # convert then_wait decimal value to seconds
@@ -83,8 +69,8 @@ def add_step():
         else:
             sform.number.data = max_step.number + 1
 
-    return render_template('add_step.html', title=recipe.name, recipe=recipe, steps=steps, sform=sform,
-                           seform=seform, twforms=twforms)
+    return render_template('recipe.html', title=recipe.name, recipe=recipe, steps=steps, sform=sform,
+                           seform=seform, twforms=twforms, steps_js=steps_js)
 
 
 @breadapp.route('/convert_text', methods=['GET', 'POST'])
@@ -268,11 +254,12 @@ def create_tw_forms(steps):
         tw.then_wait_h.data = s.then_wait_ui[0]
         tw.then_wait_m.data = s.then_wait_ui[1]
         tw.then_wait_s.data = s.then_wait_ui[2]
+        tw.then_wait = s.then_wait
         twforms.append(tw)
     return twforms
 
 
-def create_start_finish_forms(recipe):
+def create_start_finish_forms(recipe, steps):
     seform = StartFinishForm()
     seform.recipe_id.data = recipe.id
     seform.start_date.data = recipe.start_time
@@ -281,4 +268,22 @@ def create_start_finish_forms(recipe):
     seform.finish_time.data = recipe.finish_time
     seform.solve_for_start.data = str(recipe.solve_for_start)
 
+    seform.steps.data = len(steps)
+    ids = ""
+    for s in steps:
+        ids += str(s.id) + ","
+
+    if "," in ids:
+        seform.step_ids.data = ids[:-1]
+    else:
+        seform.step_ids.data = ids
+
     return seform
+
+
+def create_steps_js(steps):
+    lib = {}
+    for s in steps:
+        lib[s.id] = s.then_wait
+    print(lib)
+    return lib

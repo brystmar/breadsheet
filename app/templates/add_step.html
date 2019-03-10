@@ -1,60 +1,75 @@
-{% extends "start_finish.html" %}
+<div id="ask_add_step">
+    <p>
+        <button onclick="addStep()" id="ask_add_step_button">Add a step</button>
+    </p>
+</div>
 
-{% block add_step %}
-    <div id="ask_add_step">
-        <!-- <p><input type="submit" value="Add a step" onclick="window.location='/add_step';" /></p> -->
-        <p><button onclick="addStep()" id="ask_add_step_button">Add a step</button></p>
-    </div>
+<div id="add_step">
+    <h1>Add Step</h1>
+    <form action="" method="POST">
+        {{ sform.hidden_tag() }}
+        <table id="step_form">
+            <tr>
+                <th>{{ sform.number.label }}</th>
+                <td>{{ sform.number(size=5) }}</td>
+                {% for error in sform.number.errors %}
+                <td>
+                    <span style="color: red;">[{{ error }}]</span>
+                </td>
+                {% endfor %}
+            </tr>
+            <tr>
+                <th>{{ sform.text.label }}</th>
+                <td>{{ sform.text(cols=80, rows=4) }}</td>
+                {% for error in sform.text.errors %}
+                <td>
+                    <span style="color: red;">[{{ error }}]</span>
+                </td>
+                {% endfor %}
+            </tr>
+            <tr>
+                <th>{{ sform.then_wait_h.label }}</th>
+                <td>
+                    {{ sform.then_wait_h(size=2) }}
+                    {{ sform.then_wait_m(size=2) }}
+                    {{ sform.then_wait_s(size=2) }}
+                </td>
+                {% for error in sform.then_wait_h.errors %}
+                <td>
+                    <span style="color: red;">[{{ error }}]</span>
+                </td>
+                {% endfor %}
+            </tr>
+            <tr>
+                <th>{{ sform.wait_time_range.label }}</th>
+                <td>{{ sform.wait_time_range(size=30) }}</td>
+                {% for error in sform.wait_time_range.errors %}
+                <td>
+                    <span style="color: red;">[{{ error }}]</span>
+                </td>
+                {% endfor %}
+            </tr>
 
-    <div id="add_step">
-        <h1>Add Step</h1>
-        <form action="" method="POST">
-            {{ sform.hidden_tag() }}
-            <table id="step_form">
-                <tr>
-                    <th>{{ sform.number.label }}</th>
-                    <td>{{ sform.number(size=5) }}</td>
-                    {% for error in sform.number.errors %}
-                    <td>
-                        <span style="color: red;">[{{ error }}]</span>
-                    </td>
-                    {% endfor %}
-                </tr>
-                <tr>
-                    <th>{{ sform.text.label }}</th>
-                    <td>{{ sform.text(cols=80, rows=4) }}</td>
-                    {% for error in sform.text.errors %}
-                    <td>
-                        <span style="color: red;">[{{ error }}]</span>
-                    </td>
-                    {% endfor %}
-                </tr>
-                <tr>
-                    <th>{{ sform.then_wait_h.label }}</th>
-                    <td>
-                        {{ sform.then_wait_h(size=2) }}
-                        {{ sform.then_wait_m(size=2) }}
-                        {{ sform.then_wait_s(size=2) }}
-                    </td>
-                    {% for error in sform.then_wait_h.errors %}
-                    <td>
-                        <span style="color: red;">[{{ error }}]</span>
-                    </td>
-                    {% endfor %}
-                </tr>
-                <tr>
-                    <th>{{ sform.wait_time_range.label }}</th>
-                    <td>{{ sform.wait_time_range(size=30) }}</td>
-                    {% for error in sform.wait_time_range.errors %}
-                    <td>
-                        <span style="color: red;">[{{ error }}]</span>
-                    </td>
-                    {% endfor %}
-                </tr>
-                
-            </table>
-            <p>{{ sform.submit() }}</p>
-        </form>
-    </div>
+        </table>
+        <p>{{ sform.submit() }}</p>
+    </form>
+</div>
 
-{% endblock %}
+<div id="hidden_fields">
+    steps: {{ seform.steps }}<br>
+    step_id list: {{ seform.step_ids }}<br>
+    steps_js: {{steps_js}}<br>
+    <p id="debug">
+
+    </p>
+</div>
+
+<script>
+    function addStep() {
+        var div_ask_add_step = document.getElementById("ask_add_step");
+        var div_add_step = document.getElementById("add_step");
+
+        document.getElementById("ask_add_step").style.display = "none";
+        document.getElementById("add_step").style.display = "block";
+    }
+</script>

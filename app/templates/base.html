@@ -27,10 +27,11 @@
 
     {% block scripts %}
     <script>
+        {{ super() }}
+        {{ moment.include_moment() }}
         {% include "scripts.js" %}
     </script>
     {% endblock %}
 
 </body>
 </html>
-
