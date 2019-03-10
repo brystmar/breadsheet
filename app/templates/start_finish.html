@@ -113,13 +113,8 @@ function calcTime() {
     var fdate = document.getElementById("finish_date");
     var ftime = document.getElementById("finish_time");
 
-    var tz_string = "-08:00"
-
-    var start_string = sdate.value + "T" + stime.value + tz_string;
-    var finish_string = fdate.value + "T" + ftime.value + tz_string;
-
-    var start = new Date(start_string);
-    var finish = new Date(finish_string);
+    var start = moment(sdate.value + " " + stime.value);
+    var finish = moment(fdate.value + " " + ftime.value);
 
     // start timestamp must be before finish timestamp
     if (sdate >= fdate && stime >= ftime) {
@@ -129,9 +124,9 @@ function calcTime() {
 
     var output = document.getElementById("debug");
 
-    output.innerHTML = "start: " + start_string + " // " + start;
-    output.innerHTML += "<br>getSec(): " + start.getSeconds();
-    output.innerHTML += "<br><br>finish: " + finish_string + " // " + finish;
+    output.innerHTML = "start: " + start.format();
+    output.innerHTML += "<br>start delta: " + start.add(18000, 'seconds').format();
+    output.innerHTML += "<br><br>finish: " + finish.format();
 
 }
 </script>
