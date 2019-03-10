@@ -36,4 +36,15 @@
             </table>
         </form>
     </div>
+
+    <script>
+        function clearFields() {
+            document.getElementById("ingredients_input").value = "";
+            document.getElementById("directions_input").value = "";
+            document.getElementById("ingredients_output").value = "";
+            document.getElementById("directions_output").value = "";
+            document.getElementById("ingredients_input").focus();
+            document.getElementById("convert_text_flash_msg").style.display = "none";
+        }
+    </script>
 {% endblock %}
