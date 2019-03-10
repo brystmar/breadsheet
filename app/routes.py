@@ -279,23 +279,6 @@ def create_start_finish_forms(recipe):
     seform.start_time.data = recipe.start_time
     seform.finish_date.data = recipe.finish_time
     seform.finish_time.data = recipe.finish_time
-
-    return se_toggle(seform, recipe.solve_for_start)
-
-
-def se_toggle(seform, solve_for_start):
-    seform.solve_for_start.data = str(solve_for_start)
-    # return seform
-
-    if solve_for_start == '0':  # 0 = false
-        seform.start_date(disabled="true")
-        seform.start_time(disabled="true")
-        seform.finish_date(disabled="false")
-        seform.finish_time(disabled="false")
-    else:
-        seform.start_date(disabled="false")
-        seform.start_time(disabled="false")
-        seform.finish_date(disabled="true")
-        seform.finish_time(disabled="true")
+    seform.solve_for_start.data = str(recipe.solve_for_start)
 
     return seform

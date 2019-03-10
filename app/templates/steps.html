@@ -16,13 +16,12 @@
                     <td id="step_number{{ step.id }}">{{ step.id }}.</td>
                     <td>{{ step.text }}</td>
                     <td>{{ step.when }}</td>
-                    <!--<td>{{ step.then_wait_ui[0] }}:{{ step.then_wait_ui[1] }}:{{ step.then_wait_ui[2] }}</td>-->
                     <td id="step_wait{{ step.number}}">
                         {% for tw in twforms %}
                             {% if tw.step_id == step.id %}
-                            <form action="" method="POST" id="form_step_wait{{ step.number }}">
-                                {{ tw.then_wait_h(size=2) }}:{{ tw.then_wait_m(size=2) }}:{{ tw.then_wait_s(size=2) }}
-                            </form>
+                            {{ tw.then_wait_h(size=2, id="then_wait_h{}".format(step.number)) }}:{{
+                                tw.then_wait_m(size=2, id="then_wait_m{}".format(step.number)) }}:{{
+                                tw.then_wait_s(size=2, id="then_wait_s{}".format(step.number)) }}
                             {% endif %}
                         {% endfor %}
                     </td>
