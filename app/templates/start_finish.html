@@ -24,7 +24,7 @@
                     </form>
                 </div>
             </td>
-            <td><button onclick="finishNow()" id="finish_now">Now</button></td>
+            <td><!-- <button onclick="finishNow()" id="finish_now">Now</button> --></td>
             <td></td>
             <td>{{ seform.solve_for_start(size=2) }}</td>
         </tr>
@@ -52,7 +52,7 @@ function sfToggle() {
     var fdate = document.getElementById("finish_date");
     var ftime = document.getElementById("finish_time");
     var s_now = document.getElementById("start_now");
-    var f_now = document.getElementById("finish_now");
+    // var f_now = document.getElementById("finish_now");
 
     if (box.value == "1") {
         sdate.disabled = true
@@ -60,7 +60,7 @@ function sfToggle() {
         fdate.disabled = false
         ftime.disabled = false
         s_now.disabled = true
-        f_now.disabled = false
+        //f_now.disabled = false
     }
     else {
         sdate.disabled = false
@@ -68,7 +68,7 @@ function sfToggle() {
         fdate.disabled = true
         ftime.disabled = true
         s_now.disabled = false
-        f_now.disabled = true
+        //f_now.disabled = true
     }
 }
 
@@ -91,7 +91,7 @@ function startNow() {
     document.getElementById('start_time').value = time;
 }
 
-function finishNow() {
+/*function finishNow() {
     var date = new Date();
     var day = date.getDate();
     var month = date.getMonth() + 1;
@@ -108,7 +108,7 @@ function finishNow() {
     var time = hour + ":" + minute;
 
     document.getElementById('finish_time').value = time;
-}
+}*/
 
 function calcTime() {
     var solve_for_start = document.getElementById("solve_for_start");
@@ -129,6 +129,10 @@ function calcTime() {
     var seconds = 0;
     var total = 0;
     var delta = 0;
+
+    var out1 = document.getElementById("debug1");
+    var out2 = document.getElementById("debug2");
+    var out3 = document.getElementById("debug3");
 
     // clear existing values in the step_wait_times dictionary
     for (var key in step_wait_times) {
@@ -165,6 +169,7 @@ function calcTime() {
     }
 
     step_wait_times["total"] = total;
+    out3.innerHTML = total + "; " + sec_to_hms(total);
 
     // update start & finish times
     if (solve_for_start.value == 0) {  // user entered their desired start time; system solves for finish
@@ -181,14 +186,38 @@ function calcTime() {
     // update the total time
     ttime.innerHTML = sec_to_hms(total);
 
+    out1.innerHTML = "";
+    out2.innerHTML = "";
+
     // update the 'when' labels in the steps list
+    var i = 1;
+    var next_time = 0;
     for (var key in step_wait_times) {
         if (key != "total") {  // skip the total attribute
-            // go forwards when solving for the finish time
             label = document.getElementById("step_when" + key);
 
-            label.innerHTML = label.innerHTML;
+            // go forwards when solving for the finish time
+            if (solve_for_start.value == 0) {
+                if (i == 1) {
+                        next_time = start;
+                    }
+                out1.innerHTML += solve_for_start.value + ", i=" + i + ". " + key + " " + sec_to_hms(step_wait_times[key]) + " - " + next_time.format('YYYY-MM-DD HH:mm') + "<br>"
 
+                label.innerHTML = next_time.format('YYYY-MM-DD HH:mm');
+                next_time = next_time.add(step_wait_times[key], 'seconds');
+
+            }
+            else {
+                if (i == 1) {
+                    next_time = finish;
+                }
+                out2.innerHTML += solve_for_start.value + ", i=" + i + ". " + key + " " + sec_to_hms(step_wait_times[key]) + " - " + next_time.format('YYYY-MM-DD HH:mm') + "<br>"
+
+                next_time = next_time.add(-step_wait_times[key], 'seconds');
+                label.innerHTML = next_time.format('YYYY-MM-DD HH:mm');
+            }
+
+            i++;
         }
     }
 }
@@ -235,6 +264,5 @@ function sec_to_hms(sec) {
     }
     return result;
 }
-
 
 </script>
