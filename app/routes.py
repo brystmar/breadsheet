@@ -46,8 +46,8 @@ def add_step():
     recipe = add_recipe_ui_fields(Recipe.query.filter_by(id=recipe_id).first())
     steps = set_when(Step.query.filter_by(recipe_id=recipe_id).order_by(Step.number).all(), recipe.start_time)
     twforms = create_tw_forms(steps)
-    seform = create_start_finish_forms(recipe, steps)
-    steps_js = json.dumps(create_steps_js(steps))
+    seform = create_start_finish_forms(recipe)
+    # steps_js = json.dumps(create_steps_js(steps))
 
     if sform.validate_on_submit():
         # convert then_wait decimal value to seconds
@@ -70,7 +70,7 @@ def add_step():
             sform.number.data = max_step.number + 1
 
     return render_template('recipe.html', title=recipe.name, recipe=recipe, steps=steps, sform=sform,
-                           seform=seform, twforms=twforms, steps_js=steps_js)
+                           seform=seform, twforms=twforms)
 
 
 @breadapp.route('/convert_text', methods=['GET', 'POST'])
@@ -259,7 +259,7 @@ def create_tw_forms(steps):
     return twforms
 
 
-def create_start_finish_forms(recipe, steps):
+def create_start_finish_forms(recipe):
     seform = StartFinishForm()
     seform.recipe_id.data = recipe.id
     seform.start_date.data = recipe.start_time
@@ -267,16 +267,6 @@ def create_start_finish_forms(recipe, steps):
     seform.finish_date.data = recipe.finish_time
     seform.finish_time.data = recipe.finish_time
     seform.solve_for_start.data = str(recipe.solve_for_start)
-
-    seform.steps.data = len(steps)
-    ids = ""
-    for s in steps:
-        ids += str(s.id) + ","
-
-    if "," in ids:
-        seform.step_ids.data = ids[:-1]
-    else:
-        seform.step_ids.data = ids
 
     return seform
 

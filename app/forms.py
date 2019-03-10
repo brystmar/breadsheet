@@ -67,8 +67,5 @@ class StartFinishForm(FlaskForm):
     solve_for_start = SelectField('Solve For', id='solve_for_start', default='1', validators=[DataRequired()],
                                   choices=[('1', 'Start Time'), ('0', 'Finish Time')], render_kw={'autofocus': True})
 
-    steps = IntegerField('Number of Steps', id="num_steps")
-    step_ids = StringField('List of step_ids', id="step_id_list")
-
     def __repr__(self):
         return '<Start & End Times form>'
