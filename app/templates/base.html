@@ -26,9 +26,8 @@
     {% endblock %}
 
     {% block scripts %}
+    <script src="https://unpkg.com/moment" />
     <script>
-        {{ super() }}
-        {{ moment.include_moment() }}
         {% include "scripts.js" %}
     </script>
     {% endblock %}
