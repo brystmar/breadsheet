@@ -5,7 +5,6 @@ from werkzeug.urls import url_parse
 from datetime import datetime, timedelta
 import json
 import pyperclip
-from wtforms.fields.html5 import DateField
 
 from app import breadapp, db
 from app.forms import RecipeForm, StepForm, ConvertTextForm, ThenWaitForm, StartFinishForm
@@ -47,7 +46,6 @@ def add_step():
     steps = set_when(Step.query.filter_by(recipe_id=recipe_id).order_by(Step.number).all(), recipe.start_time)
     twforms = create_tw_forms(steps)
     seform = create_start_finish_forms(recipe)
-    # steps_js = json.dumps(create_steps_js(steps))
 
     if sform.validate_on_submit():
         # convert then_wait decimal value to seconds
@@ -225,7 +223,6 @@ def add_recipe_ui_fields(recipe):
         if recipe.start_time is None:
             recipe.start_time = now
         recipe.start_time = datetime.strptime(recipe.start_time, '%Y-%m-%d %H:%M:%S.%f')
-        print(recipe.start_time, type(recipe.start_time))
         recipe.start_time_ui = dt_ui(recipe.start_time)
 
         sql = "SELECT sum(then_wait) FROM step WHERE recipe_id = {}".format(recipe.id)
@@ -269,11 +266,3 @@ def create_start_finish_forms(recipe):
     seform.solve_for_start.data = str(recipe.solve_for_start)
 
     return seform
-
-
-def create_steps_js(steps):
-    lib = {}
-    for s in steps:
-        lib[s.id] = s.then_wait
-    print(lib)
-    return lib
