@@ -5,3 +5,4 @@ __pycache__/
 logs/
 venv/
 app/creds.py
+app/__pycache__/
