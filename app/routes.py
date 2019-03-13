@@ -1,9 +1,9 @@
 # when connecting from a web browser, show the Hello World page
 from flask import render_template, flash, redirect, url_for, request
-from sqlalchemy import func
-from werkzeug.urls import url_parse
+# from sqlalchemy import func
+# from werkzeug.urls import url_parse
 from datetime import datetime, timedelta
-import json
+# import json
 import pyperclip
 
 from app import breadapp, db
