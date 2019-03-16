@@ -1,6 +1,8 @@
 # script for Flask to obtain our application instance
-from app import breadapp, db
+from app import create_app, db
 from app.models import Recipe, Step
+
+breadapp = create_app()
 
 
 @breadapp.shell_context_processor

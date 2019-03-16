@@ -8,10 +8,9 @@
     <p>
         <h1>Welcome to the default error page!</h1>
     </p>
+    Something happened, and it's probably your fault.
     <p>
-        <h2>Something happened and it's probably your fault.</h2>
-        <br>
-        <img src="/app/static/computer_fire.gif"/>
+        <img src="{{ url_for('static', filename='computer_fire.gif') }}"/>
     </p>
 </body>
 </html>
