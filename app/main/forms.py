@@ -1,7 +1,7 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, SubmitField, TextAreaField, IntegerField, SelectField, SelectMultipleField
-from wtforms.fields.html5 import DateTimeField, DateField, TimeField
-from wtforms.validators import DataRequired, ValidationError, Length, Optional, NumberRange
+from wtforms import StringField, SubmitField, TextAreaField, IntegerField, SelectField
+from wtforms.fields.html5 import DateField, TimeField
+from wtforms.validators import DataRequired, ValidationError, Length, NumberRange
 from app.models import Recipe
 
 
@@ -27,25 +27,14 @@ class StepForm(FlaskForm):
     recipe_id = IntegerField('Recipe ID')
     number = IntegerField('Step Number')
     text = TextAreaField('Directions', validators=[DataRequired(), Length(max=512)], render_kw={'autofocus': True})
-    then_wait_h = IntegerField('Then Wait...', validators=[Optional(), NumberRange(min=0, max=999)], render_kw={'placeholder': 'h'})
-    then_wait_m = IntegerField('Then Wait...', validators=[Optional(), NumberRange(min=0, max=999)], render_kw={'placeholder': 'm'})
-    then_wait_s = IntegerField('Then Wait...', validators=[Optional(), NumberRange(min=0, max=999)], render_kw={'placeholder': 's'})
+    then_wait_h = IntegerField('Then Wait...', validators=[NumberRange(min=0, max=999)], render_kw={'placeholder': 'h'})
+    then_wait_m = IntegerField('Then Wait...', validators=[NumberRange(min=0, max=999)], render_kw={'placeholder': 'm'})
+    then_wait_s = IntegerField('Then Wait...', validators=[NumberRange(min=0, max=999)], render_kw={'placeholder': 's'})
     wait_time_range = StringField('Time Range')
     submit = SubmitField('Add Step')
 
     def __repr__(self):
         return '<StepForm #{} for recipe_id: {}>'.format(self.number, self.name)
-
-
-class ConvertTextForm(FlaskForm):
-    ingredients_input = TextAreaField('Input', id='ingredients_input', render_kw={'autofocus': True})
-    ingredients_output = TextAreaField('Output', id='ingredients_output')
-    directions_input = TextAreaField('Input', id='directions_input')
-    directions_output = TextAreaField('Output', id='directions_output')
-    submit = SubmitField('Convert')
-
-    def __repr__(self):
-        return '<ConvertText form>'
 
 
 class ThenWaitForm(FlaskForm):

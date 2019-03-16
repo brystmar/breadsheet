@@ -1,22 +1,60 @@
-# initialization file that defines this package's name as "breadapp"
-from flask import Flask
-from flask_moment import Moment
+# initialization file that defines this app
+# import os
+# import logging
+# from logging.handlers import RotatingFileHandler
 from config import Config
-from flask_sqlalchemy import SQLAlchemy
+from flask import Flask
+from flask_bootstrap import Bootstrap
 from flask_migrate import Migrate
+from flask_moment import Moment
+from flask_sqlalchemy import SQLAlchemy
+
+bootstrap = Bootstrap()
+db = SQLAlchemy()
+migrate = Migrate()
+moment = Moment()
 
 
-breadapp = Flask(__name__)
-breadapp.config.from_object(Config)
-db = SQLAlchemy(breadapp)
-migrate = Migrate(breadapp, db)
-moment = Moment(breadapp)
+def create_app(config_class=Config):
+    breadapp = Flask(__name__)
+    breadapp.config.from_object(config_class)
 
-from app import routes, models
+    bootstrap.init_app(breadapp)
+    db.init_app(breadapp)
+    migrate.init_app(breadapp)
+    moment.init_app(breadapp)
+
+    from app.errors import bp as errors_bp
+    breadapp.register_blueprint(errors_bp)
+
+    from app.main import bp as main_bp
+    breadapp.register_blueprint(main_bp)
+
+    from app.convert import bp as convert_bp
+    breadapp.register_blueprint(convert_bp)
+
+    # log errors when running in production mode
+    if not breadapp.debug and not breadapp.testing:
+        pass
+        """if not os.path.exists('logs'):
+            os.mkdir('logs')
+        file_handler = RotatingFileHandler('logs/microblog.log', maxBytes=10240, backupCount=10)
+        file_handler.setFormatter(logging.Formatter(
+            '%(asctime)s %(levelname)s: %(message)s '
+            '[in %(pathname)s:%(lineno)d]'))
+        file_handler.setLevel(logging.INFO)
+        breadapp.logger.addHandler(file_handler)
+
+        breadapp.logger.setLevel(logging.INFO)
+        breadapp.logger.info('Breadsheet startup')"""
+
+    if __name__ == '__main__':
+        # This is used when running locally only. When deploying to Google App
+        # Engine, a webserver process such as Gunicorn will serve the app. This
+        # can be configured by adding an `entrypoint` to app.yaml.
+        breadapp.run(host='127.0.0.1', port=8080, debug=True)
+
+    return breadapp
 
 
-if __name__ == '__main__':
-    # This is used when running locally only. When deploying to Google App
-    # Engine, a webserver process such as Gunicorn will serve the app. This
-    # can be configured by adding an `entrypoint` to app.yaml.
-    breadapp.run(host='127.0.0.1', port=8080, debug=True)
+from app import models

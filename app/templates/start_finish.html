@@ -53,20 +53,20 @@ function sfToggle() {
     var f_now = document.getElementById("finish_now");
 
     if (box.value == "1") {
-        sdate.disabled = true
-        stime.disabled = true
-        fdate.disabled = false
-        ftime.disabled = false
-        s_now.disabled = true
-        f_now.disabled = false
+        sdate.disabled = true;
+        stime.disabled = true;
+        fdate.disabled = false;
+        ftime.disabled = false;
+        s_now.disabled = true;
+        f_now.disabled = false;
     }
     else {
-        sdate.disabled = false
-        stime.disabled = false
-        fdate.disabled = true
-        ftime.disabled = true
-        s_now.disabled = false
-        f_now.disabled = true
+        sdate.disabled = false;
+        stime.disabled = false;
+        fdate.disabled = true;
+        ftime.disabled = true;
+        s_now.disabled = false;
+        f_now.disabled = true;
     }
 }
 
@@ -169,8 +169,6 @@ function calcTime() {
         next_time = finish_orig;  // work backwards from the user-defined finish time
         multiplier = -1;  // subtract time since we're working backwards
     }
-
-    i = 0;
 
     // update the 'when' labels in the steps list
     for (i=0; i < steps.length; i++) {

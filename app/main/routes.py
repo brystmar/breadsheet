@@ -1,27 +1,24 @@
-# when connecting from a web browser, show the Hello World page
-from flask import render_template, flash, redirect, url_for, request
-# from sqlalchemy import func
-# from werkzeug.urls import url_parse
+# determines which page(s) to show for each browser request
+from app import db
+from app.main import bp
+from app.main.forms import RecipeForm, StepForm, ThenWaitForm, StartFinishForm
+from app.models import Recipe, Step, Difficulty
 from datetime import datetime, timedelta
-# import json
-import pyperclip
+from flask import render_template, flash, redirect, url_for, request
 
-from app import breadapp, db
-from app.forms import RecipeForm, StepForm, ConvertTextForm, ThenWaitForm, StartFinishForm
-from app.models import Recipe, Step, Difficulty, Replacement
 now = datetime.now()
 
 
 # map the desired URL to this function
-@breadapp.route('/')
-@breadapp.route('/index')
-@breadapp.route('/breadsheet')
+@bp.route('/')
+@bp.route('/index')
+@bp.route('/breadsheet')
 def index():
     recipes = add_recipe_ui_fields(Recipe.query.order_by('id').all())
     return render_template('index.html', title='Breadsheet Home', recipes=recipes)
 
 
-@breadapp.route('/add_recipe', methods=['GET', 'POST'])
+@bp.route('/add_recipe', methods=['GET', 'POST'])
 def add_recipe():
     rform = RecipeForm()
 
@@ -32,12 +29,13 @@ def add_recipe():
         db.session.commit()
 
         recipe_id = rdata.id
-        return redirect(url_for('add_step') + '?id={}'.format(recipe_id))
+        return redirect(url_for('main.add_step') + '?id={}'.format(recipe_id))
     return render_template('add_recipe.html', title='Add Recipe', rform=rform)
 
 
-@breadapp.route('/recipe', methods=['GET', 'POST'])
+@bp.route('/recipe', methods=['GET', 'POST'])
 def add_step():
+    print("Top of /recipe || add_step() route")
     sform = StepForm()
     recipe_id = request.args.get('id') or 1
     sform.recipe_id.data = recipe_id
@@ -57,7 +55,7 @@ def add_step():
         db.session.add(sdata)
         db.session.commit()
 
-        return redirect(url_for('add_step') + '?id={}'.format(recipe_id))
+        return redirect(url_for('main.add_step') + '?id={}'.format(recipe_id))
 
     elif request.method == 'GET':  # pre-populate the form with the recipe info and any existing steps
         # increment from the max step number
@@ -69,46 +67,6 @@ def add_step():
 
     return render_template('recipe.html', title=recipe.name, recipe=recipe, steps=steps, sform=sform,
                            seform=seform, twforms=twforms)
-
-
-@breadapp.route('/convert_text', methods=['GET', 'POST'])
-def convert_text():
-    print("Top of convert_text")
-    form = ConvertTextForm(prefix="form1")
-
-    if form.is_submitted() and form.submit.data:
-        ing = replace_text(form.ingredients_input.data, 'i')
-        dir = replace_text(form.directions_input.data, 'd')
-
-        form.ingredients_output.data = ing
-        form.directions_output.data = dir
-
-        # copy converted data to the clipboard
-        if len(ing) > 0 and len(dir) > 0:
-            clip = ing + '\n\n' + dir
-            pyperclip.copy(clip)
-            flash('Copied to clipboard')
-        elif len(ing) > 0:
-            clip = ing
-            pyperclip.copy(clip)
-            flash('Copied to clipboard')
-        elif len(dir) > 0:
-            clip = dir
-            pyperclip.copy(clip)
-            flash('Copied to clipboard')
-
-    elif request.method == 'GET':
-        print("Went to the GET block form1")
-
-    return render_template('convert_text.html', title='Convert Text for Paprika Recipes', form=form)
-
-
-def replace_text(text, scope):
-    # execute replacements in the provided text
-    replist = Replacement.query.filter_by(scope=scope).all()
-    for r in replist:
-        text = text.replace(r.old, r.new)
-    return text
 
 
 def seconds_to_hms(num):
