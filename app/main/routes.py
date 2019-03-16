@@ -29,13 +29,12 @@ def add_recipe():
         db.session.commit()
 
         recipe_id = rdata.id
-        return redirect(url_for('main.add_step') + '?id={}'.format(recipe_id))
+        return redirect(url_for('main.recipe') + '?id={}'.format(recipe_id))
     return render_template('add_recipe.html', title='Add Recipe', rform=rform)
 
 
 @bp.route('/recipe', methods=['GET', 'POST'])
-def add_step():
-    print("Top of /recipe || add_step() route")
+def recipe():
     sform = StepForm()
     recipe_id = request.args.get('id') or 1
     sform.recipe_id.data = recipe_id
@@ -55,7 +54,7 @@ def add_step():
         db.session.add(sdata)
         db.session.commit()
 
-        return redirect(url_for('main.add_step') + '?id={}'.format(recipe_id))
+        return redirect(url_for('main.recipe') + '?id={}'.format(recipe_id))
 
     elif request.method == 'GET':  # pre-populate the form with the recipe info and any existing steps
         # increment from the max step number
@@ -97,13 +96,21 @@ def hms_to_seconds(hms):
         flash('Error in hms_to_seconds function: Invalid input {}.'.format(hms))
         return 0
 
+    if hms[0] is None:
+        hms[0] = 0
+    if hms[1] is None:
+        hms[1] = 0
+    if hms[2] is None:
+        hms[2] = 0
+
     try:
         hms[0] = int(hms[0])
         hms[1] = int(hms[1])
         hms[2] = int(hms[2])
-        return (hms[0] * 24) + (hms[1] * 60) + (hms[2] * 60)
+        return (hms[0] * 60 * 60) + (hms[1] * 60) + (hms[2])
     except:
         flash('Error in hms_to_seconds function: List values {} cannot be converted to int.'.format(hms))
+        print('Error in hms_to_seconds function: List values {} cannot be converted to int.'.format(hms))
         return 0
 
 

@@ -4,9 +4,9 @@
     </p>
 </div>
 
-<div id="add_step">
+<div id="add_step_section">
     <h1>Add Step</h1>
-    <form action="" method="POST">
+    <form id="add_step" action="" method="POST">
         {{ sform.hidden_tag() }}
         <table id="step_form">
             <tr>
@@ -60,15 +60,11 @@
     <p id="debug2"></p>
     <p id="debug3"></p>
     <p id="debug4"></p>
-
 </div>
 
 <script>
     function addStep() {
-        var div_ask_add_step = document.getElementById("ask_add_step");
-        var div_add_step = document.getElementById("add_step");
-
         document.getElementById("ask_add_step").style.display = "none";
-        document.getElementById("add_step").style.display = "block";
+        document.getElementById("add_step_section").style.display = "block";
     }
 </script>
