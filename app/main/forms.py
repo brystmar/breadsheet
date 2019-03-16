@@ -1,7 +1,7 @@
 from flask_wtf import FlaskForm
 from wtforms import StringField, SubmitField, TextAreaField, IntegerField, SelectField
 from wtforms.fields.html5 import DateField, TimeField
-from wtforms.validators import DataRequired, ValidationError, Length, NumberRange
+from wtforms.validators import DataRequired, ValidationError, Length, NumberRange, Optional
 from app.models import Recipe
 
 
@@ -27,9 +27,12 @@ class StepForm(FlaskForm):
     recipe_id = IntegerField('Recipe ID')
     number = IntegerField('Step Number')
     text = TextAreaField('Directions', validators=[DataRequired(), Length(max=512)], render_kw={'autofocus': True})
-    then_wait_h = IntegerField('Then Wait...', validators=[NumberRange(min=0, max=999)], render_kw={'placeholder': 'h'})
-    then_wait_m = IntegerField('Then Wait...', validators=[NumberRange(min=0, max=999)], render_kw={'placeholder': 'm'})
-    then_wait_s = IntegerField('Then Wait...', validators=[NumberRange(min=0, max=999)], render_kw={'placeholder': 's'})
+    then_wait_h = IntegerField('Then Wait...', validators=[Optional(), NumberRange(min=0, max=999)],
+                               render_kw={'placeholder': 'h'})
+    then_wait_m = IntegerField('Then Wait...', validators=[Optional(), NumberRange(min=0, max=999)],
+                               render_kw={'placeholder': 'm'})
+    then_wait_s = IntegerField('Then Wait...', validators=[Optional(), NumberRange(min=0, max=999)],
+                               render_kw={'placeholder': 's'})
     wait_time_range = StringField('Time Range')
     submit = SubmitField('Add Step')
 
