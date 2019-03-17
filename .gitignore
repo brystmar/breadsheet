@@ -7,7 +7,6 @@ app/creds.py
 **/creds.py
 **/__pycache__/
 __pycache__/
-*.env
 .env
 
 # Created by https://www.gitignore.io/api/venv,macos,pycharm
