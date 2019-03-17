@@ -32,9 +32,13 @@
         {% endif %}
     {% endwith %}
 
+    <script>
     {% block scripts %}
-        <script src="https://unpkg.com/moment" />
+
+            {% include "moment.js" %}
+
     {% endblock %}
+    </script>
 
 </body>
 </html>

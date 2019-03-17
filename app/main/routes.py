@@ -33,6 +33,8 @@ def add_recipe():
     return render_template('add_recipe.html', title='Add Recipe', rform=rform)
 
 
+@bp.route('/Images')
+@bp.route('/Resources')
 @bp.route('/recipe', methods=['GET', 'POST'])
 def recipe():
     sform = StepForm()
