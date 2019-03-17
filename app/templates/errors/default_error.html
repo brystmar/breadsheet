@@ -1,16 +1,11 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>OH NOES!?</title>
-</head>
-<body>
+{% extends "base.html" %}
+
+{% block breadapp_content %}
     <p>
-        <h1>Welcome to the default error page!</h1>
+        <h1>You found the default error page!</h1>
     </p>
     Something happened, and it's probably your fault.
     <p>
         <img src="{{ url_for('static', filename='computer_fire.gif') }}"/>
     </p>
-</body>
-</html>
+{% endblock %}

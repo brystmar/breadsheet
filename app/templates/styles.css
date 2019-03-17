@@ -1,4 +1,12 @@
-<style>
+    .container {
+       margin: 10 auto; /* this will center the page */
+       width: 800px; /*  use your width here */
+    }
+
+    .body {
+        padding:    0 5px;
+    }
+
     #ask_add_step {
         display:            block
     }
@@ -96,4 +104,4 @@
     td, th {
         padding:            0 10px 0 5px;
         }
-</style>
+

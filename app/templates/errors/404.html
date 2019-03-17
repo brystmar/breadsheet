@@ -1,14 +1,11 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>404?!</title>
-</head>
-<body>
-<h1>
+{% extends "base.html" %}
+
+{% block breadapp_content %}
+<h2>
     <p>
-        It's bumper-to-bumper in all directions on the 404.  Hope you brought your jetpack!
+        It's bumper-to-bumper on the 404.  Time to blow this popsicle stand!
+        <br>
+        <img src="{{ url_for('static', filename='jetpack.jpg') }}"/>
     </p>
-</h1>
-</body>
-</html>
+</h2>
+{% endblock %}
