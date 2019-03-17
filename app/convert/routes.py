@@ -31,7 +31,8 @@ def convert():
             flash('Copied to clipboard')
 
     elif request.method == 'GET':
-        print("Went to the GET block form1")
+        # print("Went to the GET block form1")
+        pass
 
     return render_template('convert/convert_text.html', title='Convert Text for Paprika Recipes', form=form)
 

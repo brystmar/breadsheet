@@ -1,3 +1,4 @@
+# https://yamlchecker.com/
 runtime: python37
 
 instance_class: F1
@@ -5,8 +6,10 @@ instance_class: F1
 env_variables:
   BUCKET_NAME: "example-gcs-bucket"
 
+entrypoint: gunicorn -w 1 breadsheet:breadapp
+
 handlers:
-  # Matches requests to /images/... to files in static/images/...
+  # Matches requests for /images ... to files in static/images/
   - url: /images
     static_dir: static/images
 
@@ -16,12 +19,14 @@ handlers:
     script: auto
 
 error_handlers:
-  - file: app/templates/errors/default_error.html
+  - error_code: 404
+    file: app/templates/errors/404.html
+
+  - error_code: 500
+    file: app/templates/errors/default_error.html
 
   - error_code: over_quota
     file: app/templates/errors/over_quota.html
 
 automatic_scaling:
   max_instances: 1
-
-# entrypoint: gunicorn --workers=2 __init__:breadapp

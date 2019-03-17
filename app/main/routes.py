@@ -84,8 +84,8 @@ def seconds_to_hms(num):
         while i <= 2:
             if result[i] == '0':
                 result[i] = '00'
-            if len(result[i]) == 1:
-                result[i] = '0' + result[i]
+            """if len(result[i]) == 1:
+                result[i] = '0' + result[i]"""
             i += 1
     return result
 
