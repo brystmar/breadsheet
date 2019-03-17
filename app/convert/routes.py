@@ -19,15 +19,15 @@ def convert():
         # copy converted data to the clipboard
         if len(ingredients) > 0 and len(directions) > 0:
             clip = ingredients + '\n\n' + directions
-            pyperclip.copy(clip)
+            # pyperclip.copy(clip)
             flash('Copied to clipboard')
         elif len(ingredients) > 0:
             clip = ingredients
-            pyperclip.copy(clip)
+            # pyperclip.copy(clip)
             flash('Copied to clipboard')
         elif len(directions) > 0:
             clip = directions
-            pyperclip.copy(clip)
+            # pyperclip.copy(clip)
             flash('Copied to clipboard')
 
     elif request.method == 'GET':
