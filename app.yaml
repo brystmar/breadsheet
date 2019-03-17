@@ -4,7 +4,7 @@ runtime: python37
 instance_class: F1
 
 env_variables:
-  BUCKET_NAME: "example-gcs-bucket"
+  BUCKET_NAME: "breadsheet.appspot.com"
 
 entrypoint: gunicorn -w 1 breadsheet:breadapp
 
@@ -13,17 +13,8 @@ handlers:
   - url: /images
     static_dir: static/images
 
-  - url: /.*
-    secure: always
-    redirect_http_response_code: 301
-    script: auto
-
 error_handlers:
-  - error_code: 404
-    file: app/templates/errors/404.html
-
-  - error_code: 500
-    file: app/templates/errors/default_error.html
+  - file: app/templates/errors/default_error.html
 
   - error_code: over_quota
     file: app/templates/errors/over_quota.html
