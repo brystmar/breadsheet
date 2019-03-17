@@ -2,6 +2,12 @@
 from app import create_app, db
 from app.models import Recipe, Step
 
+try:
+    import googleclouddebugger
+    googleclouddebugger.enable()
+except ImportError:
+    pass
+
 breadapp = create_app()
 
 
