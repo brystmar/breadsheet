@@ -1,17 +1,10 @@
-# https://yamlchecker.com/
-runtime: python37
+# https://yamlchecker.com/ [from githib]
+runtime: python
+env: flex
 
 instance_class: F1
 
-env_variables:
-  BUCKET_NAME: "breadsheet.appspot.com"
-
 entrypoint: gunicorn -w 1 breadsheet:breadapp
-
-handlers:
-  # Matches requests for /images ... to files in static/images/
-  - url: /images
-    static_dir: static/images
 
 error_handlers:
   - file: app/templates/errors/default_error.html
