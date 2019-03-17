@@ -1,6 +1,6 @@
 <div id="ask_add_step">
     <p>
-        <button onclick="addStep()" id="ask_add_step_button">Add a step</button>
+        <button onclick="addStep()" id="ask_add_step_button">Add a Step</button>
     </p>
 </div>
 
@@ -51,8 +51,31 @@
             </tr>
 
         </table>
-        <p>{{ sform.submit() }}</p>
+        <p>
+            <button onclick="cancelAddStep()" id="cancel_step">Cancel</button>
+            {{ sform.submit() }}
+        </p>
     </form>
+</div>
+
+<div id="ask_toggle_recipe">
+    <p>
+        <button onclick="toggleRecipe()" id="toggle_recipe">Show/Hide Recipe</button>
+    </p>
+</div>
+
+<div id="recipe_section" style="display: none;">
+    {% if recipe.id == 1 %}
+        {% include "recipes/Pain de Campagne (Sourdough).html" %}
+    {% elif recipe.id == 2 %}
+        {% include "recipes/Saturday White Bread.html" %}
+    {% elif recipe.id == 3 %}
+        {% include "recipes/Detroit-Style Pan Pizza.html" %}
+    {% elif recipe.id == 4 %}
+        {% include "recipes/White Bread with Overnight Poolish.html" %}
+    {% elif recipe.id == 5 %}
+        {% include "recipes/Pizza Dough with Overnight Poolish.html" %}
+    {% endif %}
 </div>
 
 <div id="hidden_fields">
@@ -66,5 +89,26 @@
     function addStep() {
         document.getElementById("ask_add_step").style.display = "none";
         document.getElementById("add_step_section").style.display = "block";
+    }
+
+    function cancelAddStep() {
+        document.getElementById("ask_add_step").style.display = "block";
+        document.getElementById("add_step_section").style.display = "none";
+        /*document.getElementById("addStep_directions").value = "";
+        document.getElementById("addStep_then_wait_h").value = "";
+        document.getElementById("addStep_then_wait_m").value = "";
+        document.getElementById("addStep_then_wait_s").value = "";
+        document.getElementById("addStep_time_range").value = "";*/
+    }
+
+    function toggleRecipe() {
+        section = document.getElementById("recipe_section");
+
+        if (section.style.display == "none") {
+            section.style.display = "block"
+        }
+        else {
+            section.style.display = "none"
+        }
     }
 </script>

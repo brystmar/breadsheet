@@ -25,15 +25,16 @@ class RecipeForm(FlaskForm):
 
 class StepForm(FlaskForm):
     recipe_id = IntegerField('Recipe ID')
-    number = IntegerField('Step Number')
-    text = TextAreaField('Directions', validators=[DataRequired(), Length(max=512)], render_kw={'autofocus': True})
+    number = IntegerField('Step Number', id="addStep_number")
+    text = TextAreaField('Directions', validators=[DataRequired(), Length(max=512)], id="addStep_directions",
+                         render_kw={'autofocus': True})
     then_wait_h = IntegerField('Then Wait...', validators=[Optional(), NumberRange(min=0, max=999)],
-                               render_kw={'placeholder': 'h'})
+                               id="addStep_then_wait_h", render_kw={'placeholder': 'h'})
     then_wait_m = IntegerField('Then Wait...', validators=[Optional(), NumberRange(min=0, max=999)],
-                               render_kw={'placeholder': 'm'})
+                               id="addStep_then_wait_m", render_kw={'placeholder': 'm'})
     then_wait_s = IntegerField('Then Wait...', validators=[Optional(), NumberRange(min=0, max=999)],
-                               render_kw={'placeholder': 's'})
-    wait_time_range = StringField('Time Range')
+                               id="addStep_then_wait_s", render_kw={'placeholder': 's'})
+    wait_time_range = StringField('Time Range', id="addStep_time_range")
     submit = SubmitField('Add Step')
 
     def __repr__(self):

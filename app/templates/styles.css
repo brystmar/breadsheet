@@ -15,6 +15,10 @@
         display:            none
     }
 
+    #recipe_section {
+        display:            none
+    }
+
     #hidden_fields {
         display:            block
     }
@@ -105,3 +109,80 @@
         padding:            0 10px 0 5px;
         }
 
+    /* Paprika styles */
+    /*body {
+        font-family: HelveticaNeue, sans-serif;
+        font-size: 16.0px;
+        color: #34302e;
+        margin: 0.25in;
+    }
+    .name {
+        font-size: 18.0px;
+        font-family: Futura, Helvetica, sans-serif;
+        font-weight: normal;
+        margin: 0 0 10px 0;
+    }*/
+    .categories {
+        color: #605D5D;
+        font-size: 14.0px;
+        font-family: Helvetica, sans-serif;
+        font-style: italic;
+    }
+    .rating {
+        color: #d10505;
+        font-size: 14.0px;
+    }
+    .metadata {
+        font-size: 14.0px;
+    }
+    .infobox p {
+        margin: 0;
+        line-height: 150%;
+    }
+    .subhead {
+        color: #d10505;
+        font-weight: bold;
+        font-size: 14.0px;
+        text-transform: uppercase;
+        margin: 10px 0;
+    }
+    .ingredients p {
+        margin: 4px 0;
+    }
+    .clear {
+        clear:both;
+    }
+    /*a {
+        color: #4990E2;
+        text-decoration: none;
+    }*/
+    /* Full page specific styles */
+    .text {
+        line-height: 110%;
+    }
+    .photobox {
+        float: left;
+        margin-right: 14px;
+    }
+    .photo {
+        max-width: 140px;
+        max-height: 140px;
+        width: auto;
+        height: auto;
+    }
+    .columnbox {
+
+    }
+    .inline-image {
+        max-width: 140px;
+        max-height: 140px;
+        width: auto;
+        height: auto;
+    }
+    .photoswipe {
+        border: 1px #dddddd solid;
+        cursor: pointer;
+    }
+    .pswp__caption__center {
+        text-align: center !important;
+    }

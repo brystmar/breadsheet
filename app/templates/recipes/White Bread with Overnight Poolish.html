@@ -1,0 +1,179 @@
+<!-- Recipe -->
+<div class="recipe" itemscope itemtype="http://schema.org/Recipe">
+    
+    <div class="infobox">
+
+        <!-- Image -->
+        
+        <div class="photobox">
+            
+            
+            <img src="{{ url_for('static', filename='detroit1.jpg') }}" itemprop="image" class="photo photoswipe"/>
+            
+        </div>
+        
+
+        <!-- Name -->
+        <h1 itemprop="name" class="name">White Bread with Overnight Poolish</h1>
+        
+        <!-- Info -->
+        
+        
+        <!-- Rating, categories -->
+        <p itemprop="aggregateRating" class="rating" value="5">★★★★★</p>
+        
+            <p itemprop="recipeCategory" class="categories">Bread</p>
+        
+        
+        <p class="metadata">
+        
+            <!-- Cook time, prep time, servings, difficulty -->
+            
+            <b>Prep Time: </b><span itemprop="prepTime">14 hr</span>
+            
+            <b>Cook Time: </b><span itemprop="cookTime">1 hr 15 min</span>
+            
+            <b>Difficulty: </b><span itemprop="difficulty">Medium</span>
+            
+            <b>Servings: </b><span itemprop="recipeYield">2 loaves</span>
+            
+
+            <!-- Source -->
+            
+                <b>Source: </b>
+                
+                
+                    <span itemprop="author">Flour Water Salt Yeast</span>
+                
+            
+        </p>
+        
+        
+        <div class="clear"></div>
+
+    </div>
+    
+    <div class="columnbox">
+
+        <!-- Ingredients -->
+        
+        <div class="ingredientsbox">
+            <h3 class="subhead">Ingredients</h3>
+            <div class="ingredients text">
+                <p class="line" itemprop="recipeIngredient"><strong>1000</strong> g flour</p><p class="line" itemprop="recipeIngredient"><strong>400</strong> g water</p><p class="line" itemprop="recipeIngredient"><strong>23</strong> g salt</p><p class="line" itemprop="recipeIngredient"><strong>2</strong> g yeast</p>
+            </div>
+        </div>
+        
+        
+        <!-- Nutrition (in two-column mode it goes below the ingredients) -->
+        
+
+    </div>
+    
+    <!-- Descriptino -->
+    
+    <div class="descriptionbox">
+        <h3 class="subhead">Description</h3>
+        <div itemprop="description" class="description text">
+            <p>Overnight poolish recipe</p>
+        </div>
+    </div>
+    
+
+    <!-- Directions -->
+    
+    <div class="directionsbox">
+        <h3 class="subhead">Directions</h3>
+        <div itemprop="recipeInstructions" class="directions text">
+            <p class="line">Start the poolish the night before.  Let it sit for <span class='timer' time='43200.0'>12 to 14 hours</span>.</p><p class="line">Mix the final dough.  This recipe requires two folds, ideally done in the first <span class='timer' time='1800.0'>half hour </span>after mixing.  Cover and let the dough rise for <span class='timer' time='7200.0'>2 to 3 hours</span>.</p>
+        </div>
+    </div>
+    
+
+    <!-- Notes -->
+    
+
+    <!-- Nutrition (in regular mode it goes below the notes) -->
+    
+        <!-- Used in two different places depending on the recipe layout -->
+
+
+    
+    
+</div>
+
+        
+        <!-- PhotoSwipe gallery -->
+
+<link rel="stylesheet" href="Resources/PhotoSwipe/photoswipe.css">
+<link rel="stylesheet" href="Resources/PhotoSwipe/default-skin/default-skin.css">
+<script src="Resources/PhotoSwipe/photoswipe.min.js"></script>
+<script src="Resources/PhotoSwipe/photoswipe-ui-default.min.js"></script>
+
+<div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="pswp__bg"></div>
+    <div class="pswp__scroll-wrap">
+        <div class="pswp__container">
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+        </div>
+        <div class="pswp__ui pswp__ui--hidden">
+            <div class="pswp__top-bar">
+                <div class="pswp__counter"></div>
+                <button class="pswp__button pswp__button--close" title="Close"></button>
+            </div>
+            <button class="pswp__button pswp__button--arrow--left" title="Previous">
+            </button>
+            <button class="pswp__button pswp__button--arrow--right" title="Next">
+            </button>
+            <div class="pswp__caption">
+                <div class="pswp__caption__center"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script type="text/javascript">
+    var openPhotoSwipe = function(event) {
+        var pswp = document.querySelector('.pswp');
+        
+        var element = event.target;
+        var src = element.getAttribute('src');
+        
+        // build items array
+        var items = [
+            
+        ];
+        
+        var index = 0;
+        for (var i=0; i<items.length; i++) {
+            var item = items[i];
+            if (item.src == src) {
+                index = i;
+            }
+        }
+                         
+        var options = {
+            index: index,
+            history: false,
+            focus: true,
+            captionEl: true,
+            fullscreenEl: false,
+            zoomEl: false,
+            shareEl: false,
+            preloaderEl: false,
+            bgOpacity: 0.9,
+            showHideOpacity: true
+        };
+                             
+        var gallery = new PhotoSwipe(pswp, PhotoSwipeUI_Default, items, options);
+        gallery.init();
+    };
+
+    var elements = document.querySelectorAll('.photoswipe');
+    for (var i=0; i<elements.length; i++) {
+        var element = elements[i];
+        element.addEventListener('click', openPhotoSwipe);
+    }
+</script>
