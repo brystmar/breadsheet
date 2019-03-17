@@ -1,4 +1,4 @@
-# https://yamlchecker.com/ [from githib]
+# https://yamlchecker.com/
 runtime: python
 env: flex
 
@@ -11,6 +11,3 @@ error_handlers:
 
   - error_code: over_quota
     file: app/templates/errors/over_quota.html
-
-automatic_scaling:
-  max_instances: 1
