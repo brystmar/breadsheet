@@ -14,3 +14,6 @@ class Config(object):
 
     # should SQLAlchemy send a notification to the app every time an object changes?
     SQLALCHEMY_TRACK_MODIFICATIONS = False
+
+    # gcp bucket name
+    BUCKET_NAME = os.environ.get('BUCKET_NAME') or None
