@@ -9,7 +9,7 @@
     <title>Breadsheet Baking Tool</title>
     {% endif %}
 
-    {% include "styles.html" %}
+    <style>{% include "styles.css" %}</style>
 </head>
 
 <body onload="sfToggle();">
@@ -18,18 +18,22 @@
         <a href="{{ url_for('main.add_recipe') }}">Add Recipe</a> |
         <a href="{{ url_for('convert.convert') }}">Convert Recipe Text</a>
     </div>
-    <!-- Retrieve messages from the flash msg -->
-    
+
     <p></p>
     
-    {% block content %}
+    {% block breadapp_content %}
     {% endblock %}
 
+    {% with messages = get_flashed_messages() %}
+        {% if messages %}
+            {% for message in messages %}
+                <!-- <li>{#{ message }#}</li> -->
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
     {% block scripts %}
-    <script src="https://unpkg.com/moment" />
-    <script>
-        {% include "scripts.js" %}
-    </script>
+        <script src="https://unpkg.com/moment" />
     {% endblock %}
 
 </body>

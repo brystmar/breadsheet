@@ -10,9 +10,9 @@ now = datetime.now()
 
 
 # map the desired URL to this function
-@bp.route('/')
-@bp.route('/index')
 @bp.route('/breadsheet')
+@bp.route('/index')
+@bp.route('/')
 def index():
     recipes = add_recipe_ui_fields(Recipe.query.order_by('id').all())
     return render_template('index.html', title='Breadsheet Home', recipes=recipes)
