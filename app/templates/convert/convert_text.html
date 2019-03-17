@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 
 {% block breadapp_content %}
-    <div id="convert_text">
+    <div id="convert_text_section">
         <h1>Convert Recipe Text</h1>
         <form action="" method="POST">
             {{ form.hidden_tag() }}
@@ -25,26 +25,56 @@
                 <tr>
                     <td>
                         {{ form.submit() }}
-                        <button onclick="clearFields();" id="reset">Reset</button>
+                        <button onclick="copyToClipboard();" id="copy_to_clipboard">Copy to Clipboard</button>
                     </td>
                 </tr>
-                <tr>
+                <!--<tr>
                     <td id="convert_text_flash_msg" style="font-size:small; color:Green">
                         <br>{{ get_flashed_messages()[0] }}
+                    </td>
+                </tr>-->
+                <tr>
+                    <td>
+                        <button onclick="clearFields2();" id="reset">Reset</button>
                     </td>
                 </tr>
             </table>
         </form>
     </div>
 
+<div id="clipboard_section" style="display: none;">
+    <textarea id="clipboard_text">
+    </textarea>
+</div>
+
     <script>
-        function clearFields() {
+        function clearFields2() {
             document.getElementById("ingredients_input").value = "";
             document.getElementById("directions_input").value = "";
             document.getElementById("ingredients_output").value = "";
             document.getElementById("directions_output").value = "";
             document.getElementById("ingredients_input").focus();
             document.getElementById("convert_text_flash_msg").style.display = "none";
+        }
+
+        function copyToClipboard() {
+            ingredients = document.getElementById("ingredients_output").value;
+            directions = document.getElementById("directions_output").value;
+            section = document.getElementById("clipboard_section");
+            clipboard = document.getElementById("clipboard_text");
+
+            section.style.display = "block";
+
+            clipboard.value = ingredients + '\n\n\n' + directions;
+            clipboard.select();
+            document.execCommand("copy");
+
+            section.style.display = "none";
+            //document.getElementById("convert_text_flash_msg").style.display = "block";
+        }
+
+        function sfToggle() {
+			var xyz = 5;
         }
     </script>
 {% endblock %}
