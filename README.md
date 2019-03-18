@@ -12,4 +12,4 @@ Here's an example using my go-to sourdough recipe from [Flour, Water, Salt, Yeas
 * Let them proof in the fridge overnight
 * Bake on Saturday morning
 
-Let [breadsheet](http://breadsheet.appspot.com) do the scheduling so you can focus on baking.
+Leave the scheduling to [breadsheet](http://breadsheet.appspot.com).  You focus on baking.
