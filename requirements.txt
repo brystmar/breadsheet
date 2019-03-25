@@ -23,6 +23,7 @@ moment==0.8.2
 passlib==1.7.1
 pg8000==1.13.1
 Pint==0.9
+psycopg2==2.7.7
 pyasn1==0.4.5
 pyasn1-modules==0.2.4
 pyperclip==1.7.0

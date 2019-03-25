@@ -189,7 +189,8 @@ def add_recipe_ui_fields(recipe):
         recipe.date_added_ui = recipe.date_added.strftime('%Y-%m-%d %H:%M')
         if recipe.start_time is None:
             recipe.start_time = now
-        recipe.start_time = datetime.strptime(recipe.start_time, '%Y-%m-%d %H:%M:%S.%f')
+        print(recipe.start_time, type(recipe.start_time))
+        recipe.start_time = datetime.strptime(str(recipe.start_time), '%Y-%m-%d %H:%M:%S.%f')
         recipe.start_time_ui = dt_ui(recipe.start_time)
 
         sql = "SELECT sum(then_wait) FROM step WHERE recipe_id = {}".format(recipe.id)
