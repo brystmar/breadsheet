@@ -10,5 +10,11 @@
         <property name="enable_load_extension" value="true" />
       </driver-properties>
     </data-source>
+    <data-source source="LOCAL" name="breadsheet@35.203.128.137" uuid="f146a248-8ebf-4005-9db8-40b427a93b09">
+      <driver-ref>postgresql</driver-ref>
+      <synchronize>true</synchronize>
+      <jdbc-driver>org.postgresql.Driver</jdbc-driver>
+      <jdbc-url>jdbc:postgresql://35.203.128.137:5432/breadsheet</jdbc-url>
+    </data-source>
   </component>
 </project>

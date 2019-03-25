@@ -11,3 +11,6 @@ error_handlers:
 
   - error_code: over_quota
     file: app/templates/errors/over_quota.html
+
+beta_settings:
+  cloud_sql_instances: breadsheet:us-west1:breadsheet=tcp:5432
