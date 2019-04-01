@@ -7,7 +7,7 @@ load_dotenv(os.path.join(basedir, '.env'))
 
 class Config(object):
     # prefer secret keys set at the environment level, providing an alternative if that doesn't exist
-    SECRET_KEY = os.environ.get('SECRET_KEY') or 'you-will-never-guess'
+    SECRET_KEY = os.environ.get('SECRET_KEY')
 
     db_user = os.environ.get('GCP_CLOUDSQL_USER')
     db_pw = os.environ.get('GCP_CLOUDSQL_PW')
