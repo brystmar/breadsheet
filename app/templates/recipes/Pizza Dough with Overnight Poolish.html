@@ -3,16 +3,6 @@
     
     <div class="infobox">
 
-        <!-- Image -->
-        
-        <div class="photobox">
-            
-            
-            <img src="{{ url_for('static', filename='pizza_dough_poolish1.jpg') }}" itemprop="image"/>
-            
-        </div>
-        
-
         <!-- Name -->
         <h1 itemprop="name" class="name">Pizza Dough with Overnight Poolish</h1>
         
@@ -29,9 +19,9 @@
         
             <!-- Cook time, prep time, servings, difficulty -->
             
-            <b>Difficulty: </b><span itemprop="difficulty">Medium</span>
+            <b>Difficulty: </b><span itemprop="difficulty">Medium</span><br>
             
-            <b>Servings: </b><span itemprop="recipeYield">5 dough balls</span>
+            <b>Servings: </b><span itemprop="recipeYield">5 dough balls</span><br>
             
 
             <!-- Source -->
@@ -39,10 +29,18 @@
                 <b>Source: </b>
                 
                 
-                    <span itemprop="author">Flour Water Salt Yeast</span>
+                    <span itemprop="author">Flour Water Salt Yeast</span><br>
                 
             
         </p>
+
+        <!-- Image -->
+
+        <div class="photobox">
+
+            <img src="{{ url_for('static', filename='pizza_dough_poolish1.jpg') }}" itemprop="image"/>
+
+        </div>
         
         
         <div class="clear"></div>
@@ -88,44 +86,16 @@
             <p>Yields five 350g dough balls, each of which yields a ~12&quot; thin-crust, pizza-stone pizza; or a smaller, thick-crust iron-skillet pizza.  If using this dough for focaccia, the dough balls should be 200g each for thin &amp; crispy focaccia, or 350g each for chewier focaccia.  See page 215 for details on amounts of dough for different applications.</p><p>POOLISH FERMENTATION: 12 to 14 hours<br/>BULK FERMENTATION: About 6 hours<br/>PROOF TIME: At least 1½ hours<br/>SAMPLE SCHEDULE: Mix the poolish at 8pm, mix the final dough at 10am the next morning, shape into dough balls at 4pm, and make pizza that evening.</p><p>This dough has two things going for it: a particular flavor provided by the fermentation of the poolish, and a crisp, poofy-rimmed, delicate crust that has a light texture and open holes.  The dough is leavened entirely with the poolish, which incorporates 50% of the total amount of flour in the dough.</p><p>This dough also has higher hydration than the other pizza dough recipes in the book, using 75% water relative to the weight of the flour.  This produces a softer dough that requires two folds, preferably during the first hour of fermentation to give it more strength and tenacity.  You need to take extra care when shaping pizzas from this soft dough.  Although I&apos;ve learned to toss and twirl this dough it does break and tear more easily, so the recommended shaping method for this dough is to use balled-up fists to stretch it into shape (without tossing it), as described on page 211.</p><p>Because the dough isn&apos;t as strong, it&apos;s also important not to load the pizzas down with too much weight from sauce or toppings.  A pizza that breaks when you load it into the oven isn&apos;t fun to deal with.  Another option is to make this dough at a hydration closer to 70%.  To do so, simply reduce the amount of water in the final dough mix by 40g or 50g.</p><p>You might think of this as an advanced recipe to try once you&apos;re confident with the other pizza doughs in this book.  A successful pizza made from this dough is well worth the effort, in taste and texture.  It&apos;s also a good example of how dough can be leavened solely with a poolish and no added yeast.  I love the fact that just 0.4 gram of yeast — a scant ⅛ tsp — can leaven a batch of dough that makes five pizzas.</p>
         </div>
     </div>
-    
-    
+
 
     <!-- Nutrition (in regular mode it goes below the notes) -->
     
         <!-- Used in two different places depending on the recipe layout -->
 
 
-    
-    
+    <hr>
 </div>
 
-        
-        <!-- PhotoSwipe gallery -->
-
-<div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
-    <div class="pswp__bg"></div>
-    <div class="pswp__scroll-wrap">
-        <div class="pswp__container">
-            <div class="pswp__item"></div>
-            <div class="pswp__item"></div>
-            <div class="pswp__item"></div>
-        </div>
-        <div class="pswp__ui pswp__ui--hidden">
-            <div class="pswp__top-bar">
-                <div class="pswp__counter"></div>
-                <button class="pswp__button pswp__button--close" title="Close"></button>
-            </div>
-            <button class="pswp__button pswp__button--arrow--left" title="Previous">
-            </button>
-            <button class="pswp__button pswp__button--arrow--right" title="Next">
-            </button>
-            <div class="pswp__caption">
-                <div class="pswp__caption__center"></div>
-            </div>
-        </div>
-    </div>
-</div>
 
 <script type="text/javascript">
     var openPhotoSwipe = function(event) {

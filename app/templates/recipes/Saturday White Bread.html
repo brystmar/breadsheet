@@ -3,18 +3,6 @@
     
     <div class="infobox">
 
-        <!-- Image -->
-        
-        <div class="photobox">
-            
-            <a href="#">
-                <img src="{{ url_for('static', filename='saturday1.jpg') }}" itemprop="image" class="photo photoswipe"/>
-            </a>
-            
-            
-        </div>
-        
-
         <!-- Name -->
         <h1 itemprop="name" class="name">Saturday White Bread</h1>
         
@@ -31,15 +19,15 @@
         
             <!-- Cook time, prep time, servings, difficulty -->
             
-            <b>Prep Time: </b><span itemprop="prepTime">6 hr 15 min</span>
+            <b>Prep Time: </b><span itemprop="prepTime">6 hr 15 min</span><br>
             
-            <b>Cook Time: </b><span itemprop="cookTime">50 min</span>
+            <b>Cook Time: </b><span itemprop="cookTime">50 min</span><br>
             
-            <b>Total Time: </b><span itemprop="totalTime">7 hr, 30 min</span>
+            <b>Total Time: </b><span itemprop="totalTime">7 hr, 30 min</span><br>
             
-            <b>Difficulty: </b><span itemprop="difficulty">Medium</span>
+            <b>Difficulty: </b><span itemprop="difficulty">Medium</span><br>
             
-            <b>Servings: </b><span itemprop="recipeYield">2 loaves</span>
+            <b>Servings: </b><span itemprop="recipeYield">2 loaves</span><br>
             
 
             <!-- Source -->
@@ -47,12 +35,19 @@
                 <b>Source: </b>
                 
                 
-                    <span itemprop="author">Flour Water Salt Yeast</span>
+                    <span itemprop="author">Flour Water Salt Yeast</span><br>
                 
             
         </p>
-        
-        
+
+        <!-- Image -->
+
+        <div class="photobox">
+
+            <img src="{{ url_for('static', filename='saturday1.jpg') }}" itemprop="image"/>
+
+        </div>
+
         <div class="clear"></div>
 
     </div>
@@ -103,44 +98,14 @@
             <p>Can be used as dough for pizza or focaccia.</p><p>This recipe is designed for someone who wants to make good, crusty loaves of white bread from start to finish in one day.  Mix the dough first thing in the morning, shape it into two loaves about five hours later, and then bake in the late afternoon in time for dinner.  It&apos;s also a good first recipe to try from this book to help you get familiar with my dough handling techniques, which are the same for all the recipes in this book.  Here, you get the taste benefits of a medium-length fermentation, resulting in a versatile, delicious bread that&apos;s great as a dinner bread and also works well for sandwiches and toast.</p><p>Sometimes I like to make this bread with 10% whole wheat flour for the round, earthy flavors it adds.  If you want to do that, simply make this recipe with 900 g of white Hour and 100 g of whole wheat flour.</p><p>You can bake one or two loaves from this recipe.  If you bake just one loaf, you can divide the remaining dough into two or three dough balls to make iron-skillet focaccia or pizza; refrigerate the dough balls and use them any time during the next two or three days.</p><p>I love focaccia with olive oil, salt, pepper, and maybe a sprinkling of herbs, cut into small pieces to share with friends before dinner, or just for snacks.  (See chapter 14 for specific focaccia and pizza recipes, and page 215 for pointers on using bread doughs for focaccia.)</p>
         </div>
     </div>
-    
-    
 
     <!-- Nutrition (in regular mode it goes below the notes) -->
     
         <!-- Used in two different places depending on the recipe layout -->
 
-
-    
-    
+    <hr>
 </div>
 
-        
-        <!-- PhotoSwipe gallery -->
-
-<div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
-    <div class="pswp__bg"></div>
-    <div class="pswp__scroll-wrap">
-        <div class="pswp__container">
-            <div class="pswp__item"></div>
-            <div class="pswp__item"></div>
-            <div class="pswp__item"></div>
-        </div>
-        <div class="pswp__ui pswp__ui--hidden">
-            <div class="pswp__top-bar">
-                <div class="pswp__counter"></div>
-                <button class="pswp__button pswp__button--close" title="Close"></button>
-            </div>
-            <button class="pswp__button pswp__button--arrow--left" title="Previous">
-            </button>
-            <button class="pswp__button pswp__button--arrow--right" title="Next">
-            </button>
-            <div class="pswp__caption">
-                <div class="pswp__caption__center"></div>
-            </div>
-        </div>
-    </div>
-</div>
 
 <script type="text/javascript">
     var openPhotoSwipe = function(event) {

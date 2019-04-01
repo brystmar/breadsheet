@@ -3,18 +3,6 @@
     
     <div class="infobox">
 
-        <!-- Image -->
-        
-        <div class="photobox">
-            
-            <a href="http://www.seriouseats.com/recipes/assets_c/2017/02/20170216-detroit-style-pizza-43-thumb-1500xauto-436479.jpg">
-                <img src="{{ url_for('static', filename='detroit1.jpg') }}" itemprop="image"/>
-            </a>
-            
-            
-        </div>
-        
-
         <!-- Name -->
         <h1 itemprop="name" class="name">Detroit-Style Pan Pizza</h1>
         
@@ -31,13 +19,13 @@
         
             <!-- Cook time, prep time, servings, difficulty -->
             
-            <b>Prep Time: </b><span itemprop="prepTime">45 minutes</span>
+            <b>Prep Time: </b><span itemprop="prepTime">45 minutes</span><br>
             
-            <b>Cook Time: </b><span itemprop="cookTime">4 hours</span>
+            <b>Cook Time: </b><span itemprop="cookTime">4 hours</span><br>
             
-            <b>Difficulty: </b><span itemprop="difficulty">Medium</span>
+            <b>Difficulty: </b><span itemprop="difficulty">Medium</span><br>
             
-            <b>Servings: </b><span itemprop="recipeYield">4</span>
+            <b>Servings: </b><span itemprop="recipeYield">4</span><br>
             
 
             <!-- Source -->
@@ -51,8 +39,16 @@
                 
             
         </p>
-        
-        
+
+        <!-- Image -->
+
+        <div class="photobox">
+
+            <img src="{{ url_for('static', filename='detroit1.jpg') }}" itemprop="image"/>
+
+        </div>
+
+
         <div class="clear"></div>
 
     </div>
@@ -105,35 +101,9 @@
 
 
 
-    
+    <hr>
 </div>
 
-        
-        <!-- PhotoSwipe gallery -->
-
-<div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
-    <div class="pswp__bg"></div>
-    <div class="pswp__scroll-wrap">
-        <div class="pswp__container">
-            <div class="pswp__item"></div>
-            <div class="pswp__item"></div>
-            <div class="pswp__item"></div>
-        </div>
-        <div class="pswp__ui pswp__ui--hidden">
-            <div class="pswp__top-bar">
-                <div class="pswp__counter"></div>
-                <button class="pswp__button pswp__button--close" title="Close"></button>
-            </div>
-            <button class="pswp__button pswp__button--arrow--left" title="Previous">
-            </button>
-            <button class="pswp__button pswp__button--arrow--right" title="Next">
-            </button>
-            <div class="pswp__caption">
-                <div class="pswp__caption__center"></div>
-            </div>
-        </div>
-    </div>
-</div>
 
 <script type="text/javascript">
     var openPhotoSwipe = function(event) {
