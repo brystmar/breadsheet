@@ -15,7 +15,7 @@ now = datetime.utcnow()
 @bp.route('/')
 def index():
     recipes = add_recipe_ui_fields(Recipe.query.order_by('id').all())
-    return render_template('index.html', title='Breadsheet Home', recipes=recipes)
+    return render_template('index.html', title='Breadsheet Recipe Scheduling Tool', recipes=recipes)
 
 
 @bp.route('/add_recipe', methods=['GET', 'POST'])
@@ -23,7 +23,8 @@ def add_recipe():
     rform = RecipeForm()
 
     if rform.validate_on_submit():
-        rdata = Recipe(name=rform.name.data, author=rform.author.data, source=rform.source.data,
+        id = db.engine.execute("SELECT max(id) FROM recipe").first()[0] + 1
+        rdata = Recipe(id=id, name=rform.name.data, author=rform.author.data, source=rform.source.data,
                        difficulty=rform.difficulty.data, date_added=datetime.utcnow())
         db.session.add(rdata)
         db.session.commit()
@@ -50,7 +51,8 @@ def recipe():
         # convert then_wait decimal value to seconds
         then_wait = hms_to_seconds([sform.then_wait_h.data, sform.then_wait_m.data, sform.then_wait_s.data])
 
-        sdata = Step(recipe_id=recipe_id, number=sform.number.data, text=sform.text.data,
+        id = db.engine.execute("SELECT max(id) FROM step").first()[0] + 1
+        sdata = Step(id=id, recipe_id=recipe_id, number=sform.number.data, text=sform.text.data,
                      then_wait=then_wait, wait_time_range=sform.wait_time_range.data)
 
         db.session.add(sdata)

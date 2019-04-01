@@ -1,32 +1,30 @@
 {% extends "base.html" %}
 
 {% block breadapp_content %}
-    <div id="recipe_display">
-        <table id="single_recipe">
-            <tr id="recipe_title_row">
-                <td colspan="4"><h2>{{ recipe.name }}</h2></td>
-            </tr>
-            
-            <tr id="recipe_row1">
-                <th>Author:</th>
-                <td>{{ recipe.author }}</td>
-                <th>ID:</th>
-                <td>{{ recipe.id }}</td>
-            </tr>
-            
+    <div class="container" id="recipe_div">
+        <h1>{{ recipe.name }}</h1>
+        <table id="recipe" class="table table-condensed">
+                <tr id="recipe_row1">
+                    <th><b>Author:</b></th>
+                    <th>{{ recipe.author }}</th>
+                    <th><b>ID:</b></th>
+                    <th>{{ recipe.id }}</th>
+                </tr>
+
             <tr id="recipe_row2">
-                <th>Source:</th>
+                <td><b>Source:</b></td>
                 <td>{{ recipe.source }}</td>
-                <th>Difficulty:</th>
+                <td><b>Difficulty:</b></td>
                 <td>{{ recipe.difficulty_ui }}</td>
             </tr>
-            
+
             <tr id="recipe_row3">
-                <th>Date Added:</th>
-                <td>{{ recipe.date_added_ui }}</td>
+                <td id="recipe_row_bottom"><b>Total Time:</b></td>
+                <td id="total_time">{{ recipe.total_time_ui }}</td>
+                <td id="recipe_row_bottom"><b>Date Added:</b></td>
+                <td id="recipe_row_bottom">{{ recipe.date_added_ui }}</td>
             </tr>
         </table>
-        <br>
     </div>
 
     {% include "steps.html" %}

@@ -1,50 +1,13 @@
 {% extends "base.html" %}
+{% import 'bootstrap/wtf.html' as wtf %}
 
 {% block breadapp_content %}
-    <div id="add_recipe">
+    <div class="container-fluid" id="add_recipe_div">
         <h1>Add Recipe</h1>
-        <form action="" method="POST">
-            {{ rform.hidden_tag() }}
-            <table id="recipe_form">
-                <tr>
-                    <th>{{ rform.name.label }}</th>
-                    <td>{{ rform.name(size=40) }}</td>
-                    {% for error in rform.name.errors %}
-                        <td>
-                            <span style="color: red;">[{{ error }}]</span>
-                        </td>
-                    {% endfor %}
-                </tr>
-                <tr>
-                    <th>{{ rform.author.label }}</th>
-                    <td>{{ rform.author(size=40) }}</td>
-                    {% for error in rform.author.errors %}
-                        <td>
-                            <span style="color: red;">[{{ error }}]</span>
-                        </td>
-                    {% endfor %}
-                </tr>
-                <tr>
-                    <th>{{ rform.source.label }}</th>
-                    <td>{{ rform.source(size=40) }}</td>
-                    {% for error in rform.source.errors %}
-                        <td>
-                            <span style="color: red;">[{{ error }}]</span>
-                        </td>
-                    {% endfor %}
-                </tr>
-                <tr>
-                    <th>{{ rform.difficulty.label }}</th>
-                    <td>{{ rform.difficulty(size=1) }}</td>
-                    {% for error in rform.difficulty.errors %}
-                        <td>
-                            <span style="color: red;">[{{ error }}]</span>
-                        </td>
-                    {% endfor %}
-                </tr>
-            </table>
-            <p>{{ rform.submit() }}</p>
-        </form>
+        <div class="row">
+            <div class="col-md-3">
+                {{ wtf.quick_form(rform) }}
+            </div>
+        </div>
     </div>
-
 {% endblock %}

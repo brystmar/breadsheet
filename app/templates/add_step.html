@@ -1,30 +1,30 @@
-<div id="ask_add_step">
+<div id="ask_add_step" class="container">
     <p>
-        <button onclick="addStep()" id="ask_add_step_button">Add a Step</button>
+        <button onclick="addStep()" id="ask_add_step_button" class="btn btn-default">Add a Step</button>
     </p>
 </div>
 
-<div id="add_step_section">
+<div id="add_step_section" class="container" style="display: none;">
     <h1>Add Step</h1>
     <form id="add_step" action="" method="POST">
         {{ sform.hidden_tag() }}
-        <table id="step_form">
+        <table id="step_form" class="table table-condensed">
             <tr>
                 <th>{{ sform.number.label }}</th>
                 <td>{{ sform.number(size=5) }}</td>
                 {% for error in sform.number.errors %}
-                <td>
-                    <span style="color: red;">[{{ error }}]</span>
-                </td>
+                    <td id="add_step_error">
+                        <span>[{{ error }}]</span>
+                    </td>
                 {% endfor %}
             </tr>
             <tr>
                 <th>{{ sform.text.label }}</th>
                 <td>{{ sform.text(cols=80, rows=4) }}</td>
                 {% for error in sform.text.errors %}
-                <td>
-                    <span style="color: red;">[{{ error }}]</span>
-                </td>
+                    <td id="add_step_error">
+                        <span>[{{ error }}]</span>
+                    </td>
                 {% endfor %}
             </tr>
             <tr>
@@ -35,36 +35,36 @@
                     {{ sform.then_wait_s(size=2) }}
                 </td>
                 {% for error in sform.then_wait_h.errors %}
-                <td>
-                    <span style="color: red;">[{{ error }}]</span>
-                </td>
+                    <td id="add_step_error">
+                        <span>[{{ error }}]</span>
+                    </td>
                 {% endfor %}
             </tr>
             <tr>
                 <th>{{ sform.wait_time_range.label }}</th>
                 <td>{{ sform.wait_time_range(size=30) }}</td>
                 {% for error in sform.wait_time_range.errors %}
-                <td>
-                    <span style="color: red;">[{{ error }}]</span>
-                </td>
+                    <td id="add_step_error">
+                        <span>[{{ error }}]</span>
+                    </td>
                 {% endfor %}
             </tr>
 
         </table>
         <p>
-            <button onclick="cancelAddStep()" id="cancel_step">Cancel</button>
+            <button onclick="cancelAddStep()" id="cancel_step" class="btn btn-danger">Cancel</button>
             {{ sform.submit() }}
         </p>
     </form>
 </div>
 
-<div id="ask_toggle_recipe">
+<div id="ask_toggle_recipe" class="container">
     <p>
-        <button onclick="toggleRecipe()" id="toggle_recipe">Show/Hide Recipe</button>
+        <button onclick="toggleRecipe()" id="toggle_recipe" class="btn btn-default">Toggle Full Recipe</button>
     </p>
 </div>
 
-<div id="recipe_section" style="display: none;">
+<div id="recipe_section" class="container" style="display: none;">
     {% if recipe.id == 1 %}
         {% include "recipes/Pain de Campagne (Sourdough).html" %}
     {% elif recipe.id == 2 %}

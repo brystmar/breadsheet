@@ -1,42 +1,66 @@
-<!DOCTYPE html>
-<html lang="en">
+{% extends 'bootstrap/base.html' %}
 
-<head>
-    <meta charset="UTF-8">
+{% block title %}
     {% if title %}
-    <title>{{ title }} - Breadsheet</title>
+        {% if 'breadsheet' in title.lower() %}
+            {{ title }}
+        {% else %}
+            {{ title }} - Breadsheet
+        {% endif %}
     {% else %}
-    <title>Breadsheet Baking Tool</title>
+        Breadsheet: A Recipe Scheduling Tool
     {% endif %}
+{% endblock %}
 
-    <style>{% include "styles.css" %}</style>
-</head>
+{% block styles %}
+    {{ super() }}
+    <style>
+        {% include 'styles.css' %}
+    </style>
+{% endblock %}
 
-<body onload="sfToggle();">
-    <div id="nav">
-        <a href="{{ url_for('main.index') }}">Home</a> |
-        <a href="{{ url_for('main.add_recipe') }}">Add Recipe</a> |
-        <a href="{{ url_for('convert.convert') }}">Convert Recipe Text</a>
-    </div>
+{% block navbar %}
+    <nav class="navbar navbar-default">
+        <!-- Brand and toggle get grouped for better mobile display -->
+        <div class="navbar-header">
+            <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar-collapsed" aria-expanded="false">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+            </button>
+            <a class="navbar-brand" href="{{ url_for('main.index') }}">Breadsheet</a>
+        </div>
 
-    <p></p>
-    
-    {% block breadapp_content %}
-    {% endblock %}
+        <!-- Collect the nav links, forms, and other content for toggling -->
+        <div class="collapse navbar-collapse" id="navbar-collapsed">
+            <ul class="nav navbar-nav">
+                <!-- For recipe dropdown: https://getbootstrap.com/docs/3.3/components/#navbar-default -->
+                <li>
+                    <a href="{{ url_for('main.add_recipe') }}">Add Recipe</a>
+                </li>
+                <li>
+                    <a href="{{ url_for('convert.convert') }}">Convert Recipe Text</a>
+                </li>
+            </ul>
+        </div>
+    </nav>
+{% endblock %}
 
+{% block content %}
     {% with messages = get_flashed_messages() %}
         {% if messages %}
             {% for message in messages %}
-                <!-- <li>{#{ message }#}</li> -->
+                {#{ message }#}
             {% endfor %}
         {% endif %}
     {% endwith %}
 
-    <script>
-    {% block scripts %}
-        {% include "moment.js" %}
+    {% block breadapp_content %}
     {% endblock %}
-    </script>
+{% endblock %}
 
-</body>
-</html>
+{% block scripts %}
+    {{ super() }}
+    {{ moment.include_moment() }}
+{% endblock %}

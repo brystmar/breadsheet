@@ -4,12 +4,12 @@ from app import db
 
 class Recipe(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(64), index=True, unique=True, nullable=False)
+    name = db.Column(db.String(128), index=True, unique=True, nullable=False)
     author = db.Column(db.String(64), index=True)
     source = db.Column(db.String(128), index=True)
     difficulty = db.Column(db.String(1), index=True)
     date_added = db.Column(db.DateTime, default=datetime.utcnow())
-    start_time = db.Column(db.String(32), default=str(datetime.utcnow()))
+    start_time = db.Column(db.DateTime, default=datetime.utcnow())
     solve_for_start = db.Column(db.Integer, default=1)
     steps = db.relationship('Step', backref='recipe', lazy='dynamic')
 
@@ -22,7 +22,7 @@ class Step(db.Model):
     recipe_id = db.Column(db.Integer, db.ForeignKey('recipe.id'), nullable=False)
     number = db.Column(db.Integer, index=True)
     text = db.Column(db.String, index=True)
-    then_wait = db.Column(db.Integer)
+    then_wait = db.Column(db.Integer, default=0)
     wait_time_range = db.Column(db.String(64))
 
     def __repr__(self):

@@ -1,32 +1,32 @@
 {% extends "base.html" %}
 
 {% block breadapp_content %}
-    <div id="recipe_list">
-        <table id="recipe">
-            <tr id="recipe_title_row">
-                <td colspan="6"><h1>Breadsheet Recipes</h1></td>
-            </tr>
-            
-            <tr id="recipe_header_row">
-                <th>Name</th>
-                <th>Author</th>
-                <th>Source</th>
-                <th>Difficulty</th>
-                <th>Date Added</th>
-                <th>ID</th>
-            </tr>
-            
-            {% for recipe in recipes %}
-            <tr id="recipe_row">
-                <td><a href="{{ url_for('main.recipe') }}?id={{ recipe.id }}">{{ recipe.name }}</a></td>
-                <td>{{ recipe.author }}</td>
-                <td>{{ recipe.source }}</td>
-                <td>{{ recipe.difficulty_ui }}</td>
-                <td>{{ recipe.date_added_ui }}</td>
-                <td>{{ recipe.id }}</td>
-            </tr>
-            {% endfor %}
-            
+    <div class="container-fluid" id="recipe_list_div">
+        <h1>Recipes</h1>
+        <table id="recipe_list" class="table table-condensed table-striped">
+            <thead>
+                <tr id="recipe_header_row">
+                    <th>Name</th>
+                    <th>Author</th>
+                    <th>Source</th>
+                    <th>Difficulty</th>
+                    <th>Date Added</th>
+                    <th>ID</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                {% for recipe in recipes %}
+                    <tr>
+                        <td><a href="{{ url_for('main.recipe') }}?id={{ recipe.id }}">{{ recipe.name }}</a></td>
+                        <td>{{ recipe.author }}</td>
+                        <td>{{ recipe.source }}</td>
+                        <td>{{ recipe.difficulty_ui }}</td>
+                        <td>{{ recipe.date_added_ui }}</td>
+                        <td>{{ recipe.id }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
         </table>
     </div>
 {% endblock %}
