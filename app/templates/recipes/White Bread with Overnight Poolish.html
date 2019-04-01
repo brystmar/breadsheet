@@ -3,16 +3,6 @@
     
     <div class="infobox">
 
-        <!-- Image -->
-        
-        <div class="photobox">
-            
-            
-            <img src="{{ url_for('static', filename='detroit1.jpg') }}" itemprop="image" class="photo photoswipe"/>
-            
-        </div>
-        
-
         <!-- Name -->
         <h1 itemprop="name" class="name">White Bread with Overnight Poolish</h1>
         
@@ -29,13 +19,13 @@
         
             <!-- Cook time, prep time, servings, difficulty -->
             
-            <b>Prep Time: </b><span itemprop="prepTime">14 hr</span>
+            <b>Prep Time: </b><span itemprop="prepTime">14 hr</span><br>
             
-            <b>Cook Time: </b><span itemprop="cookTime">1 hr 15 min</span>
+            <b>Cook Time: </b><span itemprop="cookTime">1 hr 15 min</span><br>
             
-            <b>Difficulty: </b><span itemprop="difficulty">Medium</span>
+            <b>Difficulty: </b><span itemprop="difficulty">Medium</span><br>
             
-            <b>Servings: </b><span itemprop="recipeYield">2 loaves</span>
+            <b>Servings: </b><span itemprop="recipeYield">2 loaves</span><br>
             
 
             <!-- Source -->
@@ -43,12 +33,20 @@
                 <b>Source: </b>
                 
                 
-                    <span itemprop="author">Flour Water Salt Yeast</span>
+                    <span itemprop="author">Flour Water Salt Yeast</span><br>
                 
             
         </p>
-        
-        
+
+        <!-- Image -->
+
+        <div class="photobox">
+
+            <img src="{{ url_for('static', filename='white_bread_poolish1.jpg') }}" itemprop="image"/>
+
+        </div>
+
+
         <div class="clear"></div>
 
     </div>
@@ -88,7 +86,6 @@
             <p class="line">Start the poolish the night before.  Let it sit for <span class='timer' time='43200.0'>12 to 14 hours</span>.</p><p class="line">Mix the final dough.  This recipe requires two folds, ideally done in the first <span class='timer' time='1800.0'>half hour </span>after mixing.  Cover and let the dough rise for <span class='timer' time='7200.0'>2 to 3 hours</span>.</p>
         </div>
     </div>
-    
 
     <!-- Notes -->
     
@@ -97,41 +94,7 @@
     
         <!-- Used in two different places depending on the recipe layout -->
 
-
-    
-    
-</div>
-
-        
-        <!-- PhotoSwipe gallery -->
-
-<link rel="stylesheet" href="Resources/PhotoSwipe/photoswipe.css">
-<link rel="stylesheet" href="Resources/PhotoSwipe/default-skin/default-skin.css">
-<script src="Resources/PhotoSwipe/photoswipe.min.js"></script>
-<script src="Resources/PhotoSwipe/photoswipe-ui-default.min.js"></script>
-
-<div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
-    <div class="pswp__bg"></div>
-    <div class="pswp__scroll-wrap">
-        <div class="pswp__container">
-            <div class="pswp__item"></div>
-            <div class="pswp__item"></div>
-            <div class="pswp__item"></div>
-        </div>
-        <div class="pswp__ui pswp__ui--hidden">
-            <div class="pswp__top-bar">
-                <div class="pswp__counter"></div>
-                <button class="pswp__button pswp__button--close" title="Close"></button>
-            </div>
-            <button class="pswp__button pswp__button--arrow--left" title="Previous">
-            </button>
-            <button class="pswp__button pswp__button--arrow--right" title="Next">
-            </button>
-            <div class="pswp__caption">
-                <div class="pswp__caption__center"></div>
-            </div>
-        </div>
-    </div>
+    <hr>
 </div>
 
 <script type="text/javascript">

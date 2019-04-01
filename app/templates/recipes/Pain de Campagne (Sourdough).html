@@ -3,16 +3,6 @@
     
     <div class="infobox">
 
-        <!-- Image -->
-        
-        <div class="photobox">
-            
-            
-            <img src="{{ url_for('static', filename='sourdough1.jpg') }}" itemprop="image"/>
-            
-        </div>
-        
-
         <!-- Name -->
         <h1 itemprop="name" class="name">Pain de Campagne (Sourdough)</h1>
         
@@ -22,20 +12,20 @@
         <!-- Rating, categories -->
         <p itemprop="aggregateRating" class="rating" value="5">★★★★★</p>
         
-            <p itemprop="recipeCategory" class="categories">Bread</p>
+            <p itemprop="recipeCategory" class="categories">Bread</p><br>
         
         
         <p class="metadata">
         
             <!-- Cook time, prep time, servings, difficulty -->
             
-            <b>Prep Time: </b><span itemprop="prepTime">24 hrs</span>
+            <b>Prep Time: </b><span itemprop="prepTime">24 hrs</span><br>
             
-            <b>Cook Time: </b><span itemprop="cookTime">55 min</span>
+            <b>Cook Time: </b><span itemprop="cookTime">55 min</span><br>
             
-            <b>Difficulty: </b><span itemprop="difficulty">Medium</span>
+            <b>Difficulty: </b><span itemprop="difficulty">Medium</span><br>
             
-            <b>Servings: </b><span itemprop="recipeYield">2 loaves</span>
+            <b>Servings: </b><span itemprop="recipeYield">2 loaves</span><br>
             
 
             <!-- Source -->
@@ -49,6 +39,13 @@
                 
             
         </p>
+        <!-- Image -->
+
+        <div class="photobox">
+
+            <img src="{{ url_for('static', filename='sourdough1.jpg') }}" itemprop="image"/><br>
+
+        </div>
         
         
         <div class="clear"></div>
@@ -103,36 +100,10 @@
 
 
     
-    
+    <hr>
 </div>
 
         
-        <!-- PhotoSwipe gallery -->
-
-<div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
-    <div class="pswp__bg"></div>
-    <div class="pswp__scroll-wrap">
-        <div class="pswp__container">
-            <div class="pswp__item"></div>
-            <div class="pswp__item"></div>
-            <div class="pswp__item"></div>
-        </div>
-        <div class="pswp__ui pswp__ui--hidden">
-            <div class="pswp__top-bar">
-                <div class="pswp__counter"></div>
-                <button class="pswp__button pswp__button--close" title="Close"></button>
-            </div>
-            <button class="pswp__button pswp__button--arrow--left" title="Previous">
-            </button>
-            <button class="pswp__button pswp__button--arrow--right" title="Next">
-            </button>
-            <div class="pswp__caption">
-                <div class="pswp__caption__center"></div>
-            </div>
-        </div>
-    </div>
-</div>
-
 <script type="text/javascript">
     var openPhotoSwipe = function(event) {
         var pswp = document.querySelector('.pswp');
