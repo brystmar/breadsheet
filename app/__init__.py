@@ -2,7 +2,6 @@
 from config import Config
 from flask import Flask
 from flask_bootstrap import Bootstrap
-from flask_migrate import Migrate
 from flask_moment import Moment
 from flask_sqlalchemy import SQLAlchemy
 # from logging.handlers import RotatingFileHandler
@@ -10,7 +9,6 @@ from flask_sqlalchemy import SQLAlchemy
 
 bootstrap = Bootstrap()
 db = SQLAlchemy()
-migrate = Migrate()
 moment = Moment()
 
 
@@ -20,7 +18,6 @@ def create_app(config_class=Config):
 
     bootstrap.init_app(breadapp)
     db.init_app(breadapp)
-    migrate.init_app(breadapp)
     moment.init_app(breadapp)
 
     from app.errors import bp as errors_bp

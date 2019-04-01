@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 
 {% block breadapp_content %}
+<div class="container">
     <p>
         <h1>You found the default error page!</h1>
     </p>
@@ -8,4 +9,5 @@
     <p>
         <img src="{{ url_for('static', filename='computer_fire.gif') }}"/>
     </p>
+</div>
 {% endblock %}
