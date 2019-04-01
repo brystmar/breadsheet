@@ -7,7 +7,7 @@ class ConvertTextForm(FlaskForm):
     ingredients_output = TextAreaField('Ingredients Output', id='ingredients_output')
     directions_input = TextAreaField('Directions Input', id='directions_input')
     directions_output = TextAreaField('Directions Output', id='directions_output')
-    submit = SubmitField('Convert', id='convert_button')
+    submit = SubmitField('Convert', id='convert_button', render_kw={'class': 'btn btn-primary'})
     # reset = SubmitField('Reset', id='reset', onclick='clearFields();')
 
     def __repr__(self):

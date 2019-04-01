@@ -1,12 +1,12 @@
-<div id="steps">
-    <table id="steps_list">
-        <tr id="step_header_row">
-            <th>Step</th>
+<div class="container" id="steps_div">
+    <table id="steps_list" class="table table-condensed table-striped">
+        <thead>
+            <th>Step #</th>
             <th>Directions</th>
             <th>When</th>
             <th>Then Wait...</th>
             <th>Time Range</th>
-        </tr>
+        </thead>
 
         {% for step in steps %}
             <tr id="step_row{{ step.id }}">
@@ -26,7 +26,5 @@
             </tr>
         {% endfor %}
     </table>
-    <p>
-    </p>
+    <p></p>
 </div>
-

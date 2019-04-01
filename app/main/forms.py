@@ -11,7 +11,7 @@ class RecipeForm(FlaskForm):
     source = StringField('Source', validators=[Length(max=128)])
     difficulty = SelectField('Difficulty', validators=[DataRequired()], default='M',
                              choices=[('E', 'Easy'), ('M', 'Medium'), ('H', 'Hard')])
-    submit = SubmitField('Add Recipe')
+    submit = SubmitField('Add Recipe', render_kw={'class': 'btn btn-primary'})
 
     # ensure recipe name is unique
     def validate_recipename(self, name):
@@ -25,7 +25,7 @@ class RecipeForm(FlaskForm):
 
 class StepForm(FlaskForm):
     recipe_id = IntegerField('Recipe ID')
-    number = IntegerField('Step Number', id="addStep_number")
+    number = IntegerField('Step #', id="addStep_number")
     text = TextAreaField('Directions', validators=[DataRequired(), Length(max=512)], id="addStep_directions",
                          render_kw={'autofocus': True})
     then_wait_h = IntegerField('Then Wait...', validators=[Optional(), NumberRange(min=0, max=999)],
@@ -35,7 +35,7 @@ class StepForm(FlaskForm):
     then_wait_s = IntegerField('Then Wait...', validators=[Optional(), NumberRange(min=0, max=999)],
                                id="addStep_then_wait_s", render_kw={'placeholder': 's'})
     wait_time_range = StringField('Time Range', id="addStep_time_range")
-    submit = SubmitField('Add Step')
+    submit = SubmitField('Add Step', render_kw={'class': 'btn btn-primary'})
 
     def __repr__(self):
         return '<StepForm #{} for recipe_id: {}>'.format(self.number, self.name)

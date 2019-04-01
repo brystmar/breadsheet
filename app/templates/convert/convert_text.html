@@ -1,51 +1,47 @@
 {% extends "base.html" %}
 
 {% block breadapp_content %}
-    <div id="convert_text_section">
-        <h1>Convert Recipe Text</h1>
-        <form action="" method="POST">
-            {{ form.hidden_tag() }}
-            <table id="convert_text">
-                <tr>
-                    <th>{{ form.ingredients_input.label }}</th>
-                    <th>{{ form.ingredients_output.label }}</th>
-                </tr>
-                <tr>
-                    <td>{{ form.ingredients_input(cols=60, rows=15, autofocus=true) }}</td>
-                    <td>{{ form.ingredients_output(cols=60, rows=15, disabled=true) }}</td>
-                </tr>
-                <tr>
-                    <th>{{ form.directions_input.label }}</th>
-                    <th>{{ form.directions_output.label }}</th>
-                </tr>
-                <tr>
-                    <td>{{ form.directions_input(cols=60, rows=15) }}</td>
-                    <td>{{ form.directions_output(cols=60, rows=15, disabled=true) }}</td>
-                </tr>
-                <tr>
-                    <td>
-                        {{ form.submit() }}
-                        <button onclick="copyToClipboard();" id="copy_to_clipboard">Copy to Clipboard</button>
-                    </td>
-                </tr>
-                <!--<tr>
-                    <td id="convert_text_flash_msg" style="font-size:small; color:Green">
-                        <br>{{ get_flashed_messages()[0] }}
-                    </td>
-                </tr>-->
-                <tr>
-                    <td>
-                        <button onclick="clearFields2();" id="reset">Reset</button>
-                    </td>
-                </tr>
-            </table>
-        </form>
+    <div class="container-fluid">
+        <div id="convert_text_div">
+            <h1>Convert Recipe Text</h1>
+            <form action="" method="POST">
+                <table id="convert_text" class="table table-condensed">
+                    <tr>
+                        <th>{{ form.ingredients_input.label }}</th>
+                        <th>{{ form.ingredients_output.label }}</th>
+                    </tr>
+                    <tr>
+                        <td>{{ form.ingredients_input(cols=60, rows=15, autofocus=true) }}</td>
+                        <td>{{ form.ingredients_output(cols=60, rows=15, disabled=true) }}</td>
+                    </tr>
+                    <tr>
+                        <td>{{ form.directions_input.label }}</td>
+                        <td>{{ form.directions_output.label }}</td>
+                    </tr>
+                    <tr>
+                        <td>{{ form.directions_input(cols=60, rows=15) }}</td>
+                        <td>{{ form.directions_output(cols=60, rows=15, disabled=true) }}</td>
+                    </tr>
+                    <tr>
+                        <td>
+                            {{ form.submit() }} &nbsp;
+                            <button onclick="copyToClipboard();" id="copy_to_clipboard" class="btn btn-warning">Copy to Clipboard</button>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <button onclick="clearFields2();" id="reset_button" class="btn btn-danger">Reset</button>
+                        </td>
+                    </tr>
+                </table>
+            </form>
+        </div>
     </div>
 
-<div id="clipboard_section" style="display: none;">
-    <textarea id="clipboard_text">
-    </textarea>
-</div>
+    <div id="clipboard_section" style="display: none;">
+        <textarea id="clipboard_text">
+        </textarea>
+    </div>
 
     <script>
         function clearFields2() {
@@ -71,10 +67,6 @@
 
             section.style.display = "none";
             //document.getElementById("convert_text_flash_msg").style.display = "block";
-        }
-
-        function sfToggle() {
-			var xyz = 5;
         }
     </script>
 {% endblock %}
