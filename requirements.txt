@@ -7,7 +7,6 @@ dateparser==0.7.1
 dominate==2.3.5
 Flask==1.0.2
 Flask-Bootstrap==3.3.7.1
-Flask-Migrate==2.3.1
 Flask-Moment==0.7.0
 Flask-SQLAlchemy==2.3.2
 Flask-WTF==0.14.2
@@ -22,9 +21,7 @@ Mako==1.0.7
 MarkupSafe==1.1.0
 moment==0.8.2
 passlib==1.7.1
-pg8000==1.13.1
 Pint==0.9
-psycopg2==2.7.7
 psycopg2-binary==2.7.7
 pyasn1==0.4.5
 pyasn1-modules==0.2.4

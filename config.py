@@ -7,7 +7,7 @@ load_dotenv(os.path.join(basedir, '.env'))
 
 class Config(object):
     # prefer secret keys set at the environment level, providing an alternative if that doesn't exist
-    SECRET_KEY = os.environ.get('SECRET_KEY')
+    SECRET_KEY = os.environ.get('SECRET_KEY') or 'you-will-never-guess'
 
     db_user = os.environ.get('GCP_CLOUDSQL_USER')
     db_pw = os.environ.get('GCP_CLOUDSQL_PW')
@@ -21,8 +21,8 @@ class Config(object):
     # db_url += '/.s.PGSQL.5432'
 
     # use the environment's db url; if missing, use a local sqlite file
-    # SQLALCHEMY_DATABASE_URI = 'sqlite:///' + os.path.join(basedir, 'breaddb.db')
-    SQLALCHEMY_DATABASE_URI = db_url
+    SQLALCHEMY_DATABASE_URI = 'sqlite:///' + os.path.join(basedir, 'breaddb.db')
+    # SQLALCHEMY_DATABASE_URI = db_url
 
     # silence the madness
     SQLALCHEMY_TRACK_MODIFICATIONS = False
