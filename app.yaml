@@ -16,4 +16,4 @@ beta_settings:
   cloud_sql_instances: breadsheet:us-west1:breadsheet=tcp:5432
 
 env_variables:
-  SQLALCHEMY_DATABASE_URI: postgresql+pg8000://USER:PASSWORD@/DATABASE?host=/cloudsql/INSTANCE_CONNECTION_NAME
+  SQLALCHEMY_DATABASE_URI: postgres+psycopg2://USER:PASSWORD@/breadsheet?host=/cloudsql/INSTANCE_CONNECTION_NAME

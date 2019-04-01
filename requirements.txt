@@ -1,5 +1,6 @@
 alembic==1.0.7
 arrow==0.13.1
+Babel==2.6.0
 cachetools==3.1.0
 Click==7.0
 dateparser==0.7.1
@@ -24,6 +25,7 @@ passlib==1.7.1
 pg8000==1.13.1
 Pint==0.9
 psycopg2==2.7.7
+psycopg2-binary==2.7.7
 pyasn1==0.4.5
 pyasn1-modules==0.2.4
 pyperclip==1.7.0

@@ -1,13 +1,12 @@
-# initialization file that defines this app
-# import os
-# import logging
-# from logging.handlers import RotatingFileHandler
+# initialization file that defines the app as breadapp
 from config import Config
 from flask import Flask
 from flask_bootstrap import Bootstrap
 from flask_migrate import Migrate
 from flask_moment import Moment
 from flask_sqlalchemy import SQLAlchemy
+# from logging.handlers import RotatingFileHandler
+# import logging
 
 bootstrap = Bootstrap()
 db = SQLAlchemy()
