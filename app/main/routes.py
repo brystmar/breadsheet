@@ -5,6 +5,7 @@ from app.main.forms import RecipeForm, StepForm, ThenWaitForm, StartFinishForm
 from app.models import Recipe, Step, Difficulty
 from datetime import datetime, timedelta
 from flask import render_template, flash, redirect, url_for, request
+import logging
 
 now = datetime.utcnow()
 
