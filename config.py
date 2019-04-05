@@ -7,7 +7,7 @@ load_dotenv(os.path.join(basedir, '.env'))
 
 
 class Config(object):
-    logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(message)s', filename='logs/bread.log')
+    logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(message)s')
     logging.debug("basedir: {}".format(basedir))
     print("basedir: {}".format(basedir))
 
