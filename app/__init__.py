@@ -5,7 +5,7 @@ from flask_bootstrap import Bootstrap
 from flask_moment import Moment
 from flask_sqlalchemy import SQLAlchemy
 # from logging.handlers import RotatingFileHandler
-# import logging
+import logging
 
 bootstrap = Bootstrap()
 db = SQLAlchemy()
@@ -44,11 +44,14 @@ def create_app(config_class=Config):
         breadapp.logger.setLevel(logging.INFO)
         breadapp.logger.info('Breadsheet startup')"""
 
-    """if __name__ == '__main__':
-        # This is used when running locally only. When deploying to Google App
-        # Engine, a webserver process such as Gunicorn will serve the app. This
-        # can be configured by adding an `entrypoint` to app.yaml.
-        breadapp.run(host='127.0.0.1', port=5432, debug=True)"""
+    # if __name__ == '__main__':
+        # This is used when running locally only. When deploying to Google App Engine,
+        # a webserver process such as Gunicorn will serve the app. This can be configured
+        # by adding an `entrypoint` to app.yaml.
+        # breadapp.run(host='127.0.0.1', port=5432, debug=True)
+
+    # logging.debug('__name__ = {}'.format(__name__))
+    # print('__name__ = {}'.format(__name__))
 
     return breadapp
 
