@@ -58,27 +58,19 @@
     </form>
 </div>
 
-<div id="ask_toggle_recipe" class="container">
-    <p>
-        <button onclick="toggleRecipe()" id="toggle_recipe" class="btn btn-default">Toggle Full Recipe</button>
-    </p>
-</div>
+{% if recipe.id in(1,2,3,4,5) %}
+    <div id="ask_toggle_recipe" class="container">
+        <p>
+            <button onclick="toggleRecipe()" id="toggle_recipe" class="btn btn-default">Toggle Full Recipe</button>
+        </p>
+    </div>
 
-<div id="recipe_section" class="container" style="display: none;">
-    {% if recipe.id == 1 %}
-        {% include "recipes/Pain de Campagne (Sourdough).html" %}
-    {% elif recipe.id == 2 %}
-        {% include "recipes/Saturday White Bread.html" %}
-    {% elif recipe.id == 3 %}
-        {% include "recipes/Detroit-Style Pan Pizza.html" %}
-    {% elif recipe.id == 4 %}
-        {% include "recipes/White Bread with Overnight Poolish.html" %}
-    {% elif recipe.id == 5 %}
-        {% include "recipes/Pizza Dough with Overnight Poolish.html" %}
-    {% endif %}
-</div>
+    <div id="recipe_section" class="container" style="display: none;">
+        {% include "recipes/{}.html".format(recipe.id) %}
+    </div>
+{% endif %}
 
-<div id="hidden_fields">
+<div id="debug_fields">
     <p id="debug1"></p>
     <p id="debug2"></p>
     <p id="debug3"></p>
@@ -102,13 +94,13 @@
     }
 
     function toggleRecipe() {
-        section = document.getElementById("recipe_section");
+        recipe_section = document.getElementById("recipe_section");
 
-        if (section.style.display == "none") {
-            section.style.display = "block"
+        if (recipe_section.style.display == "none") {
+            recipe_section.style.display = "block"
         }
         else {
-            section.style.display = "none"
+            recipe_section.style.display = "none"
         }
     }
 </script>
