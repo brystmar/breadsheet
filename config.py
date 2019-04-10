@@ -15,11 +15,12 @@ else:
 
 
 class Config(object):
+    hail_mary = False
     logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(message)s')
-    # logging.debug("local = {}".format(local))
-    # logging.debug("basedir: {}".format(basedir))
-    # print("local = {}".format(local))
-    # print("basedir: {}".format(basedir))
+    logging.debug("local = {}".format(local))
+    logging.debug("basedir: {}".format(basedir))
+    print("local = {}".format(local))
+    print("basedir: {}".format(basedir))
 
     if local:
         SECRET_KEY = os.environ.get('SECRET_KEY')
@@ -45,8 +46,10 @@ class Config(object):
     # db_url += '/.s.PGSQL.5432'
 
     # use the environment's db url; if missing, use a local sqlite file
-    # SQLALCHEMY_DATABASE_URI = 'sqlite:///' + os.path.join(basedir, 'breaddb.db')
     SQLALCHEMY_DATABASE_URI = db_url
+
+    if hail_mary:
+        SQLALCHEMY_DATABASE_URI = 'sqlite:///' + os.path.join(basedir, 'breaddb.db')
 
     logging.debug("SQLALCHEMY_DATABASE_URI = {}".format(SQLALCHEMY_DATABASE_URI))
     print("SQLALCHEMY_DATABASE_URI = {}".format(SQLALCHEMY_DATABASE_URI))
