@@ -17,8 +17,7 @@
                     {% for tw in twforms %}
                         {% if tw.step_id == step.id %}
                         {{ tw.then_wait_h(size=2, id="then_wait_h{}".format(step.id)) }}:{{
-                            tw.then_wait_m(size=2, id="then_wait_m{}".format(step.id)) }}:{{
-                            tw.then_wait_s(size=2, id="then_wait_s{}".format(step.id)) }}
+                            tw.then_wait_m(size=2, id="then_wait_m{}".format(step.id)) }}
                         {% endif %}
                     {% endfor %}
                 </td>
