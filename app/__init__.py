@@ -30,9 +30,9 @@ def create_app(config_class=Config):
     breadapp.register_blueprint(convert_bp)
 
     # log errors when running in production mode
-    if not breadapp.debug and not breadapp.testing:
+    """if not breadapp.debug and not breadapp.testing:
         pass
-        """if not os.path.exists('logs'):
+        if not os.path.exists('logs'):
             os.mkdir('logs')
         file_handler = RotatingFileHandler('logs/microblog.log', maxBytes=10240, backupCount=10)
         file_handler.setFormatter(logging.Formatter(
@@ -43,15 +43,6 @@ def create_app(config_class=Config):
 
         breadapp.logger.setLevel(logging.INFO)
         breadapp.logger.info('Breadsheet startup')"""
-
-    if __name__ == '__main__':
-        # This is used when running locally only. When deploying to Google App Engine,
-        # a webserver process such as Gunicorn will serve the app. This can be configured
-        # by adding an `entrypoint` to app.yaml.
-        breadapp.run(host='127.0.0.1', port=8000, debug=True)
-
-    logging.debug('__name__ = {}'.format(__name__))
-    print('__name__ = {}'.format(__name__))
 
     return breadapp
 

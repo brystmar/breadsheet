@@ -5,19 +5,11 @@ from google.cloud import firestore
 basedir = os.path.abspath(os.path.dirname(__file__))
 local = '/documents/dev/' in basedir.lower()
 print("local = {}".format(local))
-local = False
-
-if local:
-    from dotenv import load_dotenv
-    load_dotenv(os.path.join(basedir, '.env'))
-else:
-    fire = firestore.Client()
-    firecreds = fire.collection('environment_vars').document('prod').get()
-    print("Firecreds GCP bucket: {}".format(firecreds._data['GCP_BUCKET_NAME']))
 
 
 class Config(object):
-    hail_mary = False
+    # local = True
+    # another line for later use
     logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(message)s')
     logging.debug("local = {}".format(local))
     logging.debug("basedir: {}".format(basedir))
@@ -25,6 +17,9 @@ class Config(object):
     print("basedir: {}".format(basedir))
 
     if local:
+        from dotenv import load_dotenv
+        load_dotenv(os.path.join(basedir, '.env'))
+
         SECRET_KEY = os.environ.get('SECRET_KEY') or '1mW7@LN0n32L6ntaj0d8jzsXiAW4mkPL7u5l'
         BUCKET_NAME = os.environ.get('GCP_BUCKET_NAME') or 'local_bucketname'
         db_user = os.environ.get('GCP_CLOUDSQL_USER')
@@ -33,7 +28,12 @@ class Config(object):
         db_ip = os.environ.get('GCP_CLOUDSQL_IP')
         db_port = os.environ.get('GCP_CLOUDSQL_PORT')
         db_instance = os.environ.get('GCP_CLOUDSQL_INSTANCE')
+
     else:
+        fire = firestore.Client()
+        firecreds = fire.collection('environment_vars').document('prod').get()
+        print("Firecreds GCP bucket: {}".format(firecreds._data['GCP_BUCKET_NAME']))
+
         SECRET_KEY = firecreds._data['SECRET_KEY'] or '2mW7@LN0n32L6ntaj0d8jzsXiAW4mkPL7u5l'
         BUCKET_NAME = firecreds._data['GCP_BUCKET_NAME'] or 'fire_fail_bucketname'
         db_user = firecreds._data['GCP_CLOUDSQL_USER']
@@ -49,9 +49,7 @@ class Config(object):
 
     # use the environment's db url; if missing, use a local sqlite file
     SQLALCHEMY_DATABASE_URI = db_url
-
-    if hail_mary:
-        SQLALCHEMY_DATABASE_URI = 'sqlite:///' + os.path.join(basedir, 'breaddb.db')
+    # SQLALCHEMY_DATABASE_URI = 'postgres+psycopg2://USER:PW@/breadsheet?host=/cloudsql/breadsheet:us-west1:breadsheet'
 
     logging.debug("SQLALCHEMY_DATABASE_URI = {}".format(SQLALCHEMY_DATABASE_URI))
     print("SQLALCHEMY_DATABASE_URI = {}".format(SQLALCHEMY_DATABASE_URI))
