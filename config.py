@@ -5,6 +5,7 @@ from google.cloud import firestore
 basedir = os.path.abspath(os.path.dirname(__file__))
 local = '/documents/dev/' in basedir.lower()
 print("local = {}".format(local))
+local = False
 
 if local:
     from dotenv import load_dotenv
@@ -12,6 +13,7 @@ if local:
 else:
     fire = firestore.Client()
     firecreds = fire.collection('environment_vars').document('prod').get()
+    print("Firecreds GCP bucket: {}".format(firecreds._data['GCP_BUCKET_NAME']))
 
 
 class Config(object):
@@ -24,7 +26,7 @@ class Config(object):
 
     if local:
         SECRET_KEY = os.environ.get('SECRET_KEY') or '1mW7@LN0n32L6ntaj0d8jzsXiAW4mkPL7u5l'
-        BUCKET_NAME = os.environ.get('GCP_BUCKET_NAME')
+        BUCKET_NAME = os.environ.get('GCP_BUCKET_NAME') or 'local_bucketname'
         db_user = os.environ.get('GCP_CLOUDSQL_USER')
         db_pw = os.environ.get('GCP_CLOUDSQL_PW')
         db_name = os.environ.get('GCP_CLOUDSQL_DBNAME')
@@ -33,7 +35,7 @@ class Config(object):
         db_instance = os.environ.get('GCP_CLOUDSQL_INSTANCE')
     else:
         SECRET_KEY = firecreds._data['SECRET_KEY'] or '2mW7@LN0n32L6ntaj0d8jzsXiAW4mkPL7u5l'
-        BUCKET_NAME = firecreds._data['GCP_BUCKET_NAME']
+        BUCKET_NAME = firecreds._data['GCP_BUCKET_NAME'] or 'fire_fail_bucketname'
         db_user = firecreds._data['GCP_CLOUDSQL_USER']
         db_pw = firecreds._data['GCP_CLOUDSQL_PW']
         db_name = firecreds._data['GCP_CLOUDSQL_DBNAME']
@@ -53,6 +55,9 @@ class Config(object):
 
     logging.debug("SQLALCHEMY_DATABASE_URI = {}".format(SQLALCHEMY_DATABASE_URI))
     print("SQLALCHEMY_DATABASE_URI = {}".format(SQLALCHEMY_DATABASE_URI))
+
+    logging.debug("BUCKET_NAME = {}".format(BUCKET_NAME))
+    print("BUCKET_NAME = {}".format(BUCKET_NAME))
 
     # silence the madness
     SQLALCHEMY_TRACK_MODIFICATIONS = False

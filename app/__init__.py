@@ -44,14 +44,14 @@ def create_app(config_class=Config):
         breadapp.logger.setLevel(logging.INFO)
         breadapp.logger.info('Breadsheet startup')"""
 
-    # if __name__ == '__main__':
+    if __name__ == '__main__':
         # This is used when running locally only. When deploying to Google App Engine,
         # a webserver process such as Gunicorn will serve the app. This can be configured
         # by adding an `entrypoint` to app.yaml.
-        # breadapp.run(host='127.0.0.1', port=5432, debug=True)
+        breadapp.run(host='127.0.0.1', port=8000, debug=True)
 
-    # logging.debug('__name__ = {}'.format(__name__))
-    # print('__name__ = {}'.format(__name__))
+    logging.debug('__name__ = {}'.format(__name__))
+    print('__name__ = {}'.format(__name__))
 
     return breadapp
 
