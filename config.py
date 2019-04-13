@@ -31,6 +31,16 @@ class Config(object):
 
     else:
         fire = firestore.Client()
+
+        from pathlib import Path
+        file = Path('breadsheet-prod.json')
+        logging.debug("JSON file exists? {}".format(file.is_file()))
+        print("JSON file exists? {}".format(file.is_file()))
+
+        # supplying the private (prod) key to explicitly use creds for the default service acct
+        fire.from_service_account_json('breadsheet-prod.json')
+
+        # this call should work now
         firecreds = fire.collection('environment_vars').document('prod').get()
         print("Firecreds GCP bucket: {}".format(firecreds._data['GCP_BUCKET_NAME']))
 
@@ -51,8 +61,8 @@ class Config(object):
     SQLALCHEMY_DATABASE_URI = db_url
     # SQLALCHEMY_DATABASE_URI = 'postgres+psycopg2://USER:PW@/breadsheet?host=/cloudsql/breadsheet:us-west1:breadsheet'
 
-    logging.debug("SQLALCHEMY_DATABASE_URI = {}".format(SQLALCHEMY_DATABASE_URI))
-    print("SQLALCHEMY_DATABASE_URI = {}".format(SQLALCHEMY_DATABASE_URI))
+    logging.debug("SQLALCHEMY_DATABASE_URI = {}".format(db_url))
+    print("SQLALCHEMY_DATABASE_URI = {}".format(db_url))
 
     logging.debug("BUCKET_NAME = {}".format(BUCKET_NAME))
     print("BUCKET_NAME = {}".format(BUCKET_NAME))
