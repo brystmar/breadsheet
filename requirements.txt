@@ -23,14 +23,13 @@ gunicorn==19.9.0
 httplib2==0.12.1
 idna==2.8
 itsdangerous==1.1.0
-Jinja2==2.10
+Jinja2==2.10.1
 Mako==1.0.7
 MarkupSafe==1.1.0
 moment==0.8.2
 passlib==1.7.1
 Pint==0.9
 protobuf==3.7.1
-psycopg2==2.8.1
 psycopg2-binary==2.7.7
 pyasn1==0.4.5
 pyasn1-modules==0.2.4

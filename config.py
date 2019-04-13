@@ -23,7 +23,7 @@ class Config(object):
     print("basedir: {}".format(basedir))
 
     if local:
-        SECRET_KEY = os.environ.get('SECRET_KEY')
+        SECRET_KEY = os.environ.get('SECRET_KEY') or '1mW7@LN0n32L6ntaj0d8jzsXiAW4mkPL7u5l'
         BUCKET_NAME = os.environ.get('GCP_BUCKET_NAME')
         db_user = os.environ.get('GCP_CLOUDSQL_USER')
         db_pw = os.environ.get('GCP_CLOUDSQL_PW')
@@ -32,7 +32,7 @@ class Config(object):
         db_port = os.environ.get('GCP_CLOUDSQL_PORT')
         db_instance = os.environ.get('GCP_CLOUDSQL_INSTANCE')
     else:
-        SECRET_KEY = firecreds._data['SECRET_KEY']
+        SECRET_KEY = firecreds._data['SECRET_KEY'] or '2mW7@LN0n32L6ntaj0d8jzsXiAW4mkPL7u5l'
         BUCKET_NAME = firecreds._data['GCP_BUCKET_NAME']
         db_user = firecreds._data['GCP_CLOUDSQL_USER']
         db_pw = firecreds._data['GCP_CLOUDSQL_PW']
