@@ -33,13 +33,11 @@ class Config(object):
         db_instance = os.environ.get('GCP_CLOUDSQL_INSTANCE')
 
     else:
-        fire = firestore.Client()
-
         logging.debug("JSON file exists? {}".format(os.path.isfile('breadsheet-prod.json')))
         print("JSON file exists? {}".format(os.path.isfile('breadsheet-prod.json')))
 
         # supplying the private (prod) key to explicitly use creds for the default service acct
-        fire.from_service_account_json('breadsheet-prod.json')
+        fire = firestore.Client().from_service_account_json('breadsheet-prod.json')
 
         # this call should work now
         firecreds = fire.collection('environment_vars').document('prod').get()
