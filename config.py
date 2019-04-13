@@ -20,6 +20,9 @@ class Config(object):
         from dotenv import load_dotenv
         load_dotenv(os.path.join(basedir, '.env'))
 
+        logging.debug("Readme file exists? {}".format(os.path.isfile('README.md')))
+        print("Readme file exists? {}".format(os.path.isfile('README.md')))
+
         SECRET_KEY = os.environ.get('SECRET_KEY') or '1mW7@LN0n32L6ntaj0d8jzsXiAW4mkPL7u5l'
         BUCKET_NAME = os.environ.get('GCP_BUCKET_NAME') or 'local_bucketname'
         db_user = os.environ.get('GCP_CLOUDSQL_USER')
@@ -33,7 +36,7 @@ class Config(object):
         fire = firestore.Client()
 
         logging.debug("JSON file exists? {}".format(os.path.isfile('breadsheet-prod.json')))
-        print("JSON file exists? {}".format(file.is_file()))
+        print("JSON file exists? {}".format(os.path.isfile('breadsheet-prod.json')))
 
         # supplying the private (prod) key to explicitly use creds for the default service acct
         fire.from_service_account_json('breadsheet-prod.json')
