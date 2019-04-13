@@ -32,9 +32,7 @@ class Config(object):
     else:
         fire = firestore.Client()
 
-        from pathlib import Path
-        file = Path('breadsheet-prod.json')
-        logging.debug("JSON file exists? {}".format(file.is_file()))
+        logging.debug("JSON file exists? {}".format(os.path.isfile('breadsheet-prod.json')))
         print("JSON file exists? {}".format(file.is_file()))
 
         # supplying the private (prod) key to explicitly use creds for the default service acct
