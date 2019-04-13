@@ -17,6 +17,8 @@ google-api-core==1.9.0
 google-auth==1.6.3
 google-cloud-core==0.29.1
 google-cloud-firestore==0.32.1
+google-cloud-storage==1.14.0
+google-resumable-media==0.3.2
 googleapis-common-protos==1.5.9
 grpcio==1.19.0
 gunicorn==19.9.0
