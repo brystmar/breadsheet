@@ -4,8 +4,8 @@ from flask import Flask
 from flask_bootstrap import Bootstrap
 from flask_moment import Moment
 from flask_sqlalchemy import SQLAlchemy
-# from logging.handlers import RotatingFileHandler
-import logging
+import logging as logging_util
+
 
 bootstrap = Bootstrap()
 db = SQLAlchemy()
@@ -13,6 +13,13 @@ moment = Moment()
 
 
 def create_app(config_class=Config):
+    # initialize logging
+    logfile = 'logs/{}.log'.format(__file__)
+    logging_util.basicConfig(filename=logfile, filemode='w', level=logging_util.DEBUG, datefmt='%H:%M:%S',
+                             format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    logger = logging_util.getLogger(__name__)
+    logger.info("Logging initialized")
+
     breadapp = Flask(__name__)
     breadapp.config.from_object(config_class)
 
