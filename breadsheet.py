@@ -1,18 +1,25 @@
 # script for Flask to obtain our application instance
 from app import create_app, db
 from app.models import Recipe, Step
-import logging
+import logging as logging_util
 import os
+
+# initialize logging
+logfile = 'logs/{}.log'.format(__file__)
+logging_util.basicConfig(filename=logfile, filemode='w', level=logging_util.DEBUG, datefmt='%H:%M:%S',
+                         format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logger2 = logging_util.getLogger(__name__)
+
 
 try:
     import googleclouddebugger
     googleclouddebugger.enable()
 
-    logging.debug("Cloud Debugger initialized! \n")
+    logger2.debug("Cloud Debugger initialized! \n")
     print("Cloud Debugger initialized! \n")
 
 except ImportError:
-    logging.debug("Cloud Debugger import failed. \n")
+    logger2.debug("Cloud Debugger import failed. \n")
     print("Cloud Debugger import failed. \n")
 
 try:
@@ -26,11 +33,11 @@ try:
     client = google.cloud.logging.Client.from_service_account_json(file)
     client.setup_logging()  # attaches Stackdriver to python's standard logging module
 
-    logging.debug("Logging to Stackdriver initialized! \n")
+    logger2.debug("Logging to Stackdriver initialized! \n")
     print("Logging to Stackdriver initialized! \n")
 
 except ImportError:
-    logging.debug("Logging to Stackdriver failed. \n")
+    logger2.debug("Logging to Stackdriver failed. \n")
     print("Logging to Stackdriver failed. \n")
 
 breadapp = create_app()
