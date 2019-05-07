@@ -1,10 +1,11 @@
 # https://yamlchecker.com/
-runtime: python
-env: flex
+runtime: python37
 
-instance_class: F1
+# instance_class: F1
+#   defaults to F1 anyway
 
-entrypoint: gunicorn -w 1 --timeout 60 breadsheet:breadapp
+# entrypoint: gunicorn -w 1 --timeout 60 main:app
+#   no longer needed since renaming breadsheet.py --> main.py, and renaming 'breadapp' --> 'app'
 
 error_handlers:
   - file: app/templates/errors/default_error.html
