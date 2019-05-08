@@ -4,7 +4,8 @@ from app.main import bp
 from app.main.forms import RecipeForm, StepForm, ThenWaitForm, StartFinishForm
 from app.models import Recipe, Step, Difficulty
 from datetime import datetime, timedelta
-from flask import render_template, flash, redirect, url_for, request
+from flask import render_template, flash, redirect, url_for, request, send_from_directory
+from os import path
 import logging
 
 now = datetime.utcnow()
@@ -71,6 +72,12 @@ def recipe():
 
     return render_template('recipe.html', title=recipe.name, recipe=recipe, steps=steps, sform=sform,
                            seform=seform, twforms=twforms)
+
+
+@bp.route('/favicon.ico')
+def favicon():
+    return send_from_directory(path.join(bp.root_path, 'static'), 'favicon.ico',
+                               mimetype='image/vnd.microsoft.icon')
 
 
 def seconds_to_hms(num):
