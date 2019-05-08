@@ -4,7 +4,7 @@ from flask import Flask
 from flask_bootstrap import Bootstrap
 from flask_moment import Moment
 from flask_sqlalchemy import SQLAlchemy
-import logging as logging_util
+# import logging as logging_util
 from os import path
 
 
@@ -18,12 +18,12 @@ local = '/documents/dev/' in basedir.lower()
 
 def create_app(config_class=Config):
     # initialize logging
-    log_dir = 'logs' if local else 'tmp'
-    log_file = '{dir}/syslog.log'.format(dir=log_dir)
-    logging_util.basicConfig(filename=log_file, level=logging_util.DEBUG, datefmt='%H:%M:%S',
-                             format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-    logger = logging_util.getLogger(__name__)
-    logger.info("Logging initialized from the /app/__init__.py file")
+    # log_dir = 'logs' if local else 'tmp'
+    # log_file = '{dir}/syslog.log'.format(dir=log_dir)
+    # logging_util.basicConfig(filename=log_file, level=logging_util.DEBUG, datefmt='%H:%M:%S',
+    #                          format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    # logger = logging_util.getLogger(__name__)
+    # logger.info("Logging initialized from the /app/__init__.py file")
 
     app = Flask(__name__)
     app.config.from_object(config_class)
@@ -41,7 +41,7 @@ def create_app(config_class=Config):
     from app.convert import bp as convert_bp
     app.register_blueprint(convert_bp)
 
-    # log errors when running in production mode
+    # log errors when running in prod
     """if not app.debug and not app.testing:
         pass
         if not os.path.exists('logs'):
