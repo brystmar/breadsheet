@@ -61,12 +61,17 @@
 
             section.style.display = "block";
 
-            clipboard.value = ingredients + '\n\n\n' + directions;
+            // Add separation between the sections if both have data
+            if (ingredients != '' && directions != '') {
+                ingredients += '\n\n';
+            }
+
+            clipboard.value = ingredients + directions;
             clipboard.select();
             document.execCommand("copy");
 
             section.style.display = "none";
-            //document.getElementById("convert_text_flash_msg").style.display = "block";
+            // document.getElementById("convert_text_flash_msg").style.display = "block";
         }
     </script>
 {% endblock %}
