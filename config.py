@@ -9,7 +9,7 @@ logger.setLevel(logging.DEBUG)
 
 class Config(object):
     """Set the config parameters for this app."""
-    logger.debug("Start of the Config() class.")
+    logger.info("Start of the Config() class.")
 
     if local:
         from dotenv import load_dotenv
@@ -34,17 +34,17 @@ class Config(object):
         fire = firestore.Client().from_service_account_json('breadsheet-prod.json')
 
         # this call should work now
-        firecreds = fire.collection('environment_vars').document('prod').get()
-        print("Firecreds GCP bucket: {}".format(firecreds._data['GCP_BUCKET_NAME']))
+        fire_creds = fire.collection('environment_vars').document('prod').get()
+        print("Firecreds GCP bucket: {}".format(fire_creds._data['GCP_BUCKET_NAME']))
 
-        SECRET_KEY = firecreds._data['SECRET_KEY'] or '2mW7@LN0n32L6ntaj0d8jzsXiAW4mkPL7u5l'
-        BUCKET_NAME = firecreds._data['GCP_BUCKET_NAME'] or 'fire_fail_bucketname'
-        db_user = firecreds._data['GCP_CLOUDSQL_USER']
-        db_pw = firecreds._data['GCP_CLOUDSQL_PW']
-        db_name = firecreds._data['GCP_CLOUDSQL_DBNAME']
-        db_ip = firecreds._data['GCP_CLOUDSQL_IP']
-        db_port = firecreds._data['GCP_CLOUDSQL_PORT']
-        db_instance = firecreds._data['GCP_CLOUDSQL_INSTANCE']
+        SECRET_KEY = fire_creds._data['SECRET_KEY'] or '2mW7@LN0n32L6ntaj0d8jzsXiAW4mkPL7u5l'
+        BUCKET_NAME = fire_creds._data['GCP_BUCKET_NAME'] or 'fire_fail_bucketname'
+        db_user = fire_creds._data['GCP_CLOUDSQL_USER']
+        db_pw = fire_creds._data['GCP_CLOUDSQL_PW']
+        db_name = fire_creds._data['GCP_CLOUDSQL_DBNAME']
+        db_ip = fire_creds._data['GCP_CLOUDSQL_IP']
+        db_port = fire_creds._data['GCP_CLOUDSQL_PORT']
+        db_instance = fire_creds._data['GCP_CLOUDSQL_INSTANCE']
 
     db_url = 'postgres+psycopg2://{db_user}:{db_pw}'.format(db_user=db_user, db_pw=db_pw)
     db_url += '@/{db_name}?host=/cloudsql/{db_instance}'.format(db_name=db_name, db_instance=db_instance)
