@@ -1,15 +1,27 @@
-import pyperclip
 from app.convert import bp
 from app.convert.forms import ConvertTextForm
 from app.models import Replacement
-from flask import render_template, flash, request
+from flask import render_template, request
+# import pyperclip
+from global_logger import glogger
+import logging
+
+logger = glogger
+logger.setLevel(logging.DEBUG)
 
 
 @bp.route('/convert', methods=['GET', 'POST'])
 def convert():
+    """Page accept text to convert for both ingredients & directions, does the conversion, and returns the result.
+
+    Once finished, the user may copy the output to the clipboard.
+    """
+
+    logger.debug("Start of the convert() function, request method: {}".format(request.method))
     form = ConvertTextForm(prefix="form1")
 
     if form.is_submitted() and form.submit.data:
+        logger.info("Convert form submitted.")
         ingredients = replace_text(form.ingredients_input.data, 'i')
         directions = replace_text(form.directions_input.data, 'd')
 
@@ -20,26 +32,38 @@ def convert():
         if len(ingredients) > 0 and len(directions) > 0:
             clip = ingredients + '\n\n' + directions
             # pyperclip.copy(clip)
-            flash('Copied to clipboard')
+            # flash('Copied to clipboard')
+            # logger.info("Copied to clipboard.")
         elif len(ingredients) > 0:
             clip = ingredients
             # pyperclip.copy(clip)
-            flash('Copied to clipboard')
+            # flash('Copied to clipboard')
+            # logger.info("Copied to clipboard.")
         elif len(directions) > 0:
             clip = directions
             # pyperclip.copy(clip)
-            flash('Copied to clipboard')
+            # flash('Copied to clipboard')
+            # logger.info("Copied to clipboard.")
 
     elif request.method == 'GET':
-        # print("Went to the GET block form1")
+        # logger.debug("Went to the 'elif' GET block")
         pass
 
+    logger.debug("End of the convert() function for form1.")
     return render_template('convert/convert_text.html', title='Convert Text for Paprika Recipes', form=form)
 
 
 def replace_text(text, scope):
-    # execute replacements in the provided text
-    replist = Replacement.query.filter_by(scope=scope).all()
-    for r in replist:
+    """Execute replacements in the provided text."""
+    logger.debug("Starting replace_text(), with scope: {s}, text: {t}".format(s=scope, t=text))
+
+    replacements_list = Replacement.query.filter_by(scope=scope).all()
+    logger.debug("Replacements list: {}".format(replacements_list))
+
+    i = 0
+    for r in replacements_list:
         text = text.replace(r.old, r.new)
+        i += 1
+    logger.debug("Replaced {} items.".format(i))
+    logger.debug("End of replace_text(), returning: {}".format(text))
     return text

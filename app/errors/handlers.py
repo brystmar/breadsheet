@@ -1,15 +1,26 @@
 from flask import render_template
 from app import db
 from app.errors import bp
+from global_logger import glogger
+import logging
+
+logger = glogger
+logger.setLevel(logging.DEBUG)
 
 
 @bp.app_errorhandler(404)
 def not_found_error(error):
+    logger.warning("Error 404: {}".format(error))
+    logger.debug("Rendering the 404.html page.")
     return render_template('errors/404.html'), 404
 
 
 @bp.app_errorhandler(500)
 def internal_error(error):
-    # roll back any un-committed db changes
+    logger.warning("Error 500: {}".format(error))
+
+    logger.debug("Rolling back any un-committed changes to the db.")
     db.session.rollback()
+
+    logger.debug("Rendering the default_error.html page.")
     return render_template('errors/default_error.html'), 500
