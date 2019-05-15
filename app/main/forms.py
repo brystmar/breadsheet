@@ -48,7 +48,7 @@ class ThenWaitForm(FlaskForm):
     then_wait_s = IntegerField('Then Wait...', validators=[NumberRange(min=0, max=999)], render_kw={'placeholder': 's'})
 
     def __repr__(self):
-        return '<ThenWait form {n} for step_id: {s}>'.format(n=self.name, s=self.step_id)
+        return '<ThenWait form for step_id: {s}>'.format(s=self.step_id)
 
 
 class StartFinishForm(FlaskForm):
