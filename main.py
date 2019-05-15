@@ -2,49 +2,42 @@
 from app import create_app, db
 from app.models import Recipe, Step
 from os import path, environ
-# import logging as logging_util
+from global_logger import glogger, local, basedir
+import logging
 
-basedir = path.abspath(path.dirname(__file__))
-local = '/documents/dev/' in basedir.lower()
+logger = glogger
+logger.setLevel(logging.DEBUG)
 
-# initialize logging
-# log_dir = 'logs' if local else 'tmp'
-# log_file = '{dir}/syslog.log'.format(dir=log_dir)
-# logging_util.basicConfig(filename=log_file, level=logging_util.DEBUG, datefmt='%H:%M:%S',
-#                          format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-# logger_main = logging_util.getLogger(__name__)
-
-
+# initialize Google Cloud Debugger
 try:
     import googleclouddebugger
     googleclouddebugger.enable()
 
-    # logger_main.info("Cloud Debugger initialized! \n")
+    logger.info("Cloud Debugger initialized! \n")
     print("Cloud Debugger initialized! \n")
-
 except ImportError:
-    # logger_main.info("Cloud Debugger import failed. \n")
+    logger.info("Cloud Debugger import failed. \n")
     print("Cloud Debugger import failed. \n")
 
-
+# initialize Stackdriver logging
 try:
     from dotenv import load_dotenv
     load_dotenv(path.join(basedir, '.env'))
     cred_path = environ.get('LOCAL_GCP_CREDENTIALS_PATH')
-    file = cred_path if local else 'breadsheet-prod.json'
+    logger.debug("cred_path: {}".format(cred_path))
 
-    # logging setup
+    json_file = cred_path if local else 'breadsheet-prod.json'
+    logger.debug("json_file: {}".format(json_file))
+
     import google.cloud.logging
-    client = google.cloud.logging.Client.from_service_account_json(file)
+    client = google.cloud.logging.Client.from_service_account_json(json_file)
     client.setup_logging()  # attaches Stackdriver to python's standard logging module
 
-    # logger_main.info("Logging to Stackdriver initialized! \n")
+    logger.info("Logging to Stackdriver initialized! \n")
     print("Logging to Stackdriver initialized! [from print()] \n")
-
-# except OSError:
-except ImportError:
-    # logger_main.info("Logging to Stackdriver failed. \n")
-    print("Logging to Stackdriver failed. \n")
+except ImportError:  # except OSError:
+    logger.info("Logging to Stackdriver failed. \n")
+    print("Logging to Stackdriver failed. [from print()] \n")
 
 app = create_app()
 

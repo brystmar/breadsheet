@@ -26,7 +26,7 @@ class Step(db.Model):
     wait_time_range = db.Column(db.String(64))
 
     def __repr__(self):
-        return '<Step id: {}, recipe_id: {}, then_wait: {}, twUI:>'.format(self.id, self.recipe_id, self.then_wait)
+        return '<Step id: {s}, recipe_id: {r}, then_wait: {tw}>'.format(s=self.id, r=self.recipe_id, tw=self.then_wait)
 
 
 class Difficulty(db.Model):
@@ -43,4 +43,4 @@ class Replacement(db.Model):
     scope = db.Column(db.String(1))
 
     def __repr__(self):
-        return '<Replacement Text old: {}, new: {}, scope: {}>'.format(self.old, self.new, self.scope)
+        return '<Replacement Text old: {o}, new: {n}, scope: {s}>'.format(o=self.old, n=self.new, s=self.scope)

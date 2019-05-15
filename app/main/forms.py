@@ -48,7 +48,7 @@ class ThenWaitForm(FlaskForm):
     then_wait_s = IntegerField('Then Wait...', validators=[NumberRange(min=0, max=999)], render_kw={'placeholder': 's'})
 
     def __repr__(self):
-        return '<ThenWait form>'
+        return '<ThenWait form {n} for step_id: {s}>'.format(n=self.name, s=self.step_id)
 
 
 class StartFinishForm(FlaskForm):
@@ -61,4 +61,4 @@ class StartFinishForm(FlaskForm):
                                   choices=[('1', 'Start Time'), ('0', 'Finish Time')], render_kw={'autofocus': True})
 
     def __repr__(self):
-        return '<Start & End Times form>'
+        return '<Start & End Times form for recipe_id: {}>'.format(self.recipe_id)
