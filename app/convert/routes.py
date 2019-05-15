@@ -17,13 +17,23 @@ def convert():
     Once finished, the user may copy the output to the clipboard.
     """
 
-    logger.debug("Start of the convert() function, request method: {}".format(request.method))
+    logger.info("Start of the convert() function, request method: {}".format(request.method))
     form = ConvertTextForm(prefix="form1")
 
     if form.is_submitted() and form.submit.data:
         logger.info("Convert form submitted.")
-        ingredients = replace_text(form.ingredients_input.data, 'i')
-        directions = replace_text(form.directions_input.data, 'd')
+
+        if form.ingredients_input.data != "":
+            ingredients = replace_text(form.ingredients_input.data, 'i')
+        else:
+            logger.debug("Ingredients field was blank.")
+            ingredients = form.ingredients_input.data
+
+        if form.directions_input.data != "":
+            directions = replace_text(form.directions_input.data, 'd')
+        else:
+            logger.debug("Directions field was blank.")
+            directions = form.directions_input.data
 
         form.ingredients_output.data = ingredients
         form.directions_output.data = directions
@@ -66,6 +76,5 @@ def replace_text(text, scope):
             text = new_text
             i += 1
 
-    logger.debug("{} items replaced.".format(i))
-    logger.debug("End of replace_text(), returning: {}".format(text))
+    logger.debug("End of replace_text() with {i} items replaced.".format(i=i))
     return text

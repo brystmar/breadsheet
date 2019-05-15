@@ -20,14 +20,14 @@ now = datetime.utcnow()
 @bp.route('/index')
 @bp.route('/')
 def index():
-    logger.debug("Rendering the homepage.  End of index().")
+    logger.info("Rendering the homepage.  End of index().")
     recipes = add_recipe_ui_fields(Recipe.query.order_by('id').all())
     return render_template('index.html', title='Breadsheet Recipe Scheduling Tool', recipes=recipes)
 
 
 @bp.route('/add_recipe', methods=['GET', 'POST'])
 def add_recipe():
-    logger.debug("Start of add_recipe()")
+    logger.info("Start of add_recipe()")
     rform = RecipeForm()
 
     if rform.validate_on_submit():
@@ -53,7 +53,7 @@ def add_recipe():
 @bp.route('/Resources')
 @bp.route('/recipe', methods=['GET', 'POST'])
 def recipe():
-    logger.debug("Start of recipe(), request method: {}".format(request.method))
+    logger.info("Start of recipe(), request method: {}".format(request.method))
     sform = StepForm()
     recipe_id = request.args.get('id') or 1
     sform.recipe_id.data = recipe_id
@@ -104,7 +104,7 @@ def recipe():
 
 @bp.route('/favicon.ico')
 def favicon():
-    logger.debug("The favicon was requested!! :D")
+    logger.info("The favicon was requested!! :D")
     return send_from_directory(path.join(bp.root_path, 'static'), 'favicon.ico',
                                mimetype='image/vnd.microsoft.icon')
 
