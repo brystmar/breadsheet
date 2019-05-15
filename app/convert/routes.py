@@ -66,6 +66,6 @@ def replace_text(text, scope):
             text = new_text
             i += 1
 
-    logger.debug("Replaced {} items.".format(i))
+    logger.debug("{} items replaced.".format(i))
     logger.debug("End of replace_text(), returning: {}".format(text))
     return text
