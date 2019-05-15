@@ -58,12 +58,14 @@ def replace_text(text, scope):
     logger.debug("Starting replace_text(), with scope: {s}, text: {t}".format(s=scope, t=text))
 
     replacements_list = Replacement.query.filter_by(scope=scope).all()
-    logger.debug("Replacements list: {}".format(replacements_list))
-
     i = 0
     for r in replacements_list:
-        text = text.replace(r.old, r.new)
-        i += 1
+        new_text = text.replace(r.old, r.new)
+        if text != new_text:
+            logger.debug("Replaced {o} with {n}".format(o=r.old, n=r.new))
+            text = new_text
+            i += 1
+
     logger.debug("Replaced {} items.".format(i))
     logger.debug("End of replace_text(), returning: {}".format(text))
     return text
