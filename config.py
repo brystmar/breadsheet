@@ -1,10 +1,9 @@
-from google.cloud import firestore
 from os import path, environ
-from global_logger import glogger, local, basedir
+from global_logger import glogger, local
 import logging
 
 logger = glogger
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
 
 
 class Config(object):
@@ -12,9 +11,9 @@ class Config(object):
     logger.info("Start of the Config() class.")
 
     if local:
-        from dotenv import load_dotenv
-        load_dotenv(path.join(basedir, '.env'))
-
+        from env_tools import apply_env
+        apply_env()
+        logger.info("Applied .env variables using env_tools")
         logger.debug("Readme file exists? {}".format(path.isfile('README.md')))
 
         SECRET_KEY = environ.get('SECRET_KEY') or '1mW7@LN0n32L6ntaj0d8jzsXiAW4mkPL7u5l'
@@ -27,6 +26,7 @@ class Config(object):
         db_instance = environ.get('GCP_CLOUDSQL_INSTANCE')
 
     else:
+        from google.cloud import firestore
         # logging to stdout in the cloud is automatically routed to a useful monitoring tool
         logger.debug("JSON file exists? {}".format(path.isfile('breadsheet-prod.json')))
 
@@ -35,7 +35,7 @@ class Config(object):
 
         # this call should work now
         fire_creds = fire.collection('environment_vars').document('prod').get()
-        print("Firecreds GCP bucket: {}".format(fire_creds._data['GCP_BUCKET_NAME']))
+        logger.info("Firecreds GCP bucket: {}".format(fire_creds._data['GCP_BUCKET_NAME']))
 
         SECRET_KEY = fire_creds._data['SECRET_KEY'] or '2mW7@LN0n32L6ntaj0d8jzsXiAW4mkPL7u5l'
         BUCKET_NAME = fire_creds._data['GCP_BUCKET_NAME'] or 'fire_fail_bucketname'
@@ -46,19 +46,18 @@ class Config(object):
         db_port = fire_creds._data['GCP_CLOUDSQL_PORT']
         db_instance = fire_creds._data['GCP_CLOUDSQL_INSTANCE']
 
+        logger.info("DB IP from fire_creds: {}".format(db_ip))
+        logger.info("DB instance from fire_creds: {}".format(db_instance))
+
+    # set the database URI
     db_url = 'postgres+psycopg2://{db_user}:{db_pw}'.format(db_user=db_user, db_pw=db_pw)
     db_url += '@/{db_name}?host=/cloudsql/{db_instance}'.format(db_name=db_name, db_instance=db_instance)
     # db_url += '/.s.PGSQL.5432'
 
-    # use the environment's db url; if missing, use a local sqlite file
     SQLALCHEMY_DATABASE_URI = db_url
-    # SQLALCHEMY_DATABASE_URI = 'postgres+psycopg2://USER:PW@/breadsheet?host=/cloudsql/breadsheet:us-west1:breadsheet'
+    # SQLALCHEMY_DATABASE_URI = 'postgres+psycopg2://USER:PW@/breadsheet?host=/cloudsql/trivialib:us-west2:trivialib'
 
     logger.debug("SQLALCHEMY_DATABASE_URI: {}".format(db_url))
-    # print("SQLALCHEMY_DATABASE_URI: {}".format(db_url))
-
-    logger.debug("BUCKET_NAME: {}".format(BUCKET_NAME))
-    # print("BUCKET_NAME: {}".format(BUCKET_NAME))
 
     # silence the madness
     SQLALCHEMY_TRACK_MODIFICATIONS = False
