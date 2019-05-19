@@ -6,7 +6,7 @@
                 <!-- <div id="start_time_text">{{ recipe.start_time_ui }}</div> -->
                 <div id="start_time_controls">
                     {{ seform.start_date }} &nbsp; {{ seform.start_time }}
-                    <button onclick="setNow('start')" id="start_now" class="btn btn-default">Now</button>
+                    <button onclick="setNow('start')" id="start_now" class="btn btn-default" disabled>Now</button>
                 </div>
             </td>
 
@@ -94,11 +94,6 @@
         var total = 0;
         var delta = 0;
 
-        /*var out1 = document.getElementById("debug1");
-        var out2 = document.getElementById("debug2");
-        var out3 = document.getElementById("debug3");
-        var out4 = document.getElementById("debug4");*/
-
         // clear existing values in the steps array and step_wait_times dictionary
         steps = [];
         step_wait_times = {};
@@ -173,13 +168,15 @@
             // out1.innerHTML += solve_for_start.value + ", i=" + i + ", steps[i]=" + steps[i] + " -- ";
             // out1.innerHTML += step_wait_times[steps[i]] + ".	time: " + next_time.format('YYYY-MM-DD HH:mm') + "<br>"
 
-            if (solve_for_start.value == 0) {  // when solving for finish, update the label before incrementing next_time
-                label.innerHTML = next_time.format('YYYY-MM-DD HH:mm');
+            if (solve_for_start.value == 0) {
+                // when solving for finish, update the label before incrementing next_time
+                label.innerHTML = next_time.format('ddd HH:mm');
                 next_time = next_time.add(step_wait_times[steps[i]] * multiplier, 'seconds');
             }
-            else {  // when solving for the start time, increment the next_time value before updating the label
+            else {
+                // when solving for the start time, increment the next_time value before updating the label
                 next_time = next_time.add(step_wait_times[steps[i]] * multiplier, 'seconds');
-                label.innerHTML = next_time.format('YYYY-MM-DD HH:mm');
+                label.innerHTML = next_time.format('ddd HH:mm');
             }
         }
     }

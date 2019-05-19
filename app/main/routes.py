@@ -12,7 +12,7 @@ import logging
 
 logger = glogger
 logger.setLevel(logging.DEBUG)
-now = datetime.utcnow()
+now = datetime.now()
 
 
 # map the desired URL to this function
@@ -34,7 +34,7 @@ def add_recipe():
         logger.info("Recipe form submitted.")
         next_id = db.engine.execute(text("SELECT max(id) FROM recipe")).first()[0] + 1
         rdata = Recipe(id=next_id, name=rform.name.data, author=rform.author.data, source=rform.source.data,
-                       difficulty=rform.difficulty.data, date_added=datetime.utcnow())
+                       difficulty=rform.difficulty.data, date_added=datetime.now())
         logger.info("New recipe data: ".format(rdata.__dict__))
 
         db.session.add(rdata)
@@ -125,10 +125,11 @@ def seconds_to_hms(num):
         result = [h, m, s]
         i = 0
         while i <= 2:
+            # use two digits of zero-padding
             if result[i] == '0':
                 result[i] = '00'
-            """if len(result[i]) == 1:
-                result[i] = '0' + result[i]"""
+            if len(result[i]) == 1:
+                result[i] = '0' + result[i]
             i += 1
 
     logger.debug("End of seconds_to_hms(), returning: {}".format(result))
@@ -211,15 +212,15 @@ def set_when(steps, when):
     for s in steps:
         logger.debug("Looking at step: {}".format(s.__dict__))
         if i == 0:
-            s.when = when.strftime('%Y-%m-%d %H:%M')
+            s.when = when.strftime('%a %H:%M')
             s.then_wait_ui = seconds_to_hms(s.then_wait)
             when += timedelta(seconds=s.then_wait)
         else:
             if s.then_wait is None or s.then_wait == 0:
-                s.when = when.strftime('%Y-%m-%d %H:%M')
+                s.when = when.strftime('%a %H:%M')
                 s.then_wait_ui = seconds_to_hms(s.then_wait)
             else:
-                s.when = when.strftime('%Y-%m-%d %H:%M')
+                s.when = when.strftime('%a %H:%M')
                 s.then_wait_ui = seconds_to_hms(s.then_wait)
                 when += timedelta(seconds=s.then_wait)
         i += 1
@@ -253,7 +254,7 @@ def add_recipe_ui_fields(recipe):
             r = add_recipe_ui_fields(r)
     else:
         recipe.difficulty_ui = difficulty_abbrev(recipe.difficulty, difficulty_values)
-        recipe.date_added_ui = recipe.date_added.strftime('%Y-%m-%d %H:%M')
+        recipe.date_added_ui = recipe.date_added.strftime('%Y-%m-%d')
         if recipe.start_time is None:
             recipe.start_time = now
         recipe.start_time = datetime.strptime(str(recipe.start_time), '%Y-%m-%d %H:%M:%S.%f')

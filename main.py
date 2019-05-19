@@ -6,7 +6,7 @@ from global_logger import glogger, local, basedir
 import logging
 
 logger = glogger
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
 
 # initialize Google Cloud Debugger
 try:
@@ -15,9 +15,10 @@ try:
 
     logger.info("Cloud Debugger initialized! \n")
     print("Cloud Debugger initialized! \n")
-except ImportError:
-    logger.info("Cloud Debugger import failed. \n")
-    print("Cloud Debugger import failed. \n")
+
+except ImportError as error:
+    logger.info("Cloud Debugger import failed:\n{}".format(error))
+    print("Cloud Debugger import failed:\n{}".format(error))
 
 # initialize Stackdriver logging
 try:
@@ -35,9 +36,9 @@ try:
 
     logger.info("Logging to Stackdriver initialized! \n")
     print("Logging to Stackdriver initialized! [from print()] \n")
-except ImportError:  # except OSError:
-    logger.info("Logging to Stackdriver failed. \n")
-    print("Logging to Stackdriver failed. [from print()] \n")
+
+except ImportError as error:  # except OSError:
+    logger.info("Logging to Stackdriver failed:\n{}".format(error))
 
 app = create_app()
 
