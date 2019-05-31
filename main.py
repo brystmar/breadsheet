@@ -13,17 +13,17 @@ try:
     import googleclouddebugger
     googleclouddebugger.enable()
 
-    logger.info("Cloud Debugger initialized! \n")
-    print("Cloud Debugger initialized! \n")
+    logger.info("Cloud Debugger initialized!")
+    print("Cloud Debugger initialized!")
 
 except ImportError as error:
-    logger.info("Cloud Debugger import failed:\n{}".format(error))
-    print("Cloud Debugger import failed:\n{}".format(error))
+    logger.info("Cloud Debugger import failed: {}".format(error))
+    print("Cloud Debugger import failed: {}".format(error))
 
 # initialize Stackdriver logging
 try:
-    from dotenv import load_dotenv
-    load_dotenv(path.join(basedir, '.env'))
+    from env_tools import apply_env
+    apply_env()
     cred_path = environ.get('LOCAL_GCP_CREDENTIALS_PATH')
     logger.debug("cred_path: {}".format(cred_path))
 
@@ -34,11 +34,11 @@ try:
     client = google.cloud.logging.Client.from_service_account_json(json_file)
     client.setup_logging()  # attaches Stackdriver to python's standard logging module
 
-    logger.info("Logging to Stackdriver initialized! \n")
-    print("Logging to Stackdriver initialized! [from print()] \n")
+    logger.info("Logging to Stackdriver initialized!")
+    print("Logging to Stackdriver initialized! [from print()]")
 
 except ImportError as error:  # except OSError:
-    logger.info("Logging to Stackdriver failed:\n{}".format(error))
+    logger.info("Logging to Stackdriver failed: {}".format(error))
 
 app = create_app()
 

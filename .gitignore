@@ -1,5 +1,4 @@
 .DS_Store
-.idea/workspace.xml
 .git/
 logs/
 venv/
@@ -9,6 +8,7 @@ app/creds.py
 __pycache__/
 *.env
 .env
+breadsheet.py
 
 # Created by https://www.gitignore.io/api/venv,macos,pycharm
 # Edit at https://www.gitignore.io/?templates=venv,macos,pycharm

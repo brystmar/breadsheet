@@ -4,16 +4,14 @@ from app.main import bp
 from app.main.forms import RecipeForm, StepForm, ThenWaitForm, StartFinishForm
 from app.models import Recipe, Step, Difficulty
 from datetime import datetime, timedelta
-from flask import render_template, flash, redirect, url_for, request, send_from_directory
+from flask import render_template, redirect, url_for, request, send_from_directory  # , flash
 from os import path
-from sqlalchemy.sql import text
+from sqlalchemy.sql import text, func
 from global_logger import glogger
 import logging
 
 logger = glogger
 logger.setLevel(logging.DEBUG)
-now = datetime.now()
-
 
 # map the desired URL to this function
 @bp.route('/breadsheet')
@@ -54,6 +52,7 @@ def add_recipe():
 @bp.route('/recipe', methods=['GET', 'POST'])
 def recipe():
     logger.info("Start of recipe(), request method: {}".format(request.method))
+
     sform = StepForm()
     recipe_id = request.args.get('id') or 1
     sform.recipe_id.data = recipe_id
@@ -65,6 +64,7 @@ def recipe():
         logger.debug("Replaced it with 1.")
 
     recipe = add_recipe_ui_fields(Recipe.query.filter_by(id=recipe_id).first())
+
     steps = set_when(Step.query.filter_by(recipe_id=recipe_id).order_by(Step.number).all(), recipe.start_time)
     twforms = create_tw_forms(steps)
     seform = create_start_finish_forms(recipe)
@@ -255,9 +255,7 @@ def add_recipe_ui_fields(recipe):
     else:
         recipe.difficulty_ui = difficulty_abbrev(recipe.difficulty, difficulty_values)
         recipe.date_added_ui = recipe.date_added.strftime('%Y-%m-%d')
-        if recipe.start_time is None:
-            recipe.start_time = now
-        recipe.start_time = datetime.strptime(str(recipe.start_time), '%Y-%m-%d %H:%M:%S.%f')
+        recipe.start_time = datetime.strptime(str(datetime.now()), '%Y-%m-%d %H:%M:%S.%f')
         recipe.start_time_ui = dt_ui(recipe.start_time)
 
         sql = text("SELECT sum(then_wait) FROM step WHERE recipe_id = {}".format(recipe.id))
@@ -267,7 +265,7 @@ def add_recipe_ui_fields(recipe):
             recipe.finish_time_ui = recipe.start_time_ui
         else:
             recipe.finish_time = recipe.start_time + timedelta(seconds=recipe.total_time)
-            recipe.finish_time_ui = dt_ui(recipe.finish_time)
+            recipe.finish_time_ui = recipe.finish_time
             recipe.total_time_ui = hms_to_string(seconds_to_hms(recipe.total_time))
 
     logger.debug("End of add_recipe_ui_fields(), returning: {}".format(recipe))
@@ -310,7 +308,7 @@ def create_start_finish_forms(recipe):
     seform.start_time.data = recipe.start_time
     seform.finish_date.data = recipe.finish_time
     seform.finish_time.data = recipe.finish_time
-    seform.solve_for_start.data = str(recipe.solve_for_start)
+    seform.solve_for_start.data = "1"
 
     logger.debug("End of create_start_finish_forms(), returning seform: {}".format(seform))
     return seform
