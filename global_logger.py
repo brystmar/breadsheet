@@ -20,8 +20,8 @@ else:
                         format='%(asctime)s | %(name)s | %(levelname)s | %(message)s')
     glogger = logging.getLogger(__name__)
 
-glogger.info("\n=======================================\n\n")
+glogger.info("\n\n=======================================")
 glogger.info("Global logging initialized!")
 glogger.info("local = {}".format(local))
 # print("local = {}".format(local))
-print("__file__ = {}".format(__file__))
+# print("__file__ = {}".format(__file__))

@@ -58,7 +58,8 @@ class Config(object):
     SQLALCHEMY_DATABASE_URI = db_url
     # SQLALCHEMY_DATABASE_URI = 'postgres+psycopg2://USER:PW@/breadsheet?host=/cloudsql/trivialib:us-west2:trivialib'
 
-    logger.debug("SQLALCHEMY_DATABASE_URI: {}".format(db_url))
+    logger.info("SQLALCHEMY_DATABASE_URI: {}".format(db_url))
+    print("print --> SQLALCHEMY_DATABASE_URI: {}".format(db_url))
 
     # silence the madness
     SQLALCHEMY_TRACK_MODIFICATIONS = False
