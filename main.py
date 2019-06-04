@@ -1,9 +1,10 @@
-# script for Flask to obtain our application instance, named 'app'
+"""Define our app, using the create_app function in the __init__.py file"""
+from global_logger import glogger
+import logging
+
 from app import create_app, db
 from app.models import Recipe, Step
-from os import path, environ
-from global_logger import glogger, local, basedir
-import logging
+from os import path
 
 logger = glogger
 logger.setLevel(logging.INFO)
@@ -11,37 +12,31 @@ logger.setLevel(logging.INFO)
 # initialize Google Cloud Debugger
 try:
     import googleclouddebugger
-    googleclouddebugger.enable()
 
+    googleclouddebugger.enable()
     logger.info("Cloud Debugger initialized!")
-    print("Cloud Debugger initialized!")
 
 except ImportError as error:
     logger.info("Cloud Debugger import failed: {}".format(error))
-    print("Cloud Debugger import failed: {}".format(error))
+
+# define path to the json credentials file
+service_account_key = 'breadsheet-prod.json'
+logger.debug("Service Acct Key JSON file exists? {}".format(path.isfile(service_account_key)))
 
 # initialize Stackdriver logging
 try:
-    from env_tools import apply_env
-    apply_env()
-    cred_path = environ.get('LOCAL_GCP_CREDENTIALS_PATH')
-    logger.debug("cred_path: {}".format(cred_path))
-
-    json_file = cred_path if local else 'breadsheet-prod.json'
-    logger.debug("json_file: {}".format(json_file))
-
-    import google.cloud.logging
-    client = google.cloud.logging.Client.from_service_account_json(json_file)
-    client.setup_logging()  # attaches Stackdriver to python's standard logging module
-
+    import google.cloud.logging as gcl
+    stackdriver_client = gcl.Client.from_service_account_json(service_account_key)
+    stackdriver_client.setup_logging()  # attaches Stackdriver to python's standard logging module
     logger.info("Logging to Stackdriver initialized!")
-    print("Logging to Stackdriver initialized! [from print()]")
 
 except ImportError as error:  # except OSError:
     logger.info("Logging to Stackdriver failed: {}".format(error))
 
 app = create_app()
 
+if __name__ == '__main__':
+    app.run(host='127.0.0.1', port=8080, debug=True)
 
 @app.shell_context_processor
 def make_shell_context():

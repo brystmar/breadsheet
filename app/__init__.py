@@ -1,18 +1,22 @@
-# initialization file that defines items within the app
+"""Initialization file that defines items within the app."""
+from global_logger import glogger
+import logging
+
 from config import Config
 from flask import Flask
 from flask_bootstrap import Bootstrap
 from flask_moment import Moment
 from flask_sqlalchemy import SQLAlchemy
-from global_logger import glogger
-import logging
+import boto3
 
 logger = glogger
 logger.setLevel(logging.DEBUG)
 
 bootstrap = Bootstrap()
-db = SQLAlchemy()
 moment = Moment()
+db = SQLAlchemy()
+# db = boto3.resource('dynamodb', region_name=Config.aws_region, aws_access_key_id=Config.aws_access_key_id,
+#                     aws_secret_access_key=Config.aws_secret_access_key)
 
 
 def create_app(config_class=Config):

@@ -9,6 +9,7 @@ __pycache__/
 *.env
 .env
 breadsheet.py
+breadsheet-prod.json
 
 # Created by https://www.gitignore.io/api/venv,macos,pycharm
 # Edit at https://www.gitignore.io/?templates=venv,macos,pycharm
