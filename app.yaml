@@ -13,8 +13,8 @@ error_handlers:
   - error_code: over_quota
     file: app/templates/errors/over_quota.html
 
-beta_settings:
-  cloud_sql_instances: breadsheet:us-west1:breadsheet
+# beta_settings:
+#   cloud_sql_instances: breadsheet:us-west1:breadsheet
 
-env_variables:
-  SQLALCHEMY_DATABASE_URI: postgres+psycopg2://USER:PW@/breadsheet?host=/cloudsql/breadsheet:us-west1:breadsheet
+# env_variables:
+#   SQLALCHEMY_DATABASE_URI: postgres+psycopg2://USER:PW@/breadsheet?host=/cloudsql/breadsheet:us-west1:breadsheet
