@@ -1,10 +1,9 @@
 from global_logger import glogger, local
 import logging
 
-from os import path, environ, getcwd
-# from google.cloud import firestore
+from os import path, environ
+from google.cloud import firestore
 
-# test_client = firestore.Client
 logger = glogger
 logger.setLevel(logging.DEBUG)
 
@@ -32,6 +31,7 @@ class Config(object):
         db_url = environ.get('GCP_CLOUDSQL_DATABASE_URI')
 
         # AWS Credentials #
+        aws_account_id = environ.get('AWS_ACCOUNT_ID')
         aws_access_key_id = environ.get('AWS_ACCESS_KEY')
         aws_secret_access_key = environ.get('AWS_SECRET_ACCESS_KEY')
         aws_user = environ.get('AWS_USER')
@@ -45,8 +45,8 @@ class Config(object):
         logger.debug("JSON file exists? {}".format(path.isfile('breadsheet-prod.json')))
 
         # supply the private key to explicitly use creds for the default service acct
-        # fire = firestore.Client().from_service_account_json('breadsheet-prod.json')
-        # logger.debug("Fire_credentials GCP bucket: {}".format(BUCKET_NAME))
+        fire = firestore.Client().from_service_account_json('breadsheet-prod.json')
+        logger.debug("Fire_credentials GCP bucket: {}".format(BUCKET_NAME))
 
     else:
         from google.cloud import firestore
@@ -71,6 +71,7 @@ class Config(object):
         logger.info("DB IP from fire_credentials: {}".format(db_ip))
 
         # AWS Credentials #
+        aws_account_id = fire_credentials._data['AWS_ACCOUNT_ID']
         aws_access_key_id = fire_credentials._data['AWS_ACCESS_KEY']
         aws_secret_access_key = fire_credentials._data['AWS_SECRET_ACCESS_KEY']
         aws_user = fire_credentials._data['AWS_USER']
