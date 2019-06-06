@@ -2,7 +2,7 @@ from global_logger import glogger, local
 import logging
 
 from os import path, environ
-from google.cloud import firestore
+# from google.cloud import firestore
 
 logger = glogger
 logger.setLevel(logging.DEBUG)
@@ -42,16 +42,16 @@ class Config(object):
 
         # from google.cloud import firestore
         # logging to stdout in the cloud is automatically routed to a useful monitoring tool
-        logger.debug("JSON file exists? {}".format(path.isfile('breadsheet-prod.json')))
+        logger.debug(f"JSON file exists? {path.isfile('breadsheet-prod.json')}")
 
         # supply the private key to explicitly use creds for the default service acct
-        fire = firestore.Client().from_service_account_json('breadsheet-prod.json')
-        logger.debug("Fire_credentials GCP bucket: {}".format(BUCKET_NAME))
+        # fire = firestore.Client().from_service_account_json('breadsheet-prod.json')
+        logger.debug(f"Fire_credentials GCP bucket: {BUCKET_NAME}")
 
     else:
         from google.cloud import firestore
         # logging to stdout in the cloud is automatically routed to a useful monitoring tool
-        logger.debug("JSON file exists? {}".format(path.isfile('breadsheet-prod.json')))
+        logger.debug(f"JSON file exists? {path.isfile('breadsheet-prod.json')}")
 
         # supply the private key to explicitly use creds for the default service acct
         fire = firestore.Client().from_service_account_json('breadsheet-prod.json')
@@ -67,8 +67,8 @@ class Config(object):
         db_instance = fire_credentials._data['GCP_CLOUDSQL_INSTANCE']
         db_url = fire_credentials._data['GCP_CLOUDSQL_DATABASE_URI']
 
-        logger.info("Fire_credentials GCP bucket: {}".format(BUCKET_NAME))
-        logger.info("DB IP from fire_credentials: {}".format(db_ip))
+        logger.info(f"Fire_credentials GCP bucket: {BUCKET_NAME}")
+        logger.info(f"DB IP from fire_credentials: {db_ip}")
 
         # AWS Credentials #
         aws_account_id = fire_credentials._data['AWS_ACCOUNT_ID']
@@ -80,8 +80,8 @@ class Config(object):
 
         SECRET_KEY = fire_credentials._data['SECRET_KEY'] or '2mW7@LN0n32L6ntaj0d8jzsXiAW4mkPL7u5l'
 
-    SQLALCHEMY_DATABASE_URI = db_url
+    # SQLALCHEMY_DATABASE_URI = db_url
     # SQLALCHEMY_DATABASE_URI = 'postgres+psycopg2://USER:PW@/breadsheet?host=/cloudsql/trivialib:us-west2:trivialib'
 
-    logger.debug("SQLALCHEMY_DATABASE_URI: {}".format(db_url))
+    logger.debug(f"SQLALCHEMY_DATABASE_URI: {db_url}")
     logger.info("End of the Config() class.")

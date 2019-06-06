@@ -1,12 +1,13 @@
-# determines which page(s) to show for each browser request
-from app import db, logger
+"""Determine which page(s) to render for each browser request."""
+from app import db, sql_db, logger
 from app.main import bp
 from app.main.forms import RecipeForm, StepForm, ThenWaitForm, StartFinishForm
 from app.models import RecipeRDB, StepRDB
 from datetime import datetime, timedelta
 from flask import render_template, redirect, url_for, request, send_from_directory  # , flash
 from os import path
-from sqlalchemy.sql import text, func
+from sqlalchemy.sql import text
+import boto3
 
 
 # map the desired URL to this function
@@ -14,9 +15,17 @@ from sqlalchemy.sql import text, func
 @bp.route('/index')
 @bp.route('/')
 def index():
-    logger.info("Rendering the homepage.  End of index().")
-    recipes = add_recipe_ui_fields(RecipeRDB.query.order_by('id').all())
-    return render_template('index.html', title='Breadsheet Recipe Scheduling Tool', recipes=recipes)
+    logger.info("Start of index()")
+    # recipes = add_recipe_ui_fields(RecipeRDB.query.order_by('id').all())
+
+    response = db.Table('recipe').scan()
+    recipes = sort_list_of_dictionaries(response['Items'], 'id')
+    logger.debug(f"Sorted of recipes returned from dynamodb: {recipes}")
+
+    recipes = add_recipe_ui_fields(recipes)
+
+    logger.info("Rendering the homepage.  End of index()")
+    return render_template('index.html', title='Breadsheet: A Recipe Scheduling Tool', recipes=recipes)
 
 
 @bp.route('/add_recipe', methods=['GET', 'POST'])
@@ -26,13 +35,13 @@ def add_recipe():
 
     if rform.validate_on_submit():
         logger.info("Recipe form submitted.")
-        next_id = db.engine.execute(text("SELECT max(id) FROM recipe")).first()[0] + 1
+        next_id = sql_db.engine.execute(text("SELECT max(id) FROM recipe")).first()[0] + 1
         rdata = RecipeRDB(id=next_id, name=rform.name.data, author=rform.author.data, source=rform.source.data,
                           difficulty=rform.difficulty.data, date_added=datetime.now())
         logger.info(f"New recipe data: {rdata.__dict__}")
 
-        db.session.add(rdata)
-        db.session.commit()
+        sql_db.session.add(rdata)
+        sql_db.session.commit()
         logger.debug(f"Recipe_id={next_id} successfully added & committed to the db.")
 
         recipe_id = rdata.id
@@ -71,13 +80,13 @@ def recipe():
         # convert then_wait decimal value to seconds
         then_wait = hms_to_seconds([sform.then_wait_h.data, sform.then_wait_m.data])
 
-        next_id = db.engine.execute(text("SELECT max(id) FROM step")).first()[0] + 1
+        next_id = sql_db.engine.execute(text("SELECT max(id) FROM step")).first()[0] + 1
         sdata = StepRDB(id=next_id, recipe_id=recipe_id, number=sform.number.data, text=sform.text.data,
                         then_wait=then_wait, wait_time_range=sform.wait_time_range.data)
         logger.info(f"New step data: {sdata.__dict__}")
 
-        db.session.add(sdata)
-        db.session.commit()
+        sql_db.session.add(sdata)
+        sql_db.session.commit()
         logger.debug(f"Step_id={next_id} successfully added & committed to the db.")
 
         logger.debug("Redirecting to the main recipe page.  End of recipe().")
@@ -103,6 +112,10 @@ def favicon():
     logger.info("The favicon was requested!! :D")
     return send_from_directory(path.join(bp.root_path, 'static'), 'favicon.ico',
                                mimetype='image/vnd.microsoft.icon')
+
+
+def sort_list_of_dictionaries(unsorted_list, key_to_sort_by) -> list:
+    return sorted(unsorted_list, key=lambda k: k[key_to_sort_by], reverse=False)
 
 
 def hms_to_seconds(hms) -> int:
@@ -134,7 +147,7 @@ def hms_to_seconds(hms) -> int:
         return 0
 
 
-def hms_to_string(data):
+def hms_to_string(data) -> str:
     """Convert a list of [hrs, min, sec] to a human-readable string.  Yet again, because I'm a newbie."""
     logger.debug(f"Start of hms_to_string(), with: {data}")
     result = ''
@@ -170,7 +183,7 @@ def hms_to_string(data):
     return result
 
 
-def set_when(steps, when):
+def set_when(steps, when) -> list:
     """Accepts a list of Step objects, plus the benchmark time, and calculates when each step should begin.
 
     Also converts raw seconds to a text string, stored in a UI-specific value for 'then_wait'.
@@ -202,34 +215,34 @@ def add_recipe_ui_fields(recipe):
     """Input: an individual Recipe class, or a list of Recipes.
 
     Populates the difficulty_ui, date_added_ui, start_time, & finish_time fields."""
-    logger.debug(f"Start of add_recipe_ui_fields() for: {recipe}")
+    logger.debug(f"Start of add_recipe_ui_fields() for {len(recipe)} recipe(s): {recipe}")
 
     if isinstance(recipe, list):  # separate handling for lists
         logger.debug(f"Parsing a list of {len(recipe)} recipes.")
         for r in recipe:
-            logger.debug(f"Adding UI fields for recipe: {r.__dict__}")
+            logger.debug(f"Adding UI fields for recipe {r['id']}: {r['name']}")
             r = add_recipe_ui_fields(r)
     else:
-        recipe.difficulty_ui = recipe.difficulty
-        recipe.date_added_ui = recipe.date_added.strftime('%Y-%m-%d')
-        recipe.start_time = datetime.strptime(str(datetime.now()), '%Y-%m-%d %H:%M:%S.%f')
-        recipe.start_time_ui = dt_ui(recipe.start_time)
+        recipe['difficulty_ui'] = recipe.difficulty
+        recipe['date_added_ui'] = recipe.date_added.strftime('%Y-%m-%d')
+        recipe['start_time'] = datetime.strptime(str(datetime.now()), '%Y-%m-%d %H:%M:%S.%f')
+        recipe['start_time_ui'] = dt_ui(recipe.start_time)
 
-        recipe.total_time = recipe.length
-        if recipe.total_time is None:
-            recipe.finish_time = recipe.start_time
-            recipe.finish_time_ui = recipe.start_time_ui
-            recipe.total_time = 0
+        recipe['total_time'] = recipe['length']
+        if recipe['total_time'] is None:
+            recipe['finish_time'] = recipe['start_time']
+            recipe['finish_time_ui'] = recipe['start_time_ui']
+            recipe['total_time'] = 0
         else:
-            recipe.finish_time = recipe.start_time + timedelta(seconds=recipe.total_time)
-            recipe.finish_time_ui = recipe.finish_time
-            recipe.total_time_ui = hms_to_string(str(datetime.timedelta(seconds=recipe.total_time)))
+            recipe['finish_time'] = recipe['start_time'] + timedelta(seconds=recipe['total_time'])
+            recipe['finish_time_ui'] = recipe['finish_time']
+            recipe['total_time_ui'] = hms_to_string(str(timedelta(seconds=recipe['total_time'])))
 
     logger.debug(f"End of add_recipe_ui_fields(), returning: {recipe}")
     return recipe
 
 
-def dt_ui(dt):
+def dt_ui(dt) -> str:
     logger.debug(f"Start of dt_ui(), with: {dt}")
     st = str(dt)
     output = st[:st.find('.')-3]
@@ -237,7 +250,7 @@ def dt_ui(dt):
     return output
 
 
-def create_tw_forms(steps):
+def create_tw_forms(steps) -> list:
     """Create a form for the 'then wait...' display for recipe steps, then populate it with data."""
     logger.debug(f"Start of create_tw_forms(), with: {steps}")
 
@@ -254,7 +267,7 @@ def create_tw_forms(steps):
     return twforms
 
 
-def create_start_finish_forms(recipe):
+def create_start_finish_forms(recipe) -> StartFinishForm:
     """Set values for the form displaying start & finish times for this recipe."""
     logger.debug(f"Start of create_start_finish_forms(), for: {recipe.__dict__}")
 
