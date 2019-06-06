@@ -1,9 +1,9 @@
 # breadsheet
-Anyone who loves to bake knows scheduling is tricky, especially for longer recipes.  The [breadsheet](http://breadsheet.appspot.com) simplifies this process, helping you solve for start & finish times of steps and the overall recipe.
+Baking enthusiasts know how tricky scheduling can be, especially for longer recipes.  This [breadsheet](http://breadsheet.appspot.com) tool simplifies the process, helping you solve for start & finish times of each step and the overall recipe.
 
-Suppose you're invited to a potluck brunch on Saturday and plan to bring a fresh loaf of sourdough.  There's many steps to this process, and although each is fairly time-sensitve, there's a fair bit of downtime between steps.
+Suppose you're invited to a potluck brunch on Saturday and plan to bring a fresh loaf of sourdough.  This process has many steps -- most of which are time-sensitve -- and there's a fair bit of downtime between steps.
 
-Here's an example using my go-to sourdough recipe from [Flour, Water, Salt, Yeast](https://kensartisan.com/flour-water-salt-yeast/):
+Here's an example using a classic sourdough recipe from [Flour, Water, Salt, Yeast](https://kensartisan.com/flour-water-salt-yeast/):
 * Wake up the sourdough starter by feeding it Thursday evening
 * Feed it again Friday morning
 * Mix the dough Friday afternoon
