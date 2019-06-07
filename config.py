@@ -51,23 +51,24 @@ class Config(object):
         from google.cloud import firestore
         # logging to stdout in the cloud is automatically routed to a useful monitoring tool
         logger.debug(f"JSON file exists? {path.isfile('breadsheet-prod.json')}")
+        path.
 
         # supply the private key to explicitly use creds for the default service acct
         fire = firestore.Client().from_service_account_json('breadsheet-prod.json')
         fire_credentials = fire.collection('environment_vars').document('prod').get()
 
         # GCP Credentials #
-        BUCKET_NAME = fire_credentials._data['GCP_BUCKET_NAME'] or 'fire_fail_bucket_name'
-        db_user = fire_credentials._data['GCP_CLOUDSQL_USER']
-        db_pw = fire_credentials._data['GCP_CLOUDSQL_PW']
-        db_name = fire_credentials._data['GCP_CLOUDSQL_DBNAME']
-        db_ip = fire_credentials._data['GCP_CLOUDSQL_IP']
-        db_port = fire_credentials._data['GCP_CLOUDSQL_PORT']
-        db_instance = fire_credentials._data['GCP_CLOUDSQL_INSTANCE']
+        # BUCKET_NAME = fire_credentials._data['GCP_BUCKET_NAME'] or 'fire_fail_bucket_name'
+        # db_user = fire_credentials._data['GCP_CLOUDSQL_USER']
+        # db_pw = fire_credentials._data['GCP_CLOUDSQL_PW']
+        # db_name = fire_credentials._data['GCP_CLOUDSQL_DBNAME']
+        # db_ip = fire_credentials._data['GCP_CLOUDSQL_IP']
+        # db_port = fire_credentials._data['GCP_CLOUDSQL_PORT']
+        # db_instance = fire_credentials._data['GCP_CLOUDSQL_INSTANCE']
         db_url = fire_credentials._data['GCP_CLOUDSQL_DATABASE_URI']
 
-        logger.info(f"Fire_credentials GCP bucket: {BUCKET_NAME}")
-        logger.info(f"DB IP from fire_credentials: {db_ip}")
+        # logger.info(f"Fire_credentials GCP bucket: {BUCKET_NAME}")
+        # logger.info(f"DB IP from fire_credentials: {db_ip}")
 
         # AWS Credentials #
         aws_account_id = fire_credentials._data['AWS_ACCOUNT_ID']
