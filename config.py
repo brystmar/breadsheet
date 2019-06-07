@@ -1,6 +1,5 @@
 from global_logger import glogger, local
 import logging
-
 from os import path, environ
 # from google.cloud import firestore
 
@@ -80,7 +79,7 @@ class Config(object):
 
         SECRET_KEY = fire_credentials._data['SECRET_KEY'] or '2mW7@LN0n32L6ntaj0d8jzsXiAW4mkPL7u5l'
 
-    # SQLALCHEMY_DATABASE_URI = db_url
+    SQLALCHEMY_DATABASE_URI = db_url
     # SQLALCHEMY_DATABASE_URI = 'postgres+psycopg2://USER:PW@/breadsheet?host=/cloudsql/trivialib:us-west2:trivialib'
 
     logger.debug(f"SQLALCHEMY_DATABASE_URI: {db_url}")

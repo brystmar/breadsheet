@@ -8,7 +8,7 @@ class Recipe:
     author = str
     source = str
     difficulty = str
-    date_added = datetime
+    date_added = date.today()
     length = int
     steps = list
 
@@ -35,7 +35,7 @@ class RecipeRDB(sql_db.Model):
     author = sql_db.Column(sql_db.String(64), index=True)
     source = sql_db.Column(sql_db.String(128), index=True)
     difficulty = sql_db.Column(sql_db.String(1), index=True)
-    date_added = sql_db.Column(sql_db.DateTime, default=datetime.now())
+    date_added = sql_db.Column(sql_db.DateTime, default=date.today())
     start_time = sql_db.Column(sql_db.DateTime, default=datetime.now())
     solve_for_start = sql_db.Column(sql_db.Integer, default=1)
     steps = sql_db.relationship('Step', backref='recipe', lazy='dynamic')

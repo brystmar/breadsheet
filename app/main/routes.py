@@ -3,7 +3,7 @@ from app import db, sql_db, logger
 from app.main import bp
 from app.main.forms import RecipeForm, StepForm, ThenWaitForm, StartFinishForm
 from app.models import RecipeRDB, StepRDB
-from datetime import datetime, timedelta
+from datetime import datetime, date, timedelta
 from flask import render_template, redirect, url_for, request, send_from_directory  # , flash
 from os import path
 from sqlalchemy.sql import text
@@ -20,7 +20,7 @@ def index():
 
     response = db.Table('recipe').scan()
     recipes = sort_list_of_dictionaries(response['Items'], 'id')
-    logger.debug(f"Sorted of recipes returned from dynamodb: {recipes}")
+    logger.debug(f"Sorted recipes returned from dynamodb: {recipes}")
 
     recipes = add_recipe_ui_fields(recipes)
 
@@ -37,7 +37,7 @@ def add_recipe():
         logger.info("Recipe form submitted.")
         next_id = sql_db.engine.execute(text("SELECT max(id) FROM recipe")).first()[0] + 1
         rdata = RecipeRDB(id=next_id, name=rform.name.data, author=rform.author.data, source=rform.source.data,
-                          difficulty=rform.difficulty.data, date_added=datetime.now())
+                          difficulty=rform.difficulty.data, date_added=date.today())
         logger.info(f"New recipe data: {rdata.__dict__}")
 
         sql_db.session.add(rdata)
@@ -223,31 +223,25 @@ def add_recipe_ui_fields(recipe):
             logger.debug(f"Adding UI fields for recipe {r['id']}: {r['name']}")
             r = add_recipe_ui_fields(r)
     else:
-        recipe['difficulty_ui'] = recipe.difficulty
-        recipe['date_added_ui'] = recipe.date_added.strftime('%Y-%m-%d')
-        recipe['start_time'] = datetime.strptime(str(datetime.now()), '%Y-%m-%d %H:%M:%S.%f')
-        recipe['start_time_ui'] = dt_ui(recipe.start_time)
+        recipe['difficulty_ui'] = recipe['difficulty']
+        recipe['date_added_ui'] = str(recipe['date_added'])[:10]
+        recipe['start_time'] = datetime.now()
+        recipe['start_time_ui'] = recipe['start_time'].strftime('%Y-%m-%d %H:%M:%S')
 
         recipe['total_time'] = recipe['length']
+        logger.debug(f"recipe['total_time'] = {recipe['total_time']}")
         if recipe['total_time'] is None:
             recipe['finish_time'] = recipe['start_time']
             recipe['finish_time_ui'] = recipe['start_time_ui']
             recipe['total_time'] = 0
         else:
-            recipe['finish_time'] = recipe['start_time'] + timedelta(seconds=recipe['total_time'])
-            recipe['finish_time_ui'] = recipe['finish_time']
-            recipe['total_time_ui'] = hms_to_string(str(timedelta(seconds=recipe['total_time'])))
+            recipe['finish_time'] = recipe['start_time'] + timedelta(seconds=int(recipe['total_time']))
+            recipe['finish_time_ui'] = recipe['finish_time'].strftime('%Y-%m-%d %H:%M:%S')
+            recipe['total_time_ui'] = hms_to_string(str(timedelta(seconds=int(recipe['total_time']))))
+            logger.debug(f"recipe['total_time_ui'] = {recipe['total_time_ui']}")
 
     logger.debug(f"End of add_recipe_ui_fields(), returning: {recipe}")
     return recipe
-
-
-def dt_ui(dt) -> str:
-    logger.debug(f"Start of dt_ui(), with: {dt}")
-    st = str(dt)
-    output = st[:st.find('.')-3]
-    logger.debug(f"End of dt_ui(), returning: {output}")
-    return output
 
 
 def create_tw_forms(steps) -> list:
