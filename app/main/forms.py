@@ -50,10 +50,10 @@ class ThenWaitForm(FlaskForm):
 
 class StartFinishForm(FlaskForm):
     recipe_id = IntegerField('Recipe ID')
-    start_date = DateField('Start Date', id='start_date', render_kw={'placeholder': 'date'})
-    start_time = TimeField('Start Time', id='start_time')
-    finish_date = DateField('Finish Date', id='finish_date', render_kw={'placeholder': 'date', 'disabled': ''})
-    finish_time = TimeField('Finish Time', id='finish_time', render_kw={'disabled': ''})
+    start_date = DateField('Start Date', id='start_date', render_kw={'placeholder': 'date', 'disabled': ''})
+    start_time = TimeField('Start Time', id='start_time', render_kw={'disabled': ''})
+    finish_date = DateField('Finish Date', id='finish_date', render_kw={'placeholder': 'date'})
+    finish_time = TimeField('Finish Time', id='finish_time')
     solve_for_start = SelectField('Solve For', id='solve_for_start', default='1', validators=[DataRequired()],
                                   choices=[('1', 'Start Time'), ('0', 'Finish Time')], render_kw={'autofocus': True})
 
