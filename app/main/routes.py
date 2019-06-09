@@ -1,14 +1,12 @@
 """Determine which page(s) to render for each browser request."""
-from app import db, sql_db, logger
+from app import db, logger
 from app.main import bp
 from app.main.forms import RecipeForm, StepForm, ThenWaitForm, StartFinishForm, paprika_recipe_ids
-from app.models import RecipeRDB, StepRDB
 from boto3.dynamodb.conditions import Key
 from config import PST
-from datetime import datetime, date, timedelta
+from datetime import datetime, timedelta
 from flask import render_template, redirect, url_for, request, send_from_directory  # , flash
 from os import path
-from sqlalchemy.sql import text
 
 
 # Map the specified URL to this function
@@ -18,10 +16,20 @@ from sqlalchemy.sql import text
 def index():
     logger.info("Start of index()")
 
+    # Grab all recipes from the db
     response = db.Table('Recipe').scan()
-    recipes = sort_list_of_dictionaries(response['Items'], 'id')
-    logger.debug(f"Sorted recipes returned from dynamodb: {recipes}")
 
+    # Check the response code
+    response_code = response['ResponseMetadata']['HTTPStatusCode']
+    logger.debug(f"Scanned the Recipe table, HTTPStatusCode={response_code}")
+    if response_code == 200:
+        logger.debug(f"Recipes returned from dynamodb: {response['Items']}")
+    else:
+        logger.warning(f"DynamoDB error: HTTPStatusCode={response_code}")
+        logger.debug(f"Full response log:\n{response['ResponseMetadata']}")
+
+    # Optimize the data for processing & display
+    recipes = sort_list_of_dictionaries(response['Items'], 'id')
     recipes = convert_recipe_strings_to_datetime(recipes)
     recipes = add_recipe_ui_fields(recipes)
 
@@ -34,7 +42,6 @@ def add_recipe():
     logger.info("Start of add_recipe()")
 
     form = RecipeForm()
-
     if form.validate_on_submit():
         logger.info("RecipeForm submitted.")
 
@@ -53,8 +60,16 @@ def add_recipe():
 
         logger.info(f"New recipe data: {new_recipe}")
 
-        db.Table("Recipe").put_item(Item=new_recipe)
-        logger.info("Recipe successfully added to the db.")
+        # Write this new recipe to the db
+        write_response = db.Table("Recipe").put_item(Item=new_recipe)
+
+        # Check the response code
+        response_code = write_response['ResponseMetadata']['HTTPStatusCode']
+        if response_code == 200:
+            logger.info("Recipe successfully added to the db.")
+        else:
+            logger.warning(f"DynamoDB error: HTTPStatusCode={response_code}")
+            logger.debug(f"Full response log:\n{write_response['ResponseMetadata']}")
 
         logger.debug("Redirecting to the main recipe page.  End of add_recipe().")
         return redirect(url_for("main.recipe") + f"?id={new_recipe['id']}")
@@ -69,31 +84,38 @@ def add_recipe():
 def recipe():
     logger.info(f"Start of recipe(), request method: {request.method}")
 
-    form = StepForm()
-
     # Read the recipe_id from the URL querystring
-    recipe_id = request.args.get('id') or 1
-    form.recipe_id.data = recipe_id
-    logger.debug(f"Recipe_id: {recipe_id}")
+    failsafe_id = '1560122083.005019_af4f7bd5-ed86-44a2-9767-11f761160dee'  # Detroit pizza
+    recipe_id = request.args.get('id') or failsafe_id
 
-    if recipe_id == 1 and request.args.get('id') != 1:
-        logger.info("Error reading the querystring on the /recipe page.")
+    form = StepForm()
+    form.recipe_id.data = recipe_id
+    logger.debug(f"Recipe_id from the URL querystring: {recipe_id}")
+
+    if recipe_id == failsafe_id and request.args.get('id') != failsafe_id:
+        logger.warning("Error reading the querystring on the /recipe page.")
         logger.debug(f"Read: {request.args.get('id')}")
-        recipe_id = '1560122083.005019_af4f7bd5-ed86-44a2-9767-11f761160dee'  # Detroit pizza
         form.recipe_id.data = recipe_id
-        logger.debug(f"Replaced it with the Detroit pizza recipe {recipe_id}.")
+        logger.debug(f"Replaced it with the Detroit pizza recipe id: {recipe_id}")
 
     # Retrieve the recipe using the URL querystring's id
     response = db.Table('Recipe').query(KeyConditionExpression=Key('id').eq(recipe_id))
-    logger.debug(f"Recipe returned from dynamodb: {response['Items'][0]}")
 
+    # Check the response code
+    response_code = response['ResponseMetadata']['HTTPStatusCode']
+    logger.debug(f"Scanned the Recipe table, HTTPStatusCode={response_code}")
+    if response_code == 200:
+        logger.debug(f"Recipe returned from dynamodb: {response['Items'][0]}")
+    else:
+        logger.warning(f"DynamoDB error: HTTPStatusCode={response_code}")
+        logger.debug(f"Full response log:\n{response['ResponseMetadata']}")
+
+    # Optimize the recipe data for processing & display
     recipe = convert_recipe_strings_to_datetime(response['Items'][0])
     recipe = calculate_recipe_length(recipe)
     recipe = add_recipe_ui_fields(recipe)
 
-    # PyCharm went nuts when I replaced recipe_id in the return statement f-string with recipe['id']
-    recipe_id = recipe['id']
-
+    # Optimize the step data for display
     steps = set_when(recipe['steps'], recipe['start_time'])
     twforms = create_tw_forms(steps)
     seform = create_start_finish_forms(recipe)
@@ -116,15 +138,24 @@ def recipe():
         recipe['steps'].append(new_step)
 
         # Update the database
-        db.Table("Recipe").put_item(Item=recipe)
+        write_response = db.Table("Recipe").put_item(Item=recipe)
+
+        # Check the response code
+        response_code = write_response['ResponseMetadata']['HTTPStatusCode']
+        if response_code == 200:
+            logger.info("Recipe successfully added to the db.")
+        else:
+            logger.warning(f"DynamoDB error: HTTPStatusCode={response_code}")
+            logger.debug(f"Full response log:\n{write_response['ResponseMetadata']}")
+
         logger.info(f"Recipe {recipe['id']} updated in the db to include step {new_step['number']}.")
 
         logger.debug("Redirecting to the main recipe page.  End of recipe().")
         return redirect(url_for('main.recipe') + f'?id={recipe_id}')
 
-    elif request.method == 'GET':  # pre-populate the form with the recipe info and any existing steps
-        logger.debug("Entering the 'elif' section to pre-populate the form w/recipe info and any existing steps.")
-
+    elif request.method == 'GET':
+        logger.debug(f"Entering the 'elif' section to pre-populate the add_step form with the "
+                     f"next logical step number: {len(steps) + 1}")
         form.number.data = len(steps) + 1
 
     logger.debug("Rendering the recipe page.  End of recipe().")
@@ -188,9 +219,18 @@ def calculate_recipe_length(recipe):
     logger.debug(f"Calculated length: {length}, original length: {original_length}")
     recipe['length'] = length
 
-    # Update the db if the length changed
     if length != original_length:
-        db.Table("Recipe").put_item(Item=recipe)
+        # Update the database if the length changed
+        write_response = db.Table("Recipe").put_item(Item=recipe)
+
+        # Check the response code
+        response_code = write_response['ResponseMetadata']['HTTPStatusCode']
+        if response_code == 200:
+            logger.info("Recipe successfully added to the db.")
+        else:
+            logger.warning(f"DynamoDB error: HTTPStatusCode={response_code}")
+            logger.debug(f"Full response log:\n{write_response['ResponseMetadata']}")
+
         logger.info(f"Updated recipe {recipe['id']} in the database to reflect its new length.")
 
     logger.debug("End of calculate_recipe_length()")

@@ -2,522 +2,555 @@ from datetime import datetime
 import time
 import uuid
 
-ids = []
-i = 0
-while '1.' not in str(datetime.now().timestamp()):
-    continue
 
-while i < 7:
-    new_id = ""
-    while len(new_id) != 54:
-        new_id = f"{datetime.utcnow().timestamp()}_{uuid.uuid4()}"
-    print(f"Generated id: {new_id}")
-    ids.append(new_id)
-    time.sleep(1)
-    i += 1
+def create_recipe_ids():
+    ids = []
+    i = 0
+    while '1.' not in str(datetime.now().timestamp()):
+        continue
 
-print("")
-print(ids)
-print("")
-recipes = [
-    {
-        "id":         ids[0],
-        "name":       "Country Sourdough: Pain de Campagne",
-        "author":     "Ken Forkish",
-        "source":     "FWSY",
-        "difficulty": "Advanced",
-        "date_added": "2019-02-16",
-        "start_time": "2019-06-07 09:45:00",
-        "steps":      [
-            {
-                "number":    1,
-                "text":      "Wake up refrigerated levain",
-                "then_wait": 86400,
-                "note":   "12-24 hours.  Repeat as necessary, or skip entirely if your starter is already active."
-            },
+    while i < 7:
+        new_id = ""
+        while len(new_id) != 54:
+            new_id = f"{datetime.utcnow().timestamp()}_{uuid.uuid4()}"
+        print(f"Generated id: {new_id}")
+        ids.append(new_id)
+        time.sleep(1)
+        i += 1
 
-            {
-                "number":    2,
-                "text":      "Feed the levain",
-                "then_wait": 25200,
-                "note":   "6-8 hours.  Levain must already be mature and active before this step."
-            },
+    recipes_raw = [
+        {
+            "id":         ids[0],
+            "name":       "Country Sourdough: Pain de Campagne",
+            "author":     "Ken Forkish",
+            "source":     "FWSY",
+            "difficulty": "Advanced",
+            "date_added": "2019-02-16",
+            "start_time": "2019-06-07 09:45:00",
+            "steps":      [
+                {
+                    "number":    1,
+                    "text":      "Wake up refrigerated levain",
+                    "then_wait": 86400,
+                    "note":      "12-24 hours.  Repeat as necessary, or skip entirely if your starter is already active."
+                },
 
-            {
-                "number":    3,
-                "text":      "Autolyse",
-                "then_wait": 1200,
-                "note":   "20-30 minutes"
-            },
+                {
+                    "number":    2,
+                    "text":      "Feed the levain",
+                    "then_wait": 25200,
+                    "note":      "6-8 hours.  Levain must already be mature and active before this step."
+                },
 
-            {
-                "number":    4,
-                "text":      "Mix the dough",
-                "then_wait": 900,
-                "note":   "Wait until dough is 2½x its original volume, ~5hrs total.  Rest 15min before fold #1."
-            },
+                {
+                    "number":    3,
+                    "text":      "Autolyse",
+                    "then_wait": 1200,
+                    "note":      "20-30 minutes"
+                },
 
-            {
-                "number":    5,
-                "text":      "Fold #1 (of 4)",
-                "then_wait": 900,
-                "note":   "Fold 3 to 4 times within the first two hours, ~15min between folds"
-            },
+                {
+                    "number":    4,
+                    "text":      "Mix the dough",
+                    "then_wait": 900,
+                    "note":      "Wait until dough is 2½x its original volume, ~5hrs total.  Rest 15min before fold #1."
+                },
 
-            {
-                "number":    6,
-                "text":      "Fold #2 (of 4)",
-                "then_wait": 900,
-                "note":   " "
-            },
+                {
+                    "number":    5,
+                    "text":      "Fold #1 (of 4)",
+                    "then_wait": 900,
+                    "note":      "Fold 3 to 4 times within the first two hours, ~15min between folds"
+                },
 
-            {
-                "number":    7,
-                "text":      "Fold #3 (of 4)",
-                "then_wait": 900,
-                "note":   "Depending on feel, this dough may not need a 4th fold."
-            },
+                {
+                    "number":    6,
+                    "text":      "Fold #2 (of 4)",
+                    "then_wait": 900,
+                    "note":      " "
+                },
 
-            {
-                "number":    8,
-                "text":      "Fold #4 (of 4), if needed",
-                "then_wait": 14400,
-                "note":   "Only if needed.  Wait until dough is ~2½x its original volume, ~5hrs total after mixing."
-            },
+                {
+                    "number":    7,
+                    "text":      "Fold #3 (of 4)",
+                    "then_wait": 900,
+                    "note":      "Depending on feel, this dough may not need a 4th fold."
+                },
 
-            {
-                "number":    9,
-                "text":      "Divide & shape",
-                "then_wait": 0,
-                "note":   " "
-            },
+                {
+                    "number":    8,
+                    "text":      "Fold #4 (of 4), if needed",
+                    "then_wait": 14400,
+                    "note":      "Only if needed.  Wait until dough is ~2½x its original volume, ~5hrs total after mixing."
+                },
 
-            {
-                "number":    10,
-                "text":      "Proof in the fridge",
-                "then_wait": 40500,
-                "note":   "12 to 14hrs, minus preheat time"
-            },
+                {
+                    "number":    9,
+                    "text":      "Divide & shape",
+                    "then_wait": 0,
+                    "note":      " "
+                },
 
-            {
-                "number":    11,
-                "text":      "Preheat",
-                "then_wait": 2700,
-                "note":   " "
-            },
+                {
+                    "number":    10,
+                    "text":      "Proof in the fridge",
+                    "then_wait": 40500,
+                    "note":      "12 to 14hrs, minus preheat time"
+                },
 
-            {
-                "number":    12,
-                "text":      "Bake both loaves",
-                "then_wait": 3000,
-                "note":   "50 to 55 minutes"
-            },
+                {
+                    "number":    11,
+                    "text":      "Preheat",
+                    "then_wait": 2700,
+                    "note":      " "
+                },
 
-            {
-                "number":    13,
-                "text":      "Remove from oven; cool",
-                "then_wait": 1200,
-                "note":   "About 20m"
-            }
-        ]
-    },
+                {
+                    "number":    12,
+                    "text":      "Bake both loaves",
+                    "then_wait": 3000,
+                    "note":      "50 to 55 minutes"
+                },
 
-    {
-        "id":         ids[1],
-        "name":       "Saturday White Bread",
-        "author":     "Ken Forkish",
-        "source":     "FWSY",
-        "difficulty": "Beginner",
-        "date_added": "2019-02-16",
-        "start_time": "2019-02-17 09:00:00",
-        "steps":      [
-            {
-                "number":    1,
-                "text":      "Autolyse",
-                "then_wait": 1500,
-                "note":   "20 to 30 min"
-            },
+                {
+                    "number":    13,
+                    "text":      "Remove from oven; cool",
+                    "then_wait": 1200,
+                    "note":      "About 20m"
+                }
+            ]
+        },
 
-            {
-                "number":    2,
-                "text":      "Mix the dough",
-                "then_wait": 900,
-                "note":   "~15min until the first fold"
-            },
+        {
+            "id":         ids[1],
+            "name":       "Saturday White Bread",
+            "author":     "Ken Forkish",
+            "source":     "FWSY",
+            "difficulty": "Beginner",
+            "date_added": "2019-02-16",
+            "start_time": "2019-02-17 09:00:00",
+            "steps":      [
+                {
+                    "number":    1,
+                    "text":      "Autolyse",
+                    "then_wait": 1500,
+                    "note":      "20 to 30 min"
+                },
 
-            {
-                "number":    3,
-                "text":      "Fold #1",
-                "then_wait": 900,
-                "note":   "15min between folds"
-            },
+                {
+                    "number":    2,
+                    "text":      "Mix the dough",
+                    "then_wait": 900,
+                    "note":      "~15min until the first fold"
+                },
 
-            {
-                "number":    4,
-                "text":      "Fold #2",
-                "then_wait": 16200,
-                "note":   "~5 hours total after mixing the dough"
-            },
+                {
+                    "number":    3,
+                    "text":      "Fold #1",
+                    "then_wait": 900,
+                    "note":      "15min between folds"
+                },
 
-            {
-                "number":    5,
-                "text":      "Divide & shape",
-                "then_wait": 0,
-                "note":   " "
-            },
+                {
+                    "number":    4,
+                    "text":      "Fold #2",
+                    "then_wait": 16200,
+                    "note":      "~5 hours total after mixing the dough"
+                },
 
-            {
-                "number":    6,
-                "text":      "Proof (at room temp)",
-                "then_wait": 2700,
-                "note":   "1 to 1\u00bd hours total, depending on ambient temp.  Preheat while proofing."
-            },
+                {
+                    "number":    5,
+                    "text":      "Divide & shape",
+                    "then_wait": 0,
+                    "note":      " "
+                },
 
-            {
-                "number":    7,
-                "text":      "Preheat the oven",
-                "then_wait": 2700,
-                "note":   "Dutch oven should be inside oven during preheat"
-            },
+                {
+                    "number":    6,
+                    "text":      "Proof (at room temp)",
+                    "then_wait": 2700,
+                    "note":      "1 to 1\u00bd hours total, depending on ambient temp.  Preheat while proofing."
+                },
 
-            {
-                "number":    8,
-                "text":      "Bake w/lid on",
-                "then_wait": 1800,
-                "note":   "Remove lid after 30 minutes"
-            },
+                {
+                    "number":    7,
+                    "text":      "Preheat the oven",
+                    "then_wait": 2700,
+                    "note":      "Dutch oven should be inside oven during preheat"
+                },
 
-            {
-                "number":    9,
-                "text":      "Bake w/o lid",
-                "then_wait": 900,
-                "note":   "15 to 20min"
-            },
+                {
+                    "number":    8,
+                    "text":      "Bake w/lid on",
+                    "then_wait": 1800,
+                    "note":      "Remove lid after 30 minutes"
+                },
 
-            {
-                "number":    10,
-                "text":      "Remove and cool",
-                "then_wait": 1200,
-                "note":   "Let cool before slicing"
-            }
-        ]
-    },
+                {
+                    "number":    9,
+                    "text":      "Bake w/o lid",
+                    "then_wait": 900,
+                    "note":      "15 to 20min"
+                },
 
-    {
-        "id":         ids[2],
-        "name":       "Detroit-Style Pan Pizza",
-        "author":     "Kenji Lopez-Alt",
-        "source":     "Serious Eats",
-        "difficulty": "Beginner",
-        "date_added": "2019-02-17",
-        "start_time": "2019-02-18 09:00:00",
-        "steps":      [
-            {
-                "number":    1,
-                "text":      "Make the dough",
-                "then_wait": 7200,
-                "note":   "~2hrs, until size doubles"
-            },
+                {
+                    "number":    10,
+                    "text":      "Remove and cool",
+                    "then_wait": 1200,
+                    "note":      "Let cool before slicing"
+                }
+            ]
+        },
 
-            {
-                "number":    2,
-                "text":      "Shape dough in the pan",
-                "then_wait": 1800,
-                "note":   "Cover w/plastic wrap"
-            },
+        {
+            "id":         ids[2],
+            "name":       "Detroit-Style Pan Pizza",
+            "author":     "Kenji Lopez-Alt",
+            "source":     "Serious Eats",
+            "difficulty": "Beginner",
+            "date_added": "2019-02-17",
+            "start_time": "2019-02-18 09:00:00",
+            "steps":      [
+                {
+                    "number":    1,
+                    "text":      "Make the dough",
+                    "then_wait": 7200,
+                    "note":      "~2hrs, until size doubles"
+                },
 
-            {
-                "number":    3,
-                "text":      "Stretch to cover pan",
-                "then_wait": 600,
-                "note":   "0 to 20min, until it fully stretches to all edges"
-            },
+                {
+                    "number":    2,
+                    "text":      "Shape dough in the pan",
+                    "then_wait": 1800,
+                    "note":      "Cover w/plastic wrap"
+                },
 
-            {
-                "number":    4,
-                "text":      "Preheat to oven max",
-                "then_wait": 1800,
-                "note":   "Turn it up to 11!"
-            },
+                {
+                    "number":    3,
+                    "text":      "Stretch to cover pan",
+                    "then_wait": 600,
+                    "note":      "0 to 20min, until it fully stretches to all edges"
+                },
 
-            {
-                "number":    5,
-                "text":      "Bake",
-                "then_wait": 900,
-                "note":   "12 to 15 minutes"
-            }
-        ]
-    },
+                {
+                    "number":    4,
+                    "text":      "Preheat to oven max",
+                    "then_wait": 1800,
+                    "note":      "Turn it up to 11!"
+                },
 
-    {
-        "id":         ids[3],
-        "name":       "White Bread with Overnight Poolish",
-        "author":     "Ken Forkish",
-        "source":     "FWSY",
-        "difficulty": "Intermediate",
-        "date_added": "2019-02-19",
-        "start_time": "2019-02-20 09:00:00",
-        "steps":      [
-            {
-                "number":    1,
-                "text":      "Start the poolish",
-                "then_wait": 43200,
-                "note":   "12-14hrs"
-            },
+                {
+                    "number":    5,
+                    "text":      "Bake",
+                    "then_wait": 900,
+                    "note":      "12 to 15 minutes"
+                }
+            ]
+        },
 
-            {
-                "number":    2,
-                "text":      "Mix the final dough",
-                "then_wait": 900,
-                "note":   "~15 minutes until first fold"
-            },
+        {
+            "id":         ids[3],
+            "name":       "White Bread with Overnight Poolish",
+            "author":     "Ken Forkish",
+            "source":     "FWSY",
+            "difficulty": "Intermediate",
+            "date_added": "2019-02-19",
+            "start_time": "2019-02-20 09:00:00",
+            "steps":      [
+                {
+                    "number":    1,
+                    "text":      "Start the poolish",
+                    "then_wait": 43200,
+                    "note":      "12-14hrs"
+                },
 
-            {
-                "number":    3,
-                "text":      "Fold #1 of 2",
-                "then_wait": 900,
-                "note":   "~15 minutes between folds"
-            },
+                {
+                    "number":    2,
+                    "text":      "Mix the final dough",
+                    "then_wait": 900,
+                    "note":      "~15 minutes until first fold"
+                },
 
-            {
-                "number":    4,
-                "text":      "Fold #2 of 2",
-                "then_wait": 7200,
-                "note":   "1\u00bd to 2\u00bd hours, including fold times"
-            },
+                {
+                    "number":    3,
+                    "text":      "Fold #1 of 2",
+                    "then_wait": 900,
+                    "note":      "~15 minutes between folds"
+                },
 
-            {
-                "number":    5,
-                "text":      "Divide & shape",
-                "then_wait": 0,
-                "note":   "n/a"
-            },
+                {
+                    "number":    4,
+                    "text":      "Fold #2 of 2",
+                    "then_wait": 7200,
+                    "note":      "1\u00bd to 2\u00bd hours, including fold times"
+                },
 
-            {
-                "number":    6,
-                "text":      "Proof",
-                "then_wait": 900,
-                "note":   "1-hour proof, but start preheating oven after 15min"
-            },
+                {
+                    "number":    5,
+                    "text":      "Divide & shape",
+                    "then_wait": 0,
+                    "note":      "n/a"
+                },
 
-            {
-                "number":    7,
-                "text":      "Preheat oven to 475\u00b0F",
-                "then_wait": 2700,
-                "note":   " "
-            },
+                {
+                    "number":    6,
+                    "text":      "Proof",
+                    "then_wait": 900,
+                    "note":      "1-hour proof, but start preheating oven after 15min"
+                },
 
-            {
-                "number":    8,
-                "text":      "Bake the loaves",
-                "then_wait": 3000,
-                "note":   "50 to 55 minutes"
-            },
+                {
+                    "number":    7,
+                    "text":      "Preheat oven to 475\u00b0F",
+                    "then_wait": 2700,
+                    "note":      " "
+                },
 
-            {
-                "number":    9,
-                "text":      "Remove from oven; cool",
-                "then_wait": 1200,
-                "note":   "About 20 minutes"
-            }
-        ]
-    },
+                {
+                    "number":    8,
+                    "text":      "Bake the loaves",
+                    "then_wait": 3000,
+                    "note":      "50 to 55 minutes"
+                },
 
-    {
-        "id":         ids[4],
-        "name":       "Pizza Dough with Overnight Poolish",
-        "author":     "Ken Forkish",
-        "source":     "FWSY",
-        "difficulty": "Intermediate",
-        "date_added": "2019-03-16",
-        "start_time": "2019-03-17 09:00:00",
-        "steps":      [
-            {
-                "number":    1,
-                "text":      "Mix the poolish",
-                "then_wait": 43200,
-                "note":   "12 to 14 hours"
-            },
+                {
+                    "number":    9,
+                    "text":      "Remove from oven; cool",
+                    "then_wait": 1200,
+                    "note":      "About 20 minutes"
+                }
+            ]
+        },
 
-            {
-                "number":    2,
-                "text":      "Mix the final dough",
-                "then_wait": 900,
-                "note":   "~15 minutes between folds"
-            },
+        {
+            "id":         ids[4],
+            "name":       "Pizza Dough with Overnight Poolish",
+            "author":     "Ken Forkish",
+            "source":     "FWSY",
+            "difficulty": "Intermediate",
+            "date_added": "2019-03-16",
+            "start_time": "2019-03-17 09:00:00",
+            "steps":      [
+                {
+                    "number":    1,
+                    "text":      "Mix the poolish",
+                    "then_wait": 43200,
+                    "note":      "12 to 14 hours"
+                },
 
-            {
-                "number":    3,
-                "text":      "Fold #1",
-                "then_wait": 900,
-                "note":   " "
-            },
+                {
+                    "number":    2,
+                    "text":      "Mix the final dough",
+                    "then_wait": 900,
+                    "note":      "~15 minutes between folds"
+                },
 
-            {
-                "number":    4,
-                "text":      "Fold #2",
-                "then_wait": 19800,
-                "note":   "~6hrs total after final dough is mixed"
-            },
+                {
+                    "number":    3,
+                    "text":      "Fold #1",
+                    "then_wait": 900,
+                    "note":      " "
+                },
 
-            {
-                "number":    5,
-                "text":      "Divide & shape",
-                "then_wait": 0,
-                "note":   " "
-            },
+                {
+                    "number":    4,
+                    "text":      "Fold #2",
+                    "then_wait": 19800,
+                    "note":      "~6hrs total after final dough is mixed"
+                },
 
-            {
-                "number":    6,
-                "text":      "Rest at room temp",
-                "then_wait": 2700,
-                "note":   "30 to 60 minutes"
-            },
+                {
+                    "number":    5,
+                    "text":      "Divide & shape",
+                    "then_wait": 0,
+                    "note":      " "
+                },
 
-            {
-                "number":    7,
-                "text":      "Refrigerate",
-                "then_wait": 1800,
-                "note":   "At least 30 minutes"
-            },
+                {
+                    "number":    6,
+                    "text":      "Rest at room temp",
+                    "then_wait": 2700,
+                    "note":      "30 to 60 minutes"
+                },
 
-            {
-                "number":    8,
-                "text":      "Make pizza!",
-                "then_wait": 0,
-                "note":   " "
-            }
-        ]
-    },
+                {
+                    "number":    7,
+                    "text":      "Refrigerate",
+                    "then_wait": 1800,
+                    "note":      "At least 30 minutes"
+                },
 
-    {
-        "id":         ids[5],
-        "name":       "Focaccia Genovese",
-        "author":     "Ken Forkish",
-        "source":     "FWSY",
-        "difficulty": "Beginner",
-        "date_added": "2019-03-31",
-        "start_time": "2019-04-01 09:00:00",
-        "steps":      [
-            {
-                "number":    1,
-                "text":      "Remove dough from fridge",
-                "then_wait": 4500,
-                "note":   "About 2hrs before you want to bake"
-            },
+                {
+                    "number":    8,
+                    "text":      "Make pizza!",
+                    "then_wait": 0,
+                    "note":      " "
+                }
+            ]
+        },
 
-            {
-                "number":    2,
-                "text":      "Preheat to 500\u00b0F",
-                "then_wait": 2700,
-                "note":   " "
-            }
-        ]
-    },
+        {
+            "id":         ids[5],
+            "name":       "Focaccia Genovese",
+            "author":     "Ken Forkish",
+            "source":     "FWSY",
+            "difficulty": "Beginner",
+            "date_added": "2019-03-31",
+            "start_time": "2019-04-01 09:00:00",
+            "steps":      [
+                {
+                    "number":    1,
+                    "text":      "Remove dough from fridge",
+                    "then_wait": 4500,
+                    "note":      "About 2hrs before you want to bake"
+                },
 
-    {
-        "id":         ids[6],
-        "name":       "No-Knead Brioche",
-        "author":     "ATK/Cook's",
-        "source":     "Cook's Illustrated",
-        "difficulty": "Intermediate",
-        "date_added": "2019-05-19",
-        "start_time": "2019-05-19 09:00:00",
-        "steps":      [
-            {
-                "number":    1,
-                "text":      "Whisk together ingredients, cover, and let stand 10 minutes.",
-                "then_wait": 600,
-                "note":   " "
-            },
+                {
+                    "number":    2,
+                    "text":      "Preheat to 500\u00b0F",
+                    "then_wait": 2700,
+                    "note":      " "
+                }
+            ]
+        },
 
-            {
-                "number":    2,
-                "text":      "Fold #1, then cover and let rise.",
-                "then_wait": 1800,
-                "note":   "4 total folds, 30m between."
-            },
+        {
+            "id":         ids[6],
+            "name":       "No-Knead Brioche",
+            "author":     "ATK/Cook's",
+            "source":     "Cook's Illustrated",
+            "difficulty": "Intermediate",
+            "date_added": "2019-05-19",
+            "start_time": "2019-05-19 09:00:00",
+            "steps":      [
+                {
+                    "number":    1,
+                    "text":      "Whisk together ingredients, cover, and let stand 10 minutes.",
+                    "then_wait": 600,
+                    "note":      " "
+                },
 
-            {
-                "number":    3,
-                "text":      "Fold #2, then cover and let rise.",
-                "then_wait": 1800,
-                "note":   " "
-            },
+                {
+                    "number":    2,
+                    "text":      "Fold #1, then cover and let rise.",
+                    "then_wait": 1800,
+                    "note":      "4 total folds, 30m between."
+                },
 
-            {
-                "number":    4,
-                "text":      "Fold #3, then cover and let rise.",
-                "then_wait": 1800,
-                "note":   " "
-            },
+                {
+                    "number":    3,
+                    "text":      "Fold #2, then cover and let rise.",
+                    "then_wait": 1800,
+                    "note":      " "
+                },
 
-            {
-                "number":    5,
-                "text":      "Fold #4, then cover tightly with plastic wrap and refrigerate.",
-                "then_wait": 57600,
-                "note":   "16 to 48 hours"
-            },
+                {
+                    "number":    4,
+                    "text":      "Fold #3, then cover and let rise.",
+                    "then_wait": 1800,
+                    "note":      " "
+                },
 
-            {
-                "number":    6,
-                "text":      "Divide & shape",
-                "then_wait": 300,
-                "note":   "Let rest for 5m"
-            },
+                {
+                    "number":    5,
+                    "text":      "Fold #4, then cover tightly with plastic wrap and refrigerate.",
+                    "then_wait": 57600,
+                    "note":      "16 to 48 hours"
+                },
 
-            {
-                "number":    7,
-                "text":      "Re-shape in baking pans; cover for second rise.",
-                "then_wait": 3600,
-                "note":   "1\u00bd to 2hrs (minus 30m to preheat)"
-            },
+                {
+                    "number":    6,
+                    "text":      "Divide & shape",
+                    "then_wait": 300,
+                    "note":      "Let rest for 5m"
+                },
 
-            {
-                "number":    8,
-                "text":      "Pre-heat oven (with baking stone/steel) to 350\u00b0F",
-                "then_wait": 1800,
-                "note":   " "
-            },
+                {
+                    "number":    7,
+                    "text":      "Re-shape in baking pans; cover for second rise.",
+                    "then_wait": 3600,
+                    "note":      "1\u00bd to 2hrs (minus 30m to preheat)"
+                },
 
-            {
-                "number":    9,
-                "text":      "Brush loaves with egg wash",
-                "then_wait": 0,
-                "note":   " "
-            },
+                {
+                    "number":    8,
+                    "text":      "Pre-heat oven (with baking stone/steel) to 350\u00b0F",
+                    "then_wait": 1800,
+                    "note":      " "
+                },
 
-            {
-                "number":    10,
-                "text":      "Bake to 190\u00b0F internal temp, rotating halfway through",
-                "then_wait": 2100,
-                "note":   "35 to 45 minutes"
-            },
+                {
+                    "number":    9,
+                    "text":      "Brush loaves with egg wash",
+                    "then_wait": 0,
+                    "note":      " "
+                },
 
-            {
-                "number":    11,
-                "text":      "Remove pans from oven, place on wire rack",
-                "then_wait": 300,
-                "note":   " "
-            },
+                {
+                    "number":    10,
+                    "text":      "Bake to 190\u00b0F internal temp, rotating halfway through",
+                    "then_wait": 2100,
+                    "note":      "35 to 45 minutes"
+                },
 
-            {
-                "number":    12,
-                "text":      "Remove loaves from pans, let cool",
-                "then_wait": 7200,
-                "note":   " "
-            }
-        ]
-    }
-]
+                {
+                    "number":    11,
+                    "text":      "Remove pans from oven, place on wire rack",
+                    "then_wait": 300,
+                    "note":      " "
+                },
 
+                {
+                    "number":    12,
+                    "text":      "Remove loaves from pans, let cool",
+                    "then_wait": 7200,
+                    "note":      " "
+                }
+            ]
+        }
+    ]
+
+    print("")
+    print(ids)
+    print("")
+
+    return recipes_raw
+
+
+def build_replacements(rep_list):
+    ingredients = []
+    directions = []
+    for r in rep_list:
+        if r['scope'] == 'i':
+            r.pop('scope')
+            ingredients.append(r)
+        elif r['scope'] == 'd':
+            r.pop('scope')
+            directions.append(r)
+        else:
+            print(f"\n\nvvv\nUnknown scope for {r}.\n^^^\n\n")
+
+    rep_data = [
+        {
+            'scope':  'ingredients',
+            'values': ingredients
+        },
+        {
+            'scope':  'directions',
+            'values': directions
+        }
+    ]
+    return rep_data
+
+
+# recipes = create_recipe_ids()
 steps = [
     {
         "recipe_id": 4,
         "number":    1,
         "text":      "Start the poolish",
         "then_wait": 43200,
-        "note":   "12-14hrs"
+        "note":      "12-14hrs"
     },
 
     {
@@ -525,7 +558,7 @@ steps = [
         "number":    2,
         "text":      "Mix the final dough",
         "then_wait": 900,
-        "note":   "~15 minutes until first fold"
+        "note":      "~15 minutes until first fold"
     },
 
     {
@@ -533,7 +566,7 @@ steps = [
         "number":    3,
         "text":      "Fold #1 of 2",
         "then_wait": 900,
-        "note":   "~15 minutes between folds"
+        "note":      "~15 minutes between folds"
     },
 
     {
@@ -541,7 +574,7 @@ steps = [
         "number":    4,
         "text":      "Fold #2 of 2",
         "then_wait": 7200,
-        "note":   "1\u00bd to 2\u00bd hours, including fold times"
+        "note":      "1\u00bd to 2\u00bd hours, including fold times"
     },
 
     {
@@ -549,7 +582,7 @@ steps = [
         "number":    5,
         "text":      "Divide & shape",
         "then_wait": 0,
-        "note":   "n/a"
+        "note":      "n/a"
     },
 
     {
@@ -557,7 +590,7 @@ steps = [
         "number":    6,
         "text":      "Proof",
         "then_wait": 900,
-        "note":   "1-hour proof, but start preheating oven after 15min"
+        "note":      "1-hour proof, but start preheating oven after 15min"
     },
 
     {
@@ -565,7 +598,7 @@ steps = [
         "number":    7,
         "text":      "Preheat oven to 475\u00b0F",
         "then_wait": 2700,
-        "note":   " "
+        "note":      " "
     },
 
     {
@@ -573,7 +606,7 @@ steps = [
         "number":    8,
         "text":      "Bake the loaves",
         "then_wait": 3000,
-        "note":   "50 to 55 minutes"
+        "note":      "50 to 55 minutes"
     },
 
     {
@@ -581,7 +614,7 @@ steps = [
         "number":    9,
         "text":      "Remove from oven; cool",
         "then_wait": 1200,
-        "note":   "About 20 minutes"
+        "note":      "About 20 minutes"
     },
 
     {
@@ -589,7 +622,7 @@ steps = [
         "number":    1,
         "text":      "Mix the poolish",
         "then_wait": 43200,
-        "note":   "12 to 14 hours"
+        "note":      "12 to 14 hours"
     },
 
     {
@@ -597,7 +630,7 @@ steps = [
         "number":    1,
         "text":      "Feed the levain",
         "then_wait": 25200,
-        "note":   "6-8 hours"
+        "note":      "6-8 hours"
     },
 
     {
@@ -605,7 +638,7 @@ steps = [
         "number":    2,
         "text":      "Mix the final dough",
         "then_wait": 900,
-        "note":   "~15 minutes between folds"
+        "note":      "~15 minutes between folds"
     },
 
     {
@@ -613,7 +646,7 @@ steps = [
         "number":    3,
         "text":      "Fold #1",
         "then_wait": 900,
-        "note":   " "
+        "note":      " "
     },
 
     {
@@ -621,7 +654,7 @@ steps = [
         "number":    4,
         "text":      "Fold #2",
         "then_wait": 19800,
-        "note":   "~6hrs total after final dough is mixed"
+        "note":      "~6hrs total after final dough is mixed"
     },
 
     {
@@ -629,7 +662,7 @@ steps = [
         "number":    5,
         "text":      "Divide & shape",
         "then_wait": 0,
-        "note":   " "
+        "note":      " "
     },
 
     {
@@ -637,7 +670,7 @@ steps = [
         "number":    6,
         "text":      "Rest at room temp",
         "then_wait": 2700,
-        "note":   "30 to 60 minutes"
+        "note":      "30 to 60 minutes"
     },
 
     {
@@ -645,7 +678,7 @@ steps = [
         "number":    7,
         "text":      "Refrigerate",
         "then_wait": 1800,
-        "note":   "At least 30 minutes"
+        "note":      "At least 30 minutes"
     },
 
     {
@@ -653,7 +686,7 @@ steps = [
         "number":    8,
         "text":      "Make pizza!",
         "then_wait": 0,
-        "note":   " "
+        "note":      " "
     },
 
     {
@@ -661,7 +694,7 @@ steps = [
         "number":    1,
         "text":      "Autolyse",
         "then_wait": 1500,
-        "note":   "20 to 30 min"
+        "note":      "20 to 30 min"
     },
 
     {
@@ -669,7 +702,7 @@ steps = [
         "number":    2,
         "text":      "Mix the dough",
         "then_wait": 900,
-        "note":   "~15min until the first fold"
+        "note":      "~15min until the first fold"
     },
 
     {
@@ -677,7 +710,7 @@ steps = [
         "number":    3,
         "text":      "Fold #1",
         "then_wait": 900,
-        "note":   "15min between folds"
+        "note":      "15min between folds"
     },
 
     {
@@ -685,7 +718,7 @@ steps = [
         "number":    2,
         "text":      "Autolyse",
         "then_wait": 1200,
-        "note":   "20-30 minutes"
+        "note":      "20-30 minutes"
     },
 
     {
@@ -693,7 +726,7 @@ steps = [
         "number":    4,
         "text":      "Fold #2",
         "then_wait": 16200,
-        "note":   "~5 hours total after mixing the dough"
+        "note":      "~5 hours total after mixing the dough"
     },
 
     {
@@ -701,7 +734,7 @@ steps = [
         "number":    1,
         "text":      "Make the dough",
         "then_wait": 7200,
-        "note":   "~2hrs, until size doubles"
+        "note":      "~2hrs, until size doubles"
     },
 
     {
@@ -709,7 +742,7 @@ steps = [
         "number":    2,
         "text":      "Shape dough in the pan",
         "then_wait": 1800,
-        "note":   "Cover w/plastic wrap"
+        "note":      "Cover w/plastic wrap"
     },
 
     {
@@ -717,7 +750,7 @@ steps = [
         "number":    3,
         "text":      "Stretch to cover pan",
         "then_wait": 600,
-        "note":   "0 to 20min, until it fully stretches to all edges"
+        "note":      "0 to 20min, until it fully stretches to all edges"
     },
 
     {
@@ -725,7 +758,7 @@ steps = [
         "number":    4,
         "text":      "Preheat to oven max",
         "then_wait": 1800,
-        "note":   "Turn it up to 11!"
+        "note":      "Turn it up to 11!"
     },
 
     {
@@ -733,7 +766,7 @@ steps = [
         "number":    5,
         "text":      "Bake",
         "then_wait": 900,
-        "note":   "12 to 15 minutes"
+        "note":      "12 to 15 minutes"
     },
 
     {
@@ -741,7 +774,7 @@ steps = [
         "number":    5,
         "text":      "Divide & shape",
         "then_wait": 0,
-        "note":   " "
+        "note":      " "
     },
 
     {
@@ -749,7 +782,7 @@ steps = [
         "number":    6,
         "text":      "Proof (at room temp)",
         "then_wait": 2700,
-        "note":   "1 to 1\u00bd hours total, depending on ambient temp.  Preheat while proofing."
+        "note":      "1 to 1\u00bd hours total, depending on ambient temp.  Preheat while proofing."
     },
 
     {
@@ -757,7 +790,7 @@ steps = [
         "number":    7,
         "text":      "Preheat the oven",
         "then_wait": 2700,
-        "note":   "Dutch oven should be inside oven during preheat"
+        "note":      "Dutch oven should be inside oven during preheat"
     },
 
     {
@@ -765,7 +798,7 @@ steps = [
         "number":    8,
         "text":      "Bake w/lid on",
         "then_wait": 1800,
-        "note":   "Remove lid after 30 minutes"
+        "note":      "Remove lid after 30 minutes"
     },
 
     {
@@ -773,7 +806,7 @@ steps = [
         "number":    3,
         "text":      "Mix the dough",
         "then_wait": 18000,
-        "note":   "~5 hours"
+        "note":      "~5 hours"
     },
 
     {
@@ -781,7 +814,7 @@ steps = [
         "number":    9,
         "text":      "Bake w/o lid",
         "then_wait": 900,
-        "note":   "15 to 20min"
+        "note":      "15 to 20min"
     },
 
     {
@@ -789,7 +822,7 @@ steps = [
         "number":    10,
         "text":      "Remove and cool",
         "then_wait": 1200,
-        "note":   "Let cool before slicing"
+        "note":      "Let cool before slicing"
     },
 
     {
@@ -797,7 +830,7 @@ steps = [
         "number":    1,
         "text":      "Remove dough from fridge",
         "then_wait": 4500,
-        "note":   "About 2hrs before you want to bake"
+        "note":      "About 2hrs before you want to bake"
     },
 
     {
@@ -805,7 +838,7 @@ steps = [
         "number":    2,
         "text":      "Preheat to 500\u00b0F",
         "then_wait": 2700,
-        "note":   " "
+        "note":      " "
     },
 
     {
@@ -813,7 +846,7 @@ steps = [
         "number":    1,
         "text":      "Whisk together ingredients, cover, and let stand 10 minutes.",
         "then_wait": 600,
-        "note":   " "
+        "note":      " "
     },
 
     {
@@ -821,7 +854,7 @@ steps = [
         "number":    2,
         "text":      "Fold #1, then cover and let rise.",
         "then_wait": 1800,
-        "note":   "4 total folds, 30m between."
+        "note":      "4 total folds, 30m between."
     },
 
     {
@@ -829,7 +862,7 @@ steps = [
         "number":    3,
         "text":      "Fold #2, then cover and let rise.",
         "then_wait": 1800,
-        "note":   " "
+        "note":      " "
     },
 
     {
@@ -837,7 +870,7 @@ steps = [
         "number":    4,
         "text":      "Fold #3, then cover and let rise.",
         "then_wait": 1800,
-        "note":   " "
+        "note":      " "
     },
 
     {
@@ -845,7 +878,7 @@ steps = [
         "number":    5,
         "text":      "Fold #4, then cover tightly with plastic wrap and refrigerate.",
         "then_wait": 57600,
-        "note":   "16 to 48 hours"
+        "note":      "16 to 48 hours"
     },
 
     {
@@ -853,7 +886,7 @@ steps = [
         "number":    6,
         "text":      "Divide & shape",
         "then_wait": 300,
-        "note":   "Let rest for 5m"
+        "note":      "Let rest for 5m"
     },
 
     {
@@ -861,7 +894,7 @@ steps = [
         "number":    4,
         "text":      "Fold 3-4 times in the first hour",
         "then_wait": 0,
-        "note":   "~15min between folds"
+        "note":      "~15min between folds"
     },
 
     {
@@ -869,7 +902,7 @@ steps = [
         "number":    7,
         "text":      "Re-shape in baking pans; cover for second rise.",
         "then_wait": 3600,
-        "note":   "1\u00bd to 2hrs (minus 30m to preheat)"
+        "note":      "1\u00bd to 2hrs (minus 30m to preheat)"
     },
 
     {
@@ -877,7 +910,7 @@ steps = [
         "number":    8,
         "text":      "Pre-heat oven (with baking stone/steel) to 350\u00b0F",
         "then_wait": 1800,
-        "note":   " "
+        "note":      " "
     },
 
     {
@@ -885,7 +918,7 @@ steps = [
         "number":    9,
         "text":      "Brush loaves with egg wash",
         "then_wait": 0,
-        "note":   " "
+        "note":      " "
     },
 
     {
@@ -893,7 +926,7 @@ steps = [
         "number":    10,
         "text":      "Bake to 190\u00b0F internal temp, rotating halfway through",
         "then_wait": 2100,
-        "note":   "35 to 45 minutes"
+        "note":      "35 to 45 minutes"
     },
 
     {
@@ -901,7 +934,7 @@ steps = [
         "number":    11,
         "text":      "Remove pans from oven, place on wire rack",
         "then_wait": 300,
-        "note":   " "
+        "note":      " "
     },
 
     {
@@ -909,7 +942,7 @@ steps = [
         "number":    12,
         "text":      "Remove loaves from pans, let cool",
         "then_wait": 7200,
-        "note":   " "
+        "note":      " "
     },
 
     {
@@ -917,7 +950,7 @@ steps = [
         "number":    5,
         "text":      "Divide & shape",
         "then_wait": 0,
-        "note":   " "
+        "note":      " "
     },
 
     {
@@ -925,7 +958,7 @@ steps = [
         "number":    6,
         "text":      "Proof in the fridge",
         "then_wait": 40500,
-        "note":   "12 to 14hrs, minus preheat time"
+        "note":      "12 to 14hrs, minus preheat time"
     },
 
     {
@@ -933,7 +966,7 @@ steps = [
         "number":    7,
         "text":      "Preheat",
         "then_wait": 2700,
-        "note":   " "
+        "note":      " "
     },
 
     {
@@ -941,7 +974,7 @@ steps = [
         "number":    8,
         "text":      "Bake both loaves",
         "then_wait": 3000,
-        "note":   "50 to 55 minutes"
+        "note":      "50 to 55 minutes"
     },
 
     {
@@ -949,968 +982,970 @@ steps = [
         "number":    9,
         "text":      "Remove from oven; cool",
         "then_wait": 1200,
-        "note":   "About 20m"
+        "note":      "About 20m"
     }
 ]
-
-replacements = [
+replacements_raw = [
     {
         "old":   " degrees",
         "new":   "\u00b0",
-        "scope": "i"
+        "scope": "ingredients"
     },
 
     {
         "old":   "-degrees",
         "new":   "\u00b0",
-        "scope": "i"
+        "scope": "ingredients"
     },
 
     {
         "old":   " percent",
         "new":   "%",
-        "scope": "i"
+        "scope": "ingredients"
     },
 
     {
         "old":   "-percent",
         "new":   "%",
-        "scope": "i"
+        "scope": "ingredients"
     },
 
     {
         "old":   "-per-cent",
         "new":   "%",
-        "scope": "i"
+        "scope": "ingredients"
     },
 
     {
         "old":   "-gram",
         "new":   "g",
-        "scope": "i"
+        "scope": "ingredients"
     },
 
     {
         "old":   "\u2109",
         "new":   "\u00b0F",
-        "scope": "i"
+        "scope": "ingredients"
     },
 
     {
         "old":   "\u2103",
         "new":   "\u00b0C",
-        "scope": "i"
+        "scope": "ingredients"
     },
 
     {
         "old":   "0F",
         "new":   "0\u00b0F",
-        "scope": "i"
+        "scope": "ingredients"
     },
 
     {
         "old":   "5F",
         "new":   "5\u00b0F",
-        "scope": "i"
+        "scope": "ingredients"
     },
 
     {
         "old":   "1/2",
         "new":   "\u00bd",
-        "scope": "i"
+        "scope": "ingredients"
     },
 
     {
         "old":   "1/3",
         "new":   "\u2153",
-        "scope": "i"
+        "scope": "ingredients"
     },
 
     {
         "old":   "2/3",
         "new":   "\u2154",
-        "scope": "i"
+        "scope": "ingredients"
     },
 
     {
         "old":   "1/4",
         "new":   "\u00bc",
-        "scope": "i"
+        "scope": "ingredients"
     },
 
     {
         "old":   "3/4",
         "new":   "\u00be",
-        "scope": "i"
+        "scope": "ingredients"
     },
 
     {
         "old":   "1/8",
         "new":   "\u215b",
-        "scope": "i"
+        "scope": "ingredients"
     },
 
     {
         "old":   "3/8",
         "new":   "\u215c",
-        "scope": "i"
+        "scope": "ingredients"
     },
 
     {
         "old":   "5/8",
         "new":   "\u215d",
-        "scope": "i"
+        "scope": "ingredients"
     },
 
     {
         "old":   "7/8",
         "new":   "\u215e",
-        "scope": "i"
+        "scope": "ingredients"
     },
 
     {
         "old":   "1/9",
         "new":   "\u2151",
-        "scope": "i"
+        "scope": "ingredients"
     },
 
     {
         "old":   "1/10",
         "new":   "\u2152",
-        "scope": "i"
+        "scope": "ingredients"
     },
 
     {
         "old":   ".125",
         "new":   "\u215b",
-        "scope": "i"
+        "scope": "ingredients"
     },
 
     {
         "old":   ".25",
         "new":   "\u00bc",
-        "scope": "i"
+        "scope": "ingredients"
     },
 
     {
         "old":   ".33",
         "new":   "\u2153",
-        "scope": "i"
+        "scope": "ingredients"
     },
 
     {
         "old":   ".35",
         "new":   "\u2153",
-        "scope": "i"
+        "scope": "ingredients"
     },
 
     {
         "old":   ".375",
         "new":   "\u215c",
-        "scope": "i"
+        "scope": "ingredients"
     },
 
     {
         "old":   ".5",
         "new":   "\u00bd",
-        "scope": "i"
+        "scope": "ingredients"
     },
 
     {
         "old":   ".625",
         "new":   "\u215d",
-        "scope": "i"
+        "scope": "ingredients"
     },
 
     {
         "old":   ".66",
         "new":   "\u2154",
-        "scope": "i"
+        "scope": "ingredients"
     },
 
     {
         "old":   ".67",
         "new":   "\u2154",
-        "scope": "i"
+        "scope": "ingredients"
     },
 
     {
         "old":   ".75",
         "new":   "\u00be",
-        "scope": "i"
+        "scope": "ingredients"
     },
 
     {
         "old":   ".875",
         "new":   "\u215e",
-        "scope": "i"
+        "scope": "ingredients"
     },
 
     {
         "old":   "--",
         "new":   "\u2014",
-        "scope": "i"
+        "scope": "ingredients"
     },
 
     {
         "old":   "teaspoons",
         "new":   "tsp",
-        "scope": "i"
+        "scope": "ingredients"
     },
 
     {
         "old":   "tablespoons",
         "new":   "tbsp",
-        "scope": "i"
+        "scope": "ingredients"
     },
 
     {
         "old":   "ounces",
         "new":   "oz",
-        "scope": "i"
+        "scope": "ingredients"
     },
 
     {
         "old":   "grams",
         "new":   "g",
-        "scope": "i"
+        "scope": "ingredients"
     },
 
     {
         "old":   "    ",
         "new":   "  ",
-        "scope": "i"
+        "scope": "ingredients"
     },
 
     {
         "old":   " degrees",
         "new":   "\u00b0",
-        "scope": "d"
+        "scope": "directions"
     },
 
     {
         "old":   "-degrees",
         "new":   "\u00b0",
-        "scope": "d"
+        "scope": "directions"
     },
 
     {
         "old":   " percent",
         "new":   "%",
-        "scope": "d"
+        "scope": "directions"
     },
 
     {
         "old":   "-percent",
         "new":   "%",
-        "scope": "d"
+        "scope": "directions"
     },
 
     {
         "old":   "-per-cent",
         "new":   "%",
-        "scope": "d"
+        "scope": "directions"
     },
 
     {
         "old":   "-gram",
         "new":   "g",
-        "scope": "d"
+        "scope": "directions"
     },
 
     {
         "old":   "\u2109",
         "new":   "\u00b0F",
-        "scope": "d"
+        "scope": "directions"
     },
 
     {
         "old":   "\u2103",
         "new":   "\u00b0C",
-        "scope": "d"
+        "scope": "directions"
     },
 
     {
         "old":   "0F",
         "new":   "0\u00b0F",
-        "scope": "d"
+        "scope": "directions"
     },
 
     {
         "old":   "5F",
         "new":   "5\u00b0F",
-        "scope": "d"
+        "scope": "directions"
     },
 
     {
         "old":   "1/2",
         "new":   "\u00bd",
-        "scope": "d"
+        "scope": "directions"
     },
 
     {
         "old":   "1/3",
         "new":   "\u2153",
-        "scope": "d"
+        "scope": "directions"
     },
 
     {
         "old":   "2/3",
         "new":   "\u2154",
-        "scope": "d"
+        "scope": "directions"
     },
 
     {
         "old":   "1/4",
         "new":   "\u00bc",
-        "scope": "d"
+        "scope": "directions"
     },
 
     {
         "old":   "3/4",
         "new":   "\u00be",
-        "scope": "d"
+        "scope": "directions"
     },
 
     {
         "old":   "1/8",
         "new":   "\u215b",
-        "scope": "d"
+        "scope": "directions"
     },
 
     {
         "old":   "3/8",
         "new":   "\u215c",
-        "scope": "d"
+        "scope": "directions"
     },
 
     {
         "old":   "5/8",
         "new":   "\u215d",
-        "scope": "d"
+        "scope": "directions"
     },
 
     {
         "old":   "7/8",
         "new":   "\u215e",
-        "scope": "d"
+        "scope": "directions"
     },
 
     {
         "old":   "1/9",
         "new":   "\u2151",
-        "scope": "d"
+        "scope": "directions"
     },
 
     {
         "old":   "1/10",
         "new":   "\u2152",
-        "scope": "d"
+        "scope": "directions"
     },
 
     {
         "old":   ".1",
         "new":   "\u2152",
-        "scope": "d"
+        "scope": "directions"
     },
 
     {
         "old":   ".125",
         "new":   "\u215b",
-        "scope": "d"
+        "scope": "directions"
     },
 
     {
         "old":   ".25",
         "new":   "\u00bc",
-        "scope": "d"
+        "scope": "directions"
     },
 
     {
         "old":   ".33",
         "new":   "\u2153",
-        "scope": "d"
+        "scope": "directions"
     },
 
     {
         "old":   ".35",
         "new":   "\u2153",
-        "scope": "d"
+        "scope": "directions"
     },
 
     {
         "old":   ".375",
         "new":   "\u215c",
-        "scope": "d"
+        "scope": "directions"
     },
 
     {
         "old":   ".5",
         "new":   "\u00bd",
-        "scope": "d"
+        "scope": "directions"
     },
 
     {
         "old":   ".625",
         "new":   "\u215d",
-        "scope": "d"
+        "scope": "directions"
     },
 
     {
         "old":   ".66",
         "new":   "\u2154",
-        "scope": "d"
+        "scope": "directions"
     },
 
     {
         "old":   ".67",
         "new":   "\u2154",
-        "scope": "d"
+        "scope": "directions"
     },
 
     {
         "old":   ".75",
         "new":   "\u00be",
-        "scope": "d"
+        "scope": "directions"
     },
 
     {
         "old":   ".875",
         "new":   "\u215e",
-        "scope": "d"
+        "scope": "directions"
     },
 
     {
         "old":   "--",
         "new":   "\u2014",
-        "scope": "d"
+        "scope": "directions"
     },
 
     {
         "old":   ". ",
         "new":   ".  ",
-        "scope": "d"
+        "scope": "directions"
     },
 
     {
         "old":   "? ",
         "new":   "?  ",
-        "scope": "d"
+        "scope": "directions"
     },
 
     {
         "old":   "! ",
         "new":   "!  ",
-        "scope": "d"
+        "scope": "directions"
     },
 
     {
         "old":   "teaspoons",
         "new":   "tsp",
-        "scope": "d"
+        "scope": "directions"
     },
 
     {
         "old":   "tablespoons",
         "new":   "tbsp",
-        "scope": "d"
+        "scope": "directions"
     },
 
     {
         "old":   "ounces",
         "new":   "oz",
-        "scope": "d"
+        "scope": "directions"
     },
 
     {
         "old":   "grams",
         "new":   "g",
-        "scope": "d"
+        "scope": "directions"
     },
 
     {
         "old":   ".  a",
         "new":   ".  A",
-        "scope": "d"
+        "scope": "directions"
     },
 
     {
         "old":   ".  b",
         "new":   ".  B",
-        "scope": "d"
+        "scope": "directions"
     },
 
     {
         "old":   ".  c",
         "new":   ".  C",
-        "scope": "d"
+        "scope": "directions"
     },
 
     {
         "old":   ".  d",
         "new":   ".  D",
-        "scope": "d"
+        "scope": "directions"
     },
 
     {
         "old":   ".  e",
         "new":   ".  E",
-        "scope": "d"
+        "scope": "directions"
     },
 
     {
         "old":   ".  f",
         "new":   ".  F",
-        "scope": "d"
+        "scope": "directions"
     },
 
     {
         "old":   ".  g",
         "new":   ".  G",
-        "scope": "d"
+        "scope": "directions"
     },
 
     {
         "old":   ".  h",
         "new":   ".  H",
-        "scope": "d"
+        "scope": "directions"
     },
 
     {
         "old":   ".  i",
         "new":   ".  I",
-        "scope": "d"
+        "scope": "directions"
     },
 
     {
         "old":   ".  j",
         "new":   ".  J",
-        "scope": "d"
+        "scope": "directions"
     },
 
     {
         "old":   ".  k",
         "new":   ".  K",
-        "scope": "d"
+        "scope": "directions"
     },
 
     {
         "old":   ".  l",
         "new":   ".  L",
-        "scope": "d"
+        "scope": "directions"
     },
 
     {
         "old":   ".  m",
         "new":   ".  M",
-        "scope": "d"
+        "scope": "directions"
     },
 
     {
         "old":   ".  n",
         "new":   ".  N",
-        "scope": "d"
+        "scope": "directions"
     },
 
     {
         "old":   ".  o",
         "new":   ".  O",
-        "scope": "d"
+        "scope": "directions"
     },
 
     {
         "old":   ".  p",
         "new":   ".  P",
-        "scope": "d"
+        "scope": "directions"
     },
 
     {
         "old":   ".  q",
         "new":   ".  Q",
-        "scope": "d"
+        "scope": "directions"
     },
 
     {
         "old":   ".  r",
         "new":   ".  R",
-        "scope": "d"
+        "scope": "directions"
     },
 
     {
         "old":   ".  s",
         "new":   ".  S",
-        "scope": "d"
+        "scope": "directions"
     },
 
     {
         "old":   ".  t",
         "new":   ".  T",
-        "scope": "d"
+        "scope": "directions"
     },
 
     {
         "old":   ".  u",
         "new":   ".  U",
-        "scope": "d"
+        "scope": "directions"
     },
 
     {
         "old":   ".  v",
         "new":   ".  V",
-        "scope": "d"
+        "scope": "directions"
     },
 
     {
         "old":   ".  w",
         "new":   ".  W",
-        "scope": "d"
+        "scope": "directions"
     },
 
     {
         "old":   ".  x",
         "new":   ".  X",
-        "scope": "d"
+        "scope": "directions"
     },
 
     {
         "old":   ".  y",
         "new":   ".  Y",
-        "scope": "d"
+        "scope": "directions"
     },
 
     {
         "old":   ".  z",
         "new":   ".  Z",
-        "scope": "d"
+        "scope": "directions"
     },
 
     {
         "old":   "    ",
         "new":   "  ",
-        "scope": "d"
+        "scope": "directions"
     },
 
     {
         "old":   ".   ",
         "new":   ".  ",
-        "scope": "d"
+        "scope": "directions"
     },
 
     {
         "old":   " low heat",
         "new":   " **low** heat",
-        "scope": "d"
+        "scope": "directions"
     },
 
     {
         "old":   " medium heat",
         "new":   " **medium** heat",
-        "scope": "d"
+        "scope": "directions"
     },
 
     {
         "old":   " medium-high heat",
         "new":   " **medium-high** heat",
-        "scope": "d"
+        "scope": "directions"
     },
 
     {
         "old":   " high heat",
         "new":   " **high** heat",
-        "scope": "d"
+        "scope": "directions"
     },
 
     {
         "old":   " low speed",
         "new":   " **low** speed",
-        "scope": "d"
+        "scope": "directions"
     },
 
     {
         "old":   " medium speed",
         "new":   " **medium** speed",
-        "scope": "d"
+        "scope": "directions"
     },
 
     {
         "old":   " high speed",
         "new":   " **high** speed",
-        "scope": "d"
+        "scope": "directions"
     },
 
     {
         "old":   ", minced",
         "new":   ", _minced_",
-        "scope": "i"
+        "scope": "ingredients"
     },
 
     {
         "old":   ", diced",
         "new":   ", _diced_",
-        "scope": "i"
+        "scope": "ingredients"
     },
 
     {
         "old":   ", chopped",
         "new":   ", _chopped_",
-        "scope": "i"
+        "scope": "ingredients"
     },
 
     {
         "old":   "-inches",
-        "new":   "\"\\N",
-        "scope": "i"
+        "new":   "\u0022",
+        "scope": "ingredients"
     },
 
     {
         "old":   "-inches",
-        "new":   "\"\\N",
-        "scope": "d"
+        "new":   "\u0022",
+        "scope": "directions"
     },
 
     {
         "old":   " inch-",
-        "new":   "\"\\N",
-        "scope": "d"
+        "new":   "\u0022",
+        "scope": "directions"
     },
 
     {
         "old":   " inch-",
-        "new":   "\"\\N",
-        "scope": "i"
+        "new":   "\u0022",
+        "scope": "ingredients"
     },
 
     {
         "old":   " inches",
-        "new":   "\"\\N",
-        "scope": "i"
+        "new":   "\u0022",
+        "scope": "ingredients"
     },
 
     {
         "old":   " inches",
-        "new":   "\"\\N",
-        "scope": "d"
+        "new":   "\u0022",
+        "scope": "directions"
     },
 
     {
         "old":   "heat to low",
         "new":   "heat to **low**",
-        "scope": "d"
+        "scope": "directions"
     },
 
     {
         "old":   "heat to medium-low",
         "new":   "heat to **medium-low**",
-        "scope": "d"
+        "scope": "directions"
     },
 
     {
         "old":   "pound ",
         "new":   "lbs ",
-        "scope": "i"
+        "scope": "ingredients"
     },
 
     {
         "old":   "pounds",
         "new":   "lbs",
-        "scope": "i"
+        "scope": "ingredients"
     },
 
     {
         "old":   "gram ",
         "new":   "g ",
-        "scope": "i"
+        "scope": "ingredients"
     },
 
     {
         "old":   "quarts",
         "new":   "qts",
-        "scope": "i"
+        "scope": "ingredients"
     },
 
     {
         "old":   "-ounce ",
         "new":   "oz ",
-        "scope": "i"
+        "scope": "ingredients"
     },
 
     {
         "old":   " inch ",
-        "new":   "\" ",
-        "scope": "d"
+        "new":   "\u0022 ",
+        "scope": "directions"
     },
 
     {
         "old":   "-inch ",
-        "new":   "\" ",
-        "scope": "i"
+        "new":   "\u0022 ",
+        "scope": "ingredients"
     },
 
     {
         "old":   " inch ",
-        "new":   "\" ",
-        "scope": "i"
+        "new":   "\u0022 ",
+        "scope": "ingredients"
     },
 
     {
         "old":   "-inch ",
-        "new":   "\" ",
-        "scope": "d"
+        "new":   "\u0022 ",
+        "scope": "directions"
     },
 
     {
         "old":   "heat to high",
         "new":   "heat to **high**",
-        "scope": "d"
+        "scope": "directions"
     },
 
     {
         "old":   "heat to medium-high",
         "new":   "heat to **medium-high**",
-        "scope": "d"
+        "scope": "directions"
     },
 
     {
         "old":   "-inch-",
-        "new":   "\"-",
-        "scope": "i"
+        "new":   "\u0022-",
+        "scope": "ingredients"
     },
 
     {
         "old":   "-inch-",
-        "new":   "\"-",
-        "scope": "d"
+        "new":   "\u0022-",
+        "scope": "directions"
     },
 
     {
         "old":   "heat to medium",
         "new":   "heat to **medium**",
-        "scope": "d"
+        "scope": "directions"
     },
 
     {
         "old":   ".1",
         "new":   "\u2152",
-        "scope": "i"
+        "scope": "ingredients"
     },
 
     {
         "old":   "0 F",
         "new":   "0\u00b0F",
-        "scope": "d"
+        "scope": "directions"
     },
 
     {
         "old":   "0 F",
         "new":   "0\u00b0F",
-        "scope": "i"
+        "scope": "ingredients"
     },
 
     {
         "old":   "5 F",
         "new":   "5\u00b0F",
-        "scope": "d"
+        "scope": "directions"
     },
 
     {
         "old":   "5 F",
         "new":   "5\u00b0F",
-        "scope": "i"
+        "scope": "ingredients"
     },
 
     {
         "old":   "0C",
         "new":   "0\u00b0C",
-        "scope": "d"
+        "scope": "directions"
     },
 
     {
         "old":   "0C",
         "new":   "0\u00b0C",
-        "scope": "i"
+        "scope": "ingredients"
     },
 
     {
         "old":   "5C",
         "new":   "5\u00b0C",
-        "scope": "d"
+        "scope": "directions"
     },
 
     {
         "old":   "5C",
         "new":   "5\u00b0C",
-        "scope": "i"
+        "scope": "ingredients"
     },
 
     {
         "old":   "0 C",
         "new":   "0\u00b0C",
-        "scope": "d"
+        "scope": "directions"
     },
 
     {
         "old":   "0 C",
         "new":   "0\u00b0C",
-        "scope": "i"
+        "scope": "ingredients"
     },
 
     {
         "old":   "5 C",
         "new":   "5\u00b0C",
-        "scope": "d"
+        "scope": "directions"
     },
 
     {
         "old":   "5 C",
         "new":   "5\u00b0C",
-        "scope": "i"
+        "scope": "ingredients"
     },
 
     {
         "old":   "-pound ",
         "new":   "lb ",
-        "scope": "i"
+        "scope": "ingredients"
     },
 
     {
         "old":   "quart ",
         "new":   "qts ",
-        "scope": "i"
+        "scope": "ingredients"
     },
 
     {
         "old":   "ounce ",
         "new":   "oz ",
-        "scope": "i"
+        "scope": "ingredients"
     },
 
     {
         "old":   "ounce ",
         "new":   "oz ",
-        "scope": "d"
+        "scope": "directions"
     },
 
     {
         "old":   "tablespoon ",
         "new":   "tbsp ",
-        "scope": "d"
+        "scope": "directions"
     },
 
     {
         "old":   "teaspoon ",
         "new":   "tsp ",
-        "scope": "d"
+        "scope": "directions"
     },
 
     {
         "old":   "teaspoon ",
         "new":   "tsp ",
-        "scope": "i"
+        "scope": "ingredients"
     },
 
     {
         "old":   "tablespoon ",
         "new":   "tbsp ",
-        "scope": "i"
+        "scope": "ingredients"
     }
 ]
+
+# replacements = build_replacements(replacements_raw)
+replacements = replacements_raw

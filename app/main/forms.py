@@ -27,7 +27,6 @@ class RecipeForm(FlaskForm):
 
 
 class StepForm(FlaskForm):
-    recipe_id = StringField('Recipe ID')
     number = IntegerField('Step #', id="addStep_number")
     text = TextAreaField('Directions', validators=[DataRequired(), Length(max=512)], id="addStep_directions",
                          render_kw={'autofocus': True})
