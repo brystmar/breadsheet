@@ -5,24 +5,22 @@
         <h1>{{ recipe.name }}</h1>
         <table id="recipe" class="table table-condensed">
                 <tr id="recipe_row1">
-                    <th><b>Author:</b></th>
-                    <th>{{ recipe.author }}</th>
-                    <th><b>ID:</b></th>
-                    <th>{{ recipe.id }}</th>
+                    <th id="recipe_author_label"><b>Author:</b></th>
+                    <th id="recipe_author">{{ recipe.author }}</th>
+                    <th id="recipe_difficulty_label"><b>Difficulty:</b></th>
+                    <th id="recipe_difficulty">{{ recipe.difficulty }}</th>
                 </tr>
 
             <tr id="recipe_row2">
-                <td><b>Source:</b></td>
-                <td>{{ recipe.source }}</td>
-                <td><b>Difficulty:</b></td>
-                <td>{{ recipe.difficulty_ui }}</td>
+                <td id="recipe_source_label"><b>Source:</b></td>
+                <td id="recipe_source">{{ recipe.source }}</td>
+                <td id="recipe_date_added_label"><b>Added:</b></td>
+                <td id="recipe_date_added">{{ recipe.date_added_ui }}</td>
             </tr>
 
             <tr id="recipe_row3">
-                <td id="total_time_label"><b>Total Time:</b></td>
-                <td id="total_time">{{ recipe.total_time_ui }}</td>
-                <td id="date_added_label"><b>Added:</b></td>
-                <td id="date_added">{{ recipe.date_added_ui }}</td>
+                <td id="recipe_total_time_label"><b>Total Time:</b></td>
+                <td id="recipe_total_time">{{ recipe.total_time_ui }}</td>
             </tr>
         </table>
     </div>

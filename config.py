@@ -1,5 +1,6 @@
 from global_logger import glogger, local
 import logging
+import pytz
 from os import path, environ
 # from google.cloud import firestore
 
@@ -84,3 +85,7 @@ class Config(object):
 
     logger.debug(f"SQLALCHEMY_DATABASE_URI: {db_url}")
     logger.info("End of the Config() class.")
+
+
+# TODO: Add support for moment.js
+PST = pytz.timezone('US/Pacific')

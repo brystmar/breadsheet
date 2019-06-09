@@ -13,7 +13,7 @@
                 <th>{{ sform.number.label }}</th>
                 <td>{{ sform.number(size=5) }}</td>
                 {% for error in sform.number.errors %}
-                    <td id="add_step_error">
+                    <td id="add_step_number_error">
                         <span>[{{ error }}]</span>
                     </td>
                 {% endfor %}
@@ -22,7 +22,7 @@
                 <th>{{ sform.text.label }}</th>
                 <td>{{ sform.text(cols=80, rows=4) }}</td>
                 {% for error in sform.text.errors %}
-                    <td id="add_step_error">
+                    <td id="add_step_text_error">
                         <span>[{{ error }}]</span>
                     </td>
                 {% endfor %}
@@ -34,7 +34,7 @@
                     {{ sform.then_wait_m(size=2) }}
                 </td>
                 {% for error in sform.then_wait_h.errors %}
-                    <td id="add_step_error">
+                    <td id="add_step_then_wait_error">
                         <span>[{{ error }}]</span>
                     </td>
                 {% endfor %}
@@ -43,7 +43,7 @@
                 <th>{{ sform.note.label }}</th>
                 <td>{{ sform.note(size=30) }}</td>
                 {% for error in sform.note.errors %}
-                    <td id="add_step_error">
+                    <td id="add_step_note_error">
                         <span>[{{ error }}]</span>
                     </td>
                 {% endfor %}
@@ -57,7 +57,7 @@
     </form>
 </div>
 
-{% if recipe.id in(1,2,3,4,5) %}
+{% if str(recipe.id) in(paprika_recipe_ids) %}
     <div id="ask_toggle_recipe" class="container">
         <p>
             <button onclick="toggleRecipe()" id="toggle_recipe" class="btn btn-default">Toggle Full Recipe</button>
