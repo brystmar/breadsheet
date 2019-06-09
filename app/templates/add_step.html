@@ -40,9 +40,9 @@
                 {% endfor %}
             </tr>
             <tr>
-                <th>{{ sform.wait_time_range.label }}</th>
-                <td>{{ sform.wait_time_range(size=30) }}</td>
-                {% for error in sform.wait_time_range.errors %}
+                <th>{{ sform.note.label }}</th>
+                <td>{{ sform.note(size=30) }}</td>
+                {% for error in sform.note.errors %}
                     <td id="add_step_error">
                         <span>[{{ error }}]</span>
                     </td>
@@ -88,7 +88,7 @@
         /*document.getElementById("addStep_directions").value = "";
         document.getElementById("addStep_then_wait_h").value = "";
         document.getElementById("addStep_then_wait_m").value = "";
-        document.getElementById("addStep_time_range").value = "";*/
+        document.getElementById("addStep_note").value = "";*/
     }
 
     function toggleRecipe() {

@@ -20,7 +20,7 @@ class RecipeForm(FlaskForm):
             raise ValidationError('Recipe name is already in use.  Please enter a unique name.')
 
     def __repr__(self):  # tells python how to print objects of this class to the console while debugging
-        return '<RecipeForm: {}>'.format(self.name)
+        return f'<RecipeForm: {self.name}>'
 
 
 class StepForm(FlaskForm):
@@ -32,11 +32,11 @@ class StepForm(FlaskForm):
                                id="addStep_then_wait_h", render_kw={'placeholder': 'h'})
     then_wait_m = IntegerField('Then Wait...', validators=[Optional(), NumberRange(min=0, max=999)],
                                id="addStep_then_wait_m", render_kw={'placeholder': 'm'})
-    wait_time_range = StringField('Time Range', id="addStep_time_range")
+    note = StringField('Notes', id="addNote")
     submit = SubmitField('Add Step', render_kw={'class': 'btn btn-primary'})
 
     def __repr__(self):
-        return '<StepForm #{} for recipe_id: {}>'.format(self.number, self.name)
+        return f'<StepForm #{self.number} for recipe_id: {self.name}>'
 
 
 class ThenWaitForm(FlaskForm):
@@ -45,7 +45,7 @@ class ThenWaitForm(FlaskForm):
     then_wait_m = IntegerField('Then Wait...', validators=[NumberRange(min=0, max=999)], render_kw={'placeholder': 'm'})
 
     def __repr__(self):
-        return '<ThenWait form for step_id: {s}>'.format(s=self.step_id)
+        return f'<ThenWaitForm for step_id: {self.step_id}>'
 
 
 class StartFinishForm(FlaskForm):
@@ -58,4 +58,4 @@ class StartFinishForm(FlaskForm):
                                   choices=[('1', 'Start Time'), ('0', 'Finish Time')], render_kw={'autofocus': True})
 
     def __repr__(self):
-        return '<Start & End Times form for recipe_id: {}>'.format(self.recipe_id)
+        return f'<Start & End Times form for recipe_id: {self.recipe_id}>'

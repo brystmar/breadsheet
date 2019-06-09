@@ -51,7 +51,6 @@ class Config(object):
         from google.cloud import firestore
         # logging to stdout in the cloud is automatically routed to a useful monitoring tool
         logger.debug(f"JSON file exists? {path.isfile('breadsheet-prod.json')}")
-        path.
 
         # supply the private key to explicitly use creds for the default service acct
         fire = firestore.Client().from_service_account_json('breadsheet-prod.json')
