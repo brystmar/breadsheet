@@ -5,15 +5,6 @@ def sort_list_of_dictionaries(unsorted_list, key_to_sort_by) -> list:
     return sorted(unsorted_list, key=lambda k: k[key_to_sort_by], reverse=False)
 
 
-def diff(abbrev):
-    if abbrev == "E":
-        return "Easy"
-    elif abbrev == "M":
-        return "Medium"
-    elif abbrev == "H":
-        return "Hard"
-
-
 def recipes_to_json(file_read='recipes.txt', file_write='breadsheet_data.py'):
     with open(file_read, "r") as r:
         recipes = r.readlines()
@@ -29,7 +20,7 @@ def recipes_to_json(file_read='recipes.txt', file_write='breadsheet_data.py'):
                     'name':         parsed[1],
                     'author':       parsed[2],
                     'source':       parsed[3],
-                    'difficulty':   diff(parsed[4]),
+                    'difficulty':   parsed[4],
                     'date_added':   parsed[6][:10],
                     'start_time':   parsed[7][:19]
                     }

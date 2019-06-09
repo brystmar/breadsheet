@@ -1,15 +1,14 @@
 """Determine which page(s) to render for each browser request."""
 from app import db, sql_db, logger
 from app.main import bp
-from app.main.forms import RecipeForm, StepForm, ThenWaitForm, StartFinishForm
+from app.main.forms import RecipeForm, StepForm, ThenWaitForm, StartFinishForm, paprika_recipe_ids
 from app.models import RecipeRDB, StepRDB
+from boto3.dynamodb.conditions import Key
+from config import PST
 from datetime import datetime, date, timedelta
 from flask import render_template, redirect, url_for, request, send_from_directory  # , flash
 from os import path
 from sqlalchemy.sql import text
-import boto3
-import pytz
-PST = pytz.timezone('US/Pacific')
 
 
 # Map the specified URL to this function
@@ -18,12 +17,12 @@ PST = pytz.timezone('US/Pacific')
 @bp.route('/')
 def index():
     logger.info("Start of index()")
-    # recipes = add_recipe_ui_fields(RecipeRDB.query.order_by('id').all())
 
     response = db.Table('Recipe').scan()
     recipes = sort_list_of_dictionaries(response['Items'], 'id')
     logger.debug(f"Sorted recipes returned from dynamodb: {recipes}")
 
+    recipes = convert_recipe_strings_to_datetime(recipes)
     recipes = add_recipe_ui_fields(recipes)
 
     logger.info("Rendering the homepage.  End of index()")
@@ -34,22 +33,22 @@ def index():
 def add_recipe():
     logger.info("Start of add_recipe()")
 
-    import uuid
     form = RecipeForm()
 
     if form.validate_on_submit():
         logger.info("RecipeForm submitted.")
 
         # Create a JSON document for this new recipe based on the form data submitted
-        # Primary key (id) is an underscore-delimited epoch timestamp plus a random UUID
-        #   Ex: 1560043140.471138_65f078f6-aea2-41e0-be37-a62e2d5d5474
         new_recipe = {
-            'id':           f"{datetime.utcnow().timestamp()}_{uuid.uuid4()}",
+            'id':           generate_new_id(),
             'name':         form.name.data,
             'author':       form.author.data,
             'source':       form.source.data,
             'difficulty':   form.difficulty.data,
-            'date_added':   date.today()
+            'date_added':   PST.localize(datetime.now()).strftime("%Y-%m-%d"),
+            'start_time':   PST.localize(datetime.now()),
+            'steps':        [],
+            'length':       0
             }
 
         logger.info(f"New recipe data: {new_recipe}")
@@ -71,6 +70,8 @@ def recipe():
     logger.info(f"Start of recipe(), request method: {request.method}")
 
     form = StepForm()
+
+    # Read the recipe_id from the URL querystring
     recipe_id = request.args.get('id') or 1
     form.recipe_id.data = recipe_id
     logger.debug(f"Recipe_id: {recipe_id}")
@@ -78,28 +79,45 @@ def recipe():
     if recipe_id == 1 and request.args.get('id') != 1:
         logger.info("Error reading the querystring on the /recipe page.")
         logger.debug(f"Read: {request.args.get('id')}")
-        logger.debug("Replaced it with 1.")
+        recipe_id = '1560122083.005019_af4f7bd5-ed86-44a2-9767-11f761160dee'  # Detroit pizza
+        form.recipe_id.data = recipe_id
+        logger.debug(f"Replaced it with the Detroit pizza recipe {recipe_id}.")
 
-    recipe = add_recipe_ui_fields(RecipeRDB.query.filter_by(id=recipe_id).first())
+    # Retrieve the recipe using the URL querystring's id
+    response = db.Table('Recipe').query(KeyConditionExpression=Key('id').eq(recipe_id))
+    logger.debug(f"Recipe returned from dynamodb: {response['Items'][0]}")
 
-    steps = set_when(StepRDB.query.filter_by(recipe_id=recipe_id).order_by(StepRDB.number).all(), recipe.start_time)
+    recipe = convert_recipe_strings_to_datetime(response['Items'][0])
+    recipe = calculate_recipe_length(recipe)
+    recipe = add_recipe_ui_fields(recipe)
+
+    # PyCharm went nuts when I replaced recipe_id in the return statement f-string with recipe['id']
+    recipe_id = recipe['id']
+
+    steps = set_when(recipe['steps'], recipe['start_time'])
     twforms = create_tw_forms(steps)
     seform = create_start_finish_forms(recipe)
 
     if form.validate_on_submit():
         logger.info("StepForm submitted.")
 
-        # convert then_wait decimal value to seconds
+        # convert the 'then_wait' decimal value to seconds
         then_wait = hms_to_seconds([form.then_wait_h.data, form.then_wait_m.data])
 
-        next_step_number = sql_db.engine.execute(text("SELECT max(number) FROM step")).first()[0] + 1
-        sdata = StepRDB(id=next_step_number, recipe_id=recipe_id, number=form.number.data, text=form.text.data,
-                        then_wait=then_wait, note=form.note.data)
-        logger.info(f"New step data: {sdata.__dict__}")
+        new_step = {
+            'number': len(steps) + 1,
+            'text': form.text.data,
+            'then_wait': then_wait,
+            'note': form.note.data
+        }
+        logger.info(f"New step data: {new_step}")
 
-        sql_db.session.add(sdata)
-        sql_db.session.commit()
-        logger.debug(f"Step {next_step_number} successfully added & committed to the db.")
+        # Add this new step to the existing list of steps
+        recipe['steps'].append(new_step)
+
+        # Update the database
+        db.Table("Recipe").put_item(Item=recipe)
+        logger.info(f"Recipe {recipe['id']} updated in the db to include step {new_step['number']}.")
 
         logger.debug("Redirecting to the main recipe page.  End of recipe().")
         return redirect(url_for('main.recipe') + f'?id={recipe_id}')
@@ -107,27 +125,76 @@ def recipe():
     elif request.method == 'GET':  # pre-populate the form with the recipe info and any existing steps
         logger.debug("Entering the 'elif' section to pre-populate the form w/recipe info and any existing steps.")
 
-        # increment from the max step number
-        max_step = StepRDB.query.filter_by(recipe_id=recipe_id).order_by(StepRDB.number.desc()).first()
-        if max_step is None:
-            form.number.data = 1
-        else:
-            form.number.data = max_step.number + 1
+        form.number.data = len(steps) + 1
 
     logger.debug("Rendering the recipe page.  End of recipe().")
-    return render_template('recipe.html', title=recipe.name, recipe=recipe, steps=steps, sform=form,
-                           seform=seform, twforms=twforms)
+    return render_template('recipe.html', title=recipe['name'], recipe=recipe, steps=steps, sform=form,
+                           seform=seform, twforms=twforms, paprika_recipe_ids=paprika_recipe_ids)
 
 
 @bp.route('/favicon.ico')
 def favicon():
     logger.info("The favicon was requested!! :D")
-    return send_from_directory(path.join(bp.root_path, 'static'), 'favicon.ico',
-                               mimetype='image/vnd.microsoft.icon')
+    return send_from_directory(path.join(bp.root_path, 'static'), 'favicon.ico', mimetype='image/vnd.microsoft.icon')
+
+
+def generate_new_id() -> str:
+    """Primary key (id) is a 54-digit, underscore-delimited epoch timestamp plus a random UUID.
+
+    Ex: 1560043140.471138_65f078f6-aea2-41e0-be37-a62e2d5d5474"""
+    import uuid
+    new_id = ""
+
+    # For my sanity, ensure all ids are the same length.  Timestamps occasionally end in 0, which the system truncates.
+    while len(new_id) != 54:
+        new_id = f"{datetime.utcnow().timestamp()}_{uuid.uuid4()}"
+
+    return new_id
 
 
 def sort_list_of_dictionaries(unsorted_list, key_to_sort_by) -> list:
     return sorted(unsorted_list, key=lambda k: k[key_to_sort_by], reverse=False)
+
+
+def convert_recipe_strings_to_datetime(recipe):
+    logger.debug(f"Start of convert_recipe_strings_to_datetime() for: {recipe}")
+
+    # Makes this function recursive if the input was a list
+    if isinstance(recipe, list):
+        logger.debug(f"Parsing a list of {len(recipe)} recipes.")
+        for r in recipe:
+            logger.debug(f"Converting fields for recipe {r['id']}: {r['name']}")
+            r = convert_recipe_strings_to_datetime(r)
+    else:
+        recipe['date_added'] = datetime.strptime(recipe['date_added'], '%Y-%m-%d')
+        recipe['start_time'] = datetime.strptime(recipe['start_time'], '%Y-%m-%d %H:%M:%S')
+
+    logger.debug(f"End of convert_recipe_strings_to_datetime(), returning: {recipe}")
+    return recipe
+
+
+def calculate_recipe_length(recipe):
+    """Add/update the recipe's length (in seconds) by summing the length of each step."""
+    logger.debug(f"Start of calculate_recipe_length() for recipe {recipe['id']}")
+    try:
+        original_length = recipe['length']
+    except KeyError:
+        original_length = -1
+
+    length = 0
+    for step in recipe['steps']:
+        length += step['then_wait']
+
+    logger.debug(f"Calculated length: {length}, original length: {original_length}")
+    recipe['length'] = length
+
+    # Update the db if the length changed
+    if length != original_length:
+        db.Table("Recipe").put_item(Item=recipe)
+        logger.info(f"Updated recipe {recipe['id']} in the database to reflect its new length.")
+
+    logger.debug("End of calculate_recipe_length()")
+    return recipe
 
 
 def hms_to_seconds(hms) -> int:
@@ -196,27 +263,31 @@ def hms_to_string(data) -> str:
 
 
 def set_when(steps, when) -> list:
-    """Accepts a list of Step objects, plus the benchmark time, and calculates when each step should begin.
+    """Accepts a list of steps, plus the benchmark time, and calculates when each step should begin.
 
     Also converts raw seconds to a text string, stored in a UI-specific value for 'then_wait'.
-    Returns a list of Steps plus a list of forms.
+    Returns a list of steps.
     """
     logger.debug(f"Start of set_when(), with steps: {steps}, when: {when}")
     i = 0
     for s in steps:
-        logger.debug(f"Looking at step: {s.__dict__}")
+        logger.debug(f"Looking at step: {s['number']}")
         if i == 0:
-            s.when = when.strftime('%a %H:%M')
-            s.then_wait_ui = str(timedelta(seconds=s.then_wait))
-            when += timedelta(seconds=s.then_wait)
+            # Define when the first step needs to start
+            s['when'] = when.strftime('%a %H:%M')
+            s['then_wait_ui'] = str(timedelta(seconds=s['then_wait']))
+
+            # Increment for the next step
+            when += timedelta(seconds=s['then_wait'])
         else:
-            if s.then_wait is None or s.then_wait == 0:
-                s.when = when.strftime('%a %H:%M')
-                s.then_wait_ui = str(timedelta(seconds=s.then_wait))
+            # Only increment if there's a value for then_wait
+            if s['then_wait'] is not None or s['then_wait'] != 0:
+                s['when'] = when.strftime('%a %H:%M')
+                s['then_wait_ui'] = str(timedelta(seconds=s['then_wait']))
             else:
-                s.when = when.strftime('%a %H:%M')
-                s.then_wait_ui = str(timedelta(seconds=s.then_wait))
-                when += timedelta(seconds=s.then_wait)
+                s['when'] = when.strftime('%a %H:%M')
+                s['then_wait_ui'] = str(timedelta(seconds=s['then_wait']))
+                when += timedelta(seconds=s['then_wait'])
         i += 1
 
     logger.debug(f"End of set_when(), returning: {steps}")
@@ -226,16 +297,16 @@ def set_when(steps, when) -> list:
 def add_recipe_ui_fields(recipe):
     """Input: an individual Recipe class, or a list of Recipes.
 
-    Populates the difficulty_ui, date_added_ui, start_time, & finish_time fields."""
+    Populates the date_added_ui, start_time, & finish_time fields."""
     logger.debug(f"Start of add_recipe_ui_fields() for {len(recipe)} recipe(s): {recipe}")
 
-    if isinstance(recipe, list):  # separate handling for lists
+    # Makes this function recursive if the input was a list
+    if isinstance(recipe, list):
         logger.debug(f"Parsing a list of {len(recipe)} recipes.")
         for r in recipe:
             logger.debug(f"Adding UI fields for recipe {r['id']}: {r['name']}")
             r = add_recipe_ui_fields(r)
     else:
-        recipe['difficulty_ui'] = recipe['difficulty']
         recipe['date_added_ui'] = str(recipe['date_added'])[:10]
         recipe['start_time'] = PST.localize(datetime.now())
         recipe['start_time_ui'] = recipe['start_time'].strftime('%Y-%m-%d %H:%M:%S')
@@ -265,12 +336,8 @@ def create_tw_forms(steps) -> list:
         logger.debug(f"Looking at step: {s['number']}")
         tw = ThenWaitForm()
         tw.step_id = s['number']
-        tw.then_wait_h.data = s['then_wait_ui']
-        tw.then_wait_m.data = s['then_wait_ui']
-
-        # TODO: Fix these fields!  Formerly:
-        # tw.then_wait_h.data = s.then_wait_ui[0]
-        # tw.then_wait_m.data = s.then_wait_ui[1]
+        tw.then_wait_h.data = s['then_wait_ui'].split(':')[0]
+        tw.then_wait_m.data = s['then_wait_ui'].split(':')[1]
 
         tw.then_wait = s['then_wait']
         twforms.append(tw)
@@ -280,14 +347,14 @@ def create_tw_forms(steps) -> list:
 
 def create_start_finish_forms(recipe) -> StartFinishForm:
     """Set values for the form displaying start & finish times for this recipe."""
-    logger.debug(f"Start of create_start_finish_forms(), for: {recipe.__dict__}")
+    logger.debug(f"Start of create_start_finish_forms(), for {recipe['id']}")
 
     seform = StartFinishForm()
-    seform.recipe_id.data = recipe.id
-    seform.start_date.data = recipe.start_time
-    seform.start_time.data = recipe.start_time
-    seform.finish_date.data = recipe.finish_time
-    seform.finish_time.data = recipe.finish_time
+    seform.recipe_id.data = recipe['id']
+    seform.start_date.data = recipe['start_time']
+    seform.start_time.data = recipe['start_time']
+    seform.finish_date.data = recipe['finish_time']
+    seform.finish_time.data = recipe['finish_time']
     seform.solve_for_start.data = "1"
 
     logger.debug(f"End of create_start_finish_forms(), returning seform: {seform}")

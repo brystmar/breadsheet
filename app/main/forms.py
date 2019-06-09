@@ -9,22 +9,25 @@ class RecipeForm(FlaskForm):
     name = StringField('Name', validators=[DataRequired(), Length(min=5, max=64)], render_kw={'autofocus': True})
     author = StringField('Author', validators=[Length(max=64)])
     source = StringField('Source', validators=[Length(max=128)])
-    difficulty = SelectField('Difficulty', validators=[DataRequired()], default='Medium',
-                             choices=[('Easy', 'Easy'), ('Medium', 'Medium'), ('Hard', 'Hard')])
+    difficulty = SelectField('Difficulty', validators=[DataRequired()], default='Intermediate',
+                             choices=[
+                                 ('Beginner', 'Beginner'),
+                                 ('Intermediate', 'Intermediate'),
+                                 ('Advanced', 'Advanced')])
     submit = SubmitField('Add Recipe', render_kw={'class': 'btn btn-primary'})
 
     # ensure recipe name is unique
-    def validate_recipename(self, name):
-        recipe_name = RecipeRDB.query.filter_by(name=name.data).first()
-        if recipe_name is not None or recipe_name.lower() == name.data.lower():
-            raise ValidationError('Recipe name is already in use.  Please enter a unique name.')
+    # def validate_recipename(self, name):
+    #     recipe_name = RecipeRDB.query.filter_by(name=name.data).first()
+    #     if recipe_name is not None or recipe_name.lower() == name.data.lower():
+    #         raise ValidationError('Recipe name is already in use.  Please enter a unique name.')
 
     def __repr__(self):  # tells python how to print objects of this class to the console while debugging
         return f'<RecipeForm: {self.name}>'
 
 
 class StepForm(FlaskForm):
-    recipe_id = IntegerField('Recipe ID')
+    recipe_id = StringField('Recipe ID')
     number = IntegerField('Step #', id="addStep_number")
     text = TextAreaField('Directions', validators=[DataRequired(), Length(max=512)], id="addStep_directions",
                          render_kw={'autofocus': True})
@@ -36,7 +39,7 @@ class StepForm(FlaskForm):
     submit = SubmitField('Add Step', render_kw={'class': 'btn btn-primary'})
 
     def __repr__(self):
-        return f'<StepForm #{self.number} for recipe_id: {self.name}>'
+        return f'<StepForm #{self.number} for recipe: {self.name}>'
 
 
 class ThenWaitForm(FlaskForm):
@@ -45,7 +48,7 @@ class ThenWaitForm(FlaskForm):
     then_wait_m = IntegerField('Then Wait...', validators=[NumberRange(min=0, max=999)], render_kw={'placeholder': 'm'})
 
     def __repr__(self):
-        return f'<ThenWaitForm for step_id: {self.step_id}>'
+        return f'<ThenWaitForm for step #: {self.step_id}>'
 
 
 class StartFinishForm(FlaskForm):
@@ -59,3 +62,11 @@ class StartFinishForm(FlaskForm):
 
     def __repr__(self):
         return f'<Start & End Times form for recipe_id: {self.recipe_id}>'
+
+
+paprika_recipe_ids = ['1560122081.000008_76057b38-a5d4-46dd-948c-5119c1a235f3',
+                      '1560122082.002055_c4c907a1-9ff7-4b91-927b-b6e16d5c1bdf',
+                      '1560122083.005019_af4f7bd5-ed86-44a2-9767-11f761160dee',
+                      '1560122084.005266_2d6bdbc1-b1bb-492f-bca5-90b94eac8bfe',
+                      '1560122085.006554_0f74e954-f2e3-475c-aa36-1847cfd3ae9c'
+                      ]

@@ -1,84 +1,133 @@
+from datetime import datetime
+import time
+import uuid
+
+ids = []
+i = 0
+while '1.' not in str(datetime.now().timestamp()):
+    continue
+
+while i < 7:
+    new_id = ""
+    while len(new_id) != 54:
+        new_id = f"{datetime.utcnow().timestamp()}_{uuid.uuid4()}"
+    print(f"Generated id: {new_id}")
+    ids.append(new_id)
+    time.sleep(1)
+    i += 1
+
+print("")
+print(ids)
+print("")
 recipes = [
     {
-        "id":         "1",
-        "name":       "Country Sourdough (Pain de Campagne)",
+        "id":         ids[0],
+        "name":       "Country Sourdough: Pain de Campagne",
         "author":     "Ken Forkish",
         "source":     "FWSY",
-        "difficulty": "Hard",
+        "difficulty": "Advanced",
         "date_added": "2019-02-16",
-        "start_time": "2019-06-08 09:45:00",
+        "start_time": "2019-06-07 09:45:00",
         "steps":      [
             {
                 "number":    1,
-                "text":      "Feed the levain",
-                "then_wait": 25200,
-                "comment":   "6-8 hours"
+                "text":      "Wake up refrigerated levain",
+                "then_wait": 86400,
+                "note":   "12-24 hours.  Repeat as necessary, or skip entirely if your starter is already active."
             },
 
             {
                 "number":    2,
-                "text":      "Autolyse",
-                "then_wait": 1200,
-                "comment":   "20-30 minutes"
+                "text":      "Feed the levain",
+                "then_wait": 25200,
+                "note":   "6-8 hours.  Levain must already be mature and active before this step."
             },
 
             {
                 "number":    3,
-                "text":      "Mix the dough",
-                "then_wait": 18000,
-                "comment":   "~5 hours"
+                "text":      "Autolyse",
+                "then_wait": 1200,
+                "note":   "20-30 minutes"
             },
 
             {
                 "number":    4,
-                "text":      "Fold 3-4 times in the first hour",
-                "then_wait": 0,
-                "comment":   "~15min between folds"
+                "text":      "Mix the dough",
+                "then_wait": 900,
+                "note":   "Wait until dough is 2½x its original volume, ~5hrs total.  Rest 15min before fold #1."
             },
 
             {
                 "number":    5,
-                "text":      "Divide & shape",
-                "then_wait": 0,
-                "comment":   "\\N"
+                "text":      "Fold #1 (of 4)",
+                "then_wait": 900,
+                "note":   "Fold 3 to 4 times within the first two hours, ~15min between folds"
             },
 
             {
                 "number":    6,
-                "text":      "Proof in the fridge",
-                "then_wait": 40500,
-                "comment":   "12 to 14hrs, minus preheat time"
+                "text":      "Fold #2 (of 4)",
+                "then_wait": 900,
+                "note":   " "
             },
 
             {
                 "number":    7,
-                "text":      "Preheat",
-                "then_wait": 2700,
-                "comment":   "\\N"
+                "text":      "Fold #3 (of 4)",
+                "then_wait": 900,
+                "note":   "Depending on feel, this dough may not need a 4th fold."
             },
 
             {
                 "number":    8,
-                "text":      "Bake both loaves",
-                "then_wait": 3000,
-                "comment":   "50 to 55 minutes"
+                "text":      "Fold #4 (of 4), if needed",
+                "then_wait": 14400,
+                "note":   "Only if needed.  Wait until dough is ~2½x its original volume, ~5hrs total after mixing."
             },
 
             {
                 "number":    9,
+                "text":      "Divide & shape",
+                "then_wait": 0,
+                "note":   " "
+            },
+
+            {
+                "number":    10,
+                "text":      "Proof in the fridge",
+                "then_wait": 40500,
+                "note":   "12 to 14hrs, minus preheat time"
+            },
+
+            {
+                "number":    11,
+                "text":      "Preheat",
+                "then_wait": 2700,
+                "note":   " "
+            },
+
+            {
+                "number":    12,
+                "text":      "Bake both loaves",
+                "then_wait": 3000,
+                "note":   "50 to 55 minutes"
+            },
+
+            {
+                "number":    13,
                 "text":      "Remove from oven; cool",
                 "then_wait": 1200,
-                "comment":   "About 20m"
+                "note":   "About 20m"
             }
         ]
     },
 
     {
-        "id":         "2",
+        "id":         ids[1],
         "name":       "Saturday White Bread",
         "author":     "Ken Forkish",
         "source":     "FWSY",
-        "difficulty": "Easy",
+        "difficulty": "Beginner",
         "date_added": "2019-02-16",
         "start_time": "2019-02-17 09:00:00",
         "steps":      [
@@ -86,80 +135,80 @@ recipes = [
                 "number":    1,
                 "text":      "Autolyse",
                 "then_wait": 1500,
-                "comment":   "20 to 30 min"
+                "note":   "20 to 30 min"
             },
 
             {
                 "number":    2,
                 "text":      "Mix the dough",
                 "then_wait": 900,
-                "comment":   "~15min until the first fold"
+                "note":   "~15min until the first fold"
             },
 
             {
                 "number":    3,
                 "text":      "Fold #1",
                 "then_wait": 900,
-                "comment":   "15min between folds"
+                "note":   "15min between folds"
             },
 
             {
                 "number":    4,
                 "text":      "Fold #2",
                 "then_wait": 16200,
-                "comment":   "~5 hours total after mixing the dough"
+                "note":   "~5 hours total after mixing the dough"
             },
 
             {
                 "number":    5,
                 "text":      "Divide & shape",
                 "then_wait": 0,
-                "comment":   "\\N"
+                "note":   " "
             },
 
             {
                 "number":    6,
                 "text":      "Proof (at room temp)",
                 "then_wait": 2700,
-                "comment":   "1 to 1\u00bd hours total, depending on ambient temp.  Preheat while proofing."
+                "note":   "1 to 1\u00bd hours total, depending on ambient temp.  Preheat while proofing."
             },
 
             {
                 "number":    7,
                 "text":      "Preheat the oven",
                 "then_wait": 2700,
-                "comment":   "Dutch oven should be inside oven during preheat"
+                "note":   "Dutch oven should be inside oven during preheat"
             },
 
             {
                 "number":    8,
                 "text":      "Bake w/lid on",
                 "then_wait": 1800,
-                "comment":   "Remove lid after 30 minutes"
+                "note":   "Remove lid after 30 minutes"
             },
 
             {
                 "number":    9,
                 "text":      "Bake w/o lid",
                 "then_wait": 900,
-                "comment":   "15 to 20min"
+                "note":   "15 to 20min"
             },
 
             {
                 "number":    10,
                 "text":      "Remove and cool",
                 "then_wait": 1200,
-                "comment":   "Let cool before slicing"
+                "note":   "Let cool before slicing"
             }
         ]
     },
 
     {
-        "id":         "3",
+        "id":         ids[2],
         "name":       "Detroit-Style Pan Pizza",
         "author":     "Kenji Lopez-Alt",
         "source":     "Serious Eats",
-        "difficulty": "Easy",
+        "difficulty": "Beginner",
         "date_added": "2019-02-17",
         "start_time": "2019-02-18 09:00:00",
         "steps":      [
@@ -167,45 +216,45 @@ recipes = [
                 "number":    1,
                 "text":      "Make the dough",
                 "then_wait": 7200,
-                "comment":   "~2hrs, until size doubles"
+                "note":   "~2hrs, until size doubles"
             },
 
             {
                 "number":    2,
                 "text":      "Shape dough in the pan",
                 "then_wait": 1800,
-                "comment":   "Cover w/plastic wrap"
+                "note":   "Cover w/plastic wrap"
             },
 
             {
                 "number":    3,
                 "text":      "Stretch to cover pan",
                 "then_wait": 600,
-                "comment":   "0 to 20min, until it fully stretches to all edges"
+                "note":   "0 to 20min, until it fully stretches to all edges"
             },
 
             {
                 "number":    4,
                 "text":      "Preheat to oven max",
                 "then_wait": 1800,
-                "comment":   "Turn it up to 11!"
+                "note":   "Turn it up to 11!"
             },
 
             {
                 "number":    5,
                 "text":      "Bake",
                 "then_wait": 900,
-                "comment":   "12 to 15 minutes"
+                "note":   "12 to 15 minutes"
             }
         ]
     },
 
     {
-        "id":         "4",
+        "id":         ids[3],
         "name":       "White Bread with Overnight Poolish",
         "author":     "Ken Forkish",
         "source":     "FWSY",
-        "difficulty": "Medium",
+        "difficulty": "Intermediate",
         "date_added": "2019-02-19",
         "start_time": "2019-02-20 09:00:00",
         "steps":      [
@@ -213,73 +262,73 @@ recipes = [
                 "number":    1,
                 "text":      "Start the poolish",
                 "then_wait": 43200,
-                "comment":   "12-14hrs"
+                "note":   "12-14hrs"
             },
 
             {
                 "number":    2,
                 "text":      "Mix the final dough",
                 "then_wait": 900,
-                "comment":   "~15 minutes until first fold"
+                "note":   "~15 minutes until first fold"
             },
 
             {
                 "number":    3,
                 "text":      "Fold #1 of 2",
                 "then_wait": 900,
-                "comment":   "~15 minutes between folds"
+                "note":   "~15 minutes between folds"
             },
 
             {
                 "number":    4,
                 "text":      "Fold #2 of 2",
                 "then_wait": 7200,
-                "comment":   "1\u00bd to 2\u00bd hours, including fold times"
+                "note":   "1\u00bd to 2\u00bd hours, including fold times"
             },
 
             {
                 "number":    5,
                 "text":      "Divide & shape",
                 "then_wait": 0,
-                "comment":   "n/a"
+                "note":   "n/a"
             },
 
             {
                 "number":    6,
                 "text":      "Proof",
                 "then_wait": 900,
-                "comment":   "1-hour proof, but start preheating oven after 15min"
+                "note":   "1-hour proof, but start preheating oven after 15min"
             },
 
             {
                 "number":    7,
                 "text":      "Preheat oven to 475\u00b0F",
                 "then_wait": 2700,
-                "comment":   "\\N"
+                "note":   " "
             },
 
             {
                 "number":    8,
                 "text":      "Bake the loaves",
                 "then_wait": 3000,
-                "comment":   "50 to 55 minutes"
+                "note":   "50 to 55 minutes"
             },
 
             {
                 "number":    9,
                 "text":      "Remove from oven; cool",
                 "then_wait": 1200,
-                "comment":   "About 20 minutes"
+                "note":   "About 20 minutes"
             }
         ]
     },
 
     {
-        "id":         "5",
+        "id":         ids[4],
         "name":       "Pizza Dough with Overnight Poolish",
         "author":     "Ken Forkish",
         "source":     "FWSY",
-        "difficulty": "Medium",
+        "difficulty": "Intermediate",
         "date_added": "2019-03-16",
         "start_time": "2019-03-17 09:00:00",
         "steps":      [
@@ -287,66 +336,66 @@ recipes = [
                 "number":    1,
                 "text":      "Mix the poolish",
                 "then_wait": 43200,
-                "comment":   "12 to 14 hours"
+                "note":   "12 to 14 hours"
             },
 
             {
                 "number":    2,
                 "text":      "Mix the final dough",
                 "then_wait": 900,
-                "comment":   "~15 minutes between folds"
+                "note":   "~15 minutes between folds"
             },
 
             {
                 "number":    3,
                 "text":      "Fold #1",
                 "then_wait": 900,
-                "comment":   "\\N"
+                "note":   " "
             },
 
             {
                 "number":    4,
                 "text":      "Fold #2",
                 "then_wait": 19800,
-                "comment":   "~6hrs total after final dough is mixed"
+                "note":   "~6hrs total after final dough is mixed"
             },
 
             {
                 "number":    5,
                 "text":      "Divide & shape",
                 "then_wait": 0,
-                "comment":   "\\N"
+                "note":   " "
             },
 
             {
                 "number":    6,
                 "text":      "Rest at room temp",
                 "then_wait": 2700,
-                "comment":   "30 to 60 minutes"
+                "note":   "30 to 60 minutes"
             },
 
             {
                 "number":    7,
                 "text":      "Refrigerate",
                 "then_wait": 1800,
-                "comment":   "At least 30 minutes"
+                "note":   "At least 30 minutes"
             },
 
             {
                 "number":    8,
                 "text":      "Make pizza!",
                 "then_wait": 0,
-                "comment":   "\\N"
+                "note":   " "
             }
         ]
     },
 
     {
-        "id":         "6",
+        "id":         ids[5],
         "name":       "Focaccia Genovese",
         "author":     "Ken Forkish",
         "source":     "FWSY",
-        "difficulty": "Easy",
+        "difficulty": "Beginner",
         "date_added": "2019-03-31",
         "start_time": "2019-04-01 09:00:00",
         "steps":      [
@@ -354,24 +403,24 @@ recipes = [
                 "number":    1,
                 "text":      "Remove dough from fridge",
                 "then_wait": 4500,
-                "comment":   "About 2hrs before you want to bake"
+                "note":   "About 2hrs before you want to bake"
             },
 
             {
                 "number":    2,
                 "text":      "Preheat to 500\u00b0F",
                 "then_wait": 2700,
-                "comment":   "\\N"
+                "note":   " "
             }
         ]
     },
 
     {
-        "id":         "7",
+        "id":         ids[6],
         "name":       "No-Knead Brioche",
         "author":     "ATK/Cook's",
         "source":     "Cook's Illustrated",
-        "difficulty": "Medium",
+        "difficulty": "Intermediate",
         "date_added": "2019-05-19",
         "start_time": "2019-05-19 09:00:00",
         "steps":      [
@@ -379,84 +428,84 @@ recipes = [
                 "number":    1,
                 "text":      "Whisk together ingredients, cover, and let stand 10 minutes.",
                 "then_wait": 600,
-                "comment":   "\\N"
+                "note":   " "
             },
 
             {
                 "number":    2,
                 "text":      "Fold #1, then cover and let rise.",
                 "then_wait": 1800,
-                "comment":   "4 total folds, 30m between."
+                "note":   "4 total folds, 30m between."
             },
 
             {
                 "number":    3,
                 "text":      "Fold #2, then cover and let rise.",
                 "then_wait": 1800,
-                "comment":   "\\N"
+                "note":   " "
             },
 
             {
                 "number":    4,
                 "text":      "Fold #3, then cover and let rise.",
                 "then_wait": 1800,
-                "comment":   "\\N"
+                "note":   " "
             },
 
             {
                 "number":    5,
                 "text":      "Fold #4, then cover tightly with plastic wrap and refrigerate.",
                 "then_wait": 57600,
-                "comment":   "16 to 48 hours"
+                "note":   "16 to 48 hours"
             },
 
             {
                 "number":    6,
                 "text":      "Divide & shape",
                 "then_wait": 300,
-                "comment":   "Let rest for 5m"
+                "note":   "Let rest for 5m"
             },
 
             {
                 "number":    7,
                 "text":      "Re-shape in baking pans; cover for second rise.",
                 "then_wait": 3600,
-                "comment":   "1\u00bd to 2hrs (minus 30m to preheat)"
+                "note":   "1\u00bd to 2hrs (minus 30m to preheat)"
             },
 
             {
                 "number":    8,
                 "text":      "Pre-heat oven (with baking stone/steel) to 350\u00b0F",
                 "then_wait": 1800,
-                "comment":   "\\N"
+                "note":   " "
             },
 
             {
                 "number":    9,
                 "text":      "Brush loaves with egg wash",
                 "then_wait": 0,
-                "comment":   "\\N"
+                "note":   " "
             },
 
             {
                 "number":    10,
                 "text":      "Bake to 190\u00b0F internal temp, rotating halfway through",
                 "then_wait": 2100,
-                "comment":   "35 to 45 minutes"
+                "note":   "35 to 45 minutes"
             },
 
             {
                 "number":    11,
                 "text":      "Remove pans from oven, place on wire rack",
                 "then_wait": 300,
-                "comment":   "\\N"
+                "note":   " "
             },
 
             {
                 "number":    12,
                 "text":      "Remove loaves from pans, let cool",
                 "then_wait": 7200,
-                "comment":   "\\N"
+                "note":   " "
             }
         ]
     }
@@ -468,7 +517,7 @@ steps = [
         "number":    1,
         "text":      "Start the poolish",
         "then_wait": 43200,
-        "comment":   "12-14hrs"
+        "note":   "12-14hrs"
     },
 
     {
@@ -476,7 +525,7 @@ steps = [
         "number":    2,
         "text":      "Mix the final dough",
         "then_wait": 900,
-        "comment":   "~15 minutes until first fold"
+        "note":   "~15 minutes until first fold"
     },
 
     {
@@ -484,7 +533,7 @@ steps = [
         "number":    3,
         "text":      "Fold #1 of 2",
         "then_wait": 900,
-        "comment":   "~15 minutes between folds"
+        "note":   "~15 minutes between folds"
     },
 
     {
@@ -492,7 +541,7 @@ steps = [
         "number":    4,
         "text":      "Fold #2 of 2",
         "then_wait": 7200,
-        "comment":   "1\u00bd to 2\u00bd hours, including fold times"
+        "note":   "1\u00bd to 2\u00bd hours, including fold times"
     },
 
     {
@@ -500,7 +549,7 @@ steps = [
         "number":    5,
         "text":      "Divide & shape",
         "then_wait": 0,
-        "comment":   "n/a"
+        "note":   "n/a"
     },
 
     {
@@ -508,7 +557,7 @@ steps = [
         "number":    6,
         "text":      "Proof",
         "then_wait": 900,
-        "comment":   "1-hour proof, but start preheating oven after 15min"
+        "note":   "1-hour proof, but start preheating oven after 15min"
     },
 
     {
@@ -516,7 +565,7 @@ steps = [
         "number":    7,
         "text":      "Preheat oven to 475\u00b0F",
         "then_wait": 2700,
-        "comment":   "\\N"
+        "note":   " "
     },
 
     {
@@ -524,7 +573,7 @@ steps = [
         "number":    8,
         "text":      "Bake the loaves",
         "then_wait": 3000,
-        "comment":   "50 to 55 minutes"
+        "note":   "50 to 55 minutes"
     },
 
     {
@@ -532,7 +581,7 @@ steps = [
         "number":    9,
         "text":      "Remove from oven; cool",
         "then_wait": 1200,
-        "comment":   "About 20 minutes"
+        "note":   "About 20 minutes"
     },
 
     {
@@ -540,7 +589,7 @@ steps = [
         "number":    1,
         "text":      "Mix the poolish",
         "then_wait": 43200,
-        "comment":   "12 to 14 hours"
+        "note":   "12 to 14 hours"
     },
 
     {
@@ -548,7 +597,7 @@ steps = [
         "number":    1,
         "text":      "Feed the levain",
         "then_wait": 25200,
-        "comment":   "6-8 hours"
+        "note":   "6-8 hours"
     },
 
     {
@@ -556,7 +605,7 @@ steps = [
         "number":    2,
         "text":      "Mix the final dough",
         "then_wait": 900,
-        "comment":   "~15 minutes between folds"
+        "note":   "~15 minutes between folds"
     },
 
     {
@@ -564,7 +613,7 @@ steps = [
         "number":    3,
         "text":      "Fold #1",
         "then_wait": 900,
-        "comment":   "\\N"
+        "note":   " "
     },
 
     {
@@ -572,7 +621,7 @@ steps = [
         "number":    4,
         "text":      "Fold #2",
         "then_wait": 19800,
-        "comment":   "~6hrs total after final dough is mixed"
+        "note":   "~6hrs total after final dough is mixed"
     },
 
     {
@@ -580,7 +629,7 @@ steps = [
         "number":    5,
         "text":      "Divide & shape",
         "then_wait": 0,
-        "comment":   "\\N"
+        "note":   " "
     },
 
     {
@@ -588,7 +637,7 @@ steps = [
         "number":    6,
         "text":      "Rest at room temp",
         "then_wait": 2700,
-        "comment":   "30 to 60 minutes"
+        "note":   "30 to 60 minutes"
     },
 
     {
@@ -596,7 +645,7 @@ steps = [
         "number":    7,
         "text":      "Refrigerate",
         "then_wait": 1800,
-        "comment":   "At least 30 minutes"
+        "note":   "At least 30 minutes"
     },
 
     {
@@ -604,7 +653,7 @@ steps = [
         "number":    8,
         "text":      "Make pizza!",
         "then_wait": 0,
-        "comment":   "\\N"
+        "note":   " "
     },
 
     {
@@ -612,7 +661,7 @@ steps = [
         "number":    1,
         "text":      "Autolyse",
         "then_wait": 1500,
-        "comment":   "20 to 30 min"
+        "note":   "20 to 30 min"
     },
 
     {
@@ -620,7 +669,7 @@ steps = [
         "number":    2,
         "text":      "Mix the dough",
         "then_wait": 900,
-        "comment":   "~15min until the first fold"
+        "note":   "~15min until the first fold"
     },
 
     {
@@ -628,7 +677,7 @@ steps = [
         "number":    3,
         "text":      "Fold #1",
         "then_wait": 900,
-        "comment":   "15min between folds"
+        "note":   "15min between folds"
     },
 
     {
@@ -636,7 +685,7 @@ steps = [
         "number":    2,
         "text":      "Autolyse",
         "then_wait": 1200,
-        "comment":   "20-30 minutes"
+        "note":   "20-30 minutes"
     },
 
     {
@@ -644,7 +693,7 @@ steps = [
         "number":    4,
         "text":      "Fold #2",
         "then_wait": 16200,
-        "comment":   "~5 hours total after mixing the dough"
+        "note":   "~5 hours total after mixing the dough"
     },
 
     {
@@ -652,7 +701,7 @@ steps = [
         "number":    1,
         "text":      "Make the dough",
         "then_wait": 7200,
-        "comment":   "~2hrs, until size doubles"
+        "note":   "~2hrs, until size doubles"
     },
 
     {
@@ -660,7 +709,7 @@ steps = [
         "number":    2,
         "text":      "Shape dough in the pan",
         "then_wait": 1800,
-        "comment":   "Cover w/plastic wrap"
+        "note":   "Cover w/plastic wrap"
     },
 
     {
@@ -668,7 +717,7 @@ steps = [
         "number":    3,
         "text":      "Stretch to cover pan",
         "then_wait": 600,
-        "comment":   "0 to 20min, until it fully stretches to all edges"
+        "note":   "0 to 20min, until it fully stretches to all edges"
     },
 
     {
@@ -676,7 +725,7 @@ steps = [
         "number":    4,
         "text":      "Preheat to oven max",
         "then_wait": 1800,
-        "comment":   "Turn it up to 11!"
+        "note":   "Turn it up to 11!"
     },
 
     {
@@ -684,7 +733,7 @@ steps = [
         "number":    5,
         "text":      "Bake",
         "then_wait": 900,
-        "comment":   "12 to 15 minutes"
+        "note":   "12 to 15 minutes"
     },
 
     {
@@ -692,7 +741,7 @@ steps = [
         "number":    5,
         "text":      "Divide & shape",
         "then_wait": 0,
-        "comment":   "\\N"
+        "note":   " "
     },
 
     {
@@ -700,7 +749,7 @@ steps = [
         "number":    6,
         "text":      "Proof (at room temp)",
         "then_wait": 2700,
-        "comment":   "1 to 1\u00bd hours total, depending on ambient temp.  Preheat while proofing."
+        "note":   "1 to 1\u00bd hours total, depending on ambient temp.  Preheat while proofing."
     },
 
     {
@@ -708,7 +757,7 @@ steps = [
         "number":    7,
         "text":      "Preheat the oven",
         "then_wait": 2700,
-        "comment":   "Dutch oven should be inside oven during preheat"
+        "note":   "Dutch oven should be inside oven during preheat"
     },
 
     {
@@ -716,7 +765,7 @@ steps = [
         "number":    8,
         "text":      "Bake w/lid on",
         "then_wait": 1800,
-        "comment":   "Remove lid after 30 minutes"
+        "note":   "Remove lid after 30 minutes"
     },
 
     {
@@ -724,7 +773,7 @@ steps = [
         "number":    3,
         "text":      "Mix the dough",
         "then_wait": 18000,
-        "comment":   "~5 hours"
+        "note":   "~5 hours"
     },
 
     {
@@ -732,7 +781,7 @@ steps = [
         "number":    9,
         "text":      "Bake w/o lid",
         "then_wait": 900,
-        "comment":   "15 to 20min"
+        "note":   "15 to 20min"
     },
 
     {
@@ -740,7 +789,7 @@ steps = [
         "number":    10,
         "text":      "Remove and cool",
         "then_wait": 1200,
-        "comment":   "Let cool before slicing"
+        "note":   "Let cool before slicing"
     },
 
     {
@@ -748,7 +797,7 @@ steps = [
         "number":    1,
         "text":      "Remove dough from fridge",
         "then_wait": 4500,
-        "comment":   "About 2hrs before you want to bake"
+        "note":   "About 2hrs before you want to bake"
     },
 
     {
@@ -756,7 +805,7 @@ steps = [
         "number":    2,
         "text":      "Preheat to 500\u00b0F",
         "then_wait": 2700,
-        "comment":   "\\N"
+        "note":   " "
     },
 
     {
@@ -764,7 +813,7 @@ steps = [
         "number":    1,
         "text":      "Whisk together ingredients, cover, and let stand 10 minutes.",
         "then_wait": 600,
-        "comment":   "\\N"
+        "note":   " "
     },
 
     {
@@ -772,7 +821,7 @@ steps = [
         "number":    2,
         "text":      "Fold #1, then cover and let rise.",
         "then_wait": 1800,
-        "comment":   "4 total folds, 30m between."
+        "note":   "4 total folds, 30m between."
     },
 
     {
@@ -780,7 +829,7 @@ steps = [
         "number":    3,
         "text":      "Fold #2, then cover and let rise.",
         "then_wait": 1800,
-        "comment":   "\\N"
+        "note":   " "
     },
 
     {
@@ -788,7 +837,7 @@ steps = [
         "number":    4,
         "text":      "Fold #3, then cover and let rise.",
         "then_wait": 1800,
-        "comment":   "\\N"
+        "note":   " "
     },
 
     {
@@ -796,7 +845,7 @@ steps = [
         "number":    5,
         "text":      "Fold #4, then cover tightly with plastic wrap and refrigerate.",
         "then_wait": 57600,
-        "comment":   "16 to 48 hours"
+        "note":   "16 to 48 hours"
     },
 
     {
@@ -804,7 +853,7 @@ steps = [
         "number":    6,
         "text":      "Divide & shape",
         "then_wait": 300,
-        "comment":   "Let rest for 5m"
+        "note":   "Let rest for 5m"
     },
 
     {
@@ -812,7 +861,7 @@ steps = [
         "number":    4,
         "text":      "Fold 3-4 times in the first hour",
         "then_wait": 0,
-        "comment":   "~15min between folds"
+        "note":   "~15min between folds"
     },
 
     {
@@ -820,7 +869,7 @@ steps = [
         "number":    7,
         "text":      "Re-shape in baking pans; cover for second rise.",
         "then_wait": 3600,
-        "comment":   "1\u00bd to 2hrs (minus 30m to preheat)"
+        "note":   "1\u00bd to 2hrs (minus 30m to preheat)"
     },
 
     {
@@ -828,7 +877,7 @@ steps = [
         "number":    8,
         "text":      "Pre-heat oven (with baking stone/steel) to 350\u00b0F",
         "then_wait": 1800,
-        "comment":   "\\N"
+        "note":   " "
     },
 
     {
@@ -836,7 +885,7 @@ steps = [
         "number":    9,
         "text":      "Brush loaves with egg wash",
         "then_wait": 0,
-        "comment":   "\\N"
+        "note":   " "
     },
 
     {
@@ -844,7 +893,7 @@ steps = [
         "number":    10,
         "text":      "Bake to 190\u00b0F internal temp, rotating halfway through",
         "then_wait": 2100,
-        "comment":   "35 to 45 minutes"
+        "note":   "35 to 45 minutes"
     },
 
     {
@@ -852,7 +901,7 @@ steps = [
         "number":    11,
         "text":      "Remove pans from oven, place on wire rack",
         "then_wait": 300,
-        "comment":   "\\N"
+        "note":   " "
     },
 
     {
@@ -860,7 +909,7 @@ steps = [
         "number":    12,
         "text":      "Remove loaves from pans, let cool",
         "then_wait": 7200,
-        "comment":   "\\N"
+        "note":   " "
     },
 
     {
@@ -868,7 +917,7 @@ steps = [
         "number":    5,
         "text":      "Divide & shape",
         "then_wait": 0,
-        "comment":   "\\N"
+        "note":   " "
     },
 
     {
@@ -876,7 +925,7 @@ steps = [
         "number":    6,
         "text":      "Proof in the fridge",
         "then_wait": 40500,
-        "comment":   "12 to 14hrs, minus preheat time"
+        "note":   "12 to 14hrs, minus preheat time"
     },
 
     {
@@ -884,7 +933,7 @@ steps = [
         "number":    7,
         "text":      "Preheat",
         "then_wait": 2700,
-        "comment":   "\\N"
+        "note":   " "
     },
 
     {
@@ -892,7 +941,7 @@ steps = [
         "number":    8,
         "text":      "Bake both loaves",
         "then_wait": 3000,
-        "comment":   "50 to 55 minutes"
+        "note":   "50 to 55 minutes"
     },
 
     {
@@ -900,7 +949,7 @@ steps = [
         "number":    9,
         "text":      "Remove from oven; cool",
         "then_wait": 1200,
-        "comment":   "About 20m"
+        "note":   "About 20m"
     }
 ]
 

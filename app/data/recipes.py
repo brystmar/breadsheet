@@ -1,10 +1,10 @@
 recipes = [
     {
         "id":         "1",
-        "name":       "Country Sourdough (Pain de Campagne)",
+        "name":       "Country Sourdough: Pain de Campagne",
         "author":     "Ken Forkish",
         "source":     "FWSY",
-        "difficulty": "Hard",
+        "difficulty": "Advanced",
         "date_added": "2019-02-16",
         "start_time": "2019-02-17 09:00:00",
         "steps":      [
@@ -78,7 +78,7 @@ recipes = [
         "name":       "Saturday White Bread",
         "author":     "Ken Forkish",
         "source":     "FWSY",
-        "difficulty": "Easy",
+        "difficulty": "Beginner",
         "date_added": "2019-02-16",
         "start_time": "2019-02-17 09:00:00",
         "steps":      [
@@ -159,7 +159,7 @@ recipes = [
         "name":       "Detroit-Style Pan Pizza",
         "author":     "Kenji Lopez-Alt",
         "source":     "Serious Eats",
-        "difficulty": "Easy",
+        "difficulty": "Beginner",
         "date_added": "2019-02-17",
         "start_time": "2019-02-18 09:00:00",
         "steps":      [
@@ -205,7 +205,7 @@ recipes = [
         "name":       "White Bread with Overnight Poolish",
         "author":     "Ken Forkish",
         "source":     "FWSY",
-        "difficulty": "Medium",
+        "difficulty": "Intermediate",
         "date_added": "2019-02-19",
         "start_time": "2019-02-20 09:00:00",
         "steps":      [
@@ -279,7 +279,7 @@ recipes = [
         "name":       "Pizza Dough with Overnight Poolish",
         "author":     "Ken Forkish",
         "source":     "FWSY",
-        "difficulty": "Medium",
+        "difficulty": "Intermediate",
         "date_added": "2019-03-16",
         "start_time": "2019-03-17 09:00:00",
         "steps":      [
@@ -346,7 +346,7 @@ recipes = [
         "name":       "Focaccia Genovese",
         "author":     "Ken Forkish",
         "source":     "FWSY",
-        "difficulty": "Easy",
+        "difficulty": "Beginner",
         "date_added": "2019-03-31",
         "start_time": "2019-04-01 09:00:00",
         "steps":      [
@@ -371,7 +371,7 @@ recipes = [
         "name":       "No-Knead Brioche",
         "author":     "ATK/Cook's",
         "source":     "Cook's Illustrated",
-        "difficulty": "Medium",
+        "difficulty": "Intermediate",
         "date_added": "2019-05-19",
         "start_time": "2019-05-19 09:00:00",
         "steps":      [
