@@ -1,6 +1,6 @@
 from app.convert import bp
 from app.convert.forms import ConvertTextForm
-from app.models import Replacement
+from app.models import ReplacementRDB
 from flask import render_template, request
 # import pyperclip
 from global_logger import glogger
@@ -67,7 +67,7 @@ def replace_text(text, scope):
     """Execute replacements in the provided text."""
     logger.debug("Starting replace_text(), with scope: {s}, text: {t}".format(s=scope, t=text))
 
-    replacements_list = Replacement.query.filter_by(scope=scope).all()
+    replacements_list = ReplacementRDB.query.filter_by(scope=scope).all()
     i = 0
     for r in replacements_list:
         new_text = text.replace(r.old, r.new)

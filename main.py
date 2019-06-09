@@ -11,7 +11,7 @@ logger.setLevel(logging.DEBUG)
 
 # define path to the json credentials file
 service_account_key = 'breadsheet-prod.json'
-logger.debug("Service Acct Key JSON file exists? {}".format(path.isfile(service_account_key)))
+logger.debug(f"Service Acct Key JSON file exists? {path.isfile(service_account_key)}")
 
 if not local:
     # initialize Google Cloud Debugger
@@ -22,7 +22,7 @@ if not local:
         logger.info("Cloud Debugger initialized!")
 
     except ImportError as error:
-        logger.info("Cloud Debugger import failed: {}".format(error))
+        logger.info(f"Cloud Debugger import failed: {error}")
 
     # initialize Stackdriver logging
     try:
@@ -32,7 +32,7 @@ if not local:
         logger.info("Logging to Stackdriver initialized!")
 
     except ImportError as error:  # except OSError:
-        logger.info("Logging to Stackdriver failed: {}".format(error))
+        logger.info(f"Logging to Stackdriver failed: {error}")
 
 app = create_app()
 

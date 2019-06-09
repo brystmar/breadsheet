@@ -5,7 +5,7 @@
             <th>Directions</th>
             <th>When</th>
             <th>Then Wait...</th>
-            <th>Time Range</th>
+            <th>Notes</th>
         </thead>
 
         {% for step in steps %}
@@ -21,7 +21,7 @@
                         {% endif %}
                     {% endfor %}
                 </td>
-                <td>{{ step.wait_time_range }}</td>
+                <td>{{ step.note }}</td>
             </tr>
         {% endfor %}
     </table>

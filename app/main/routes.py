@@ -8,9 +8,11 @@ from flask import render_template, redirect, url_for, request, send_from_directo
 from os import path
 from sqlalchemy.sql import text
 import boto3
+import pytz
+PST = pytz.timezone('US/Pacific')
 
 
-# map the desired URL to this function
+# Map the specified URL to this function
 @bp.route('/breadsheet')
 @bp.route('/index')
 @bp.route('/')
@@ -18,7 +20,7 @@ def index():
     logger.info("Start of index()")
     # recipes = add_recipe_ui_fields(RecipeRDB.query.order_by('id').all())
 
-    response = db.Table('recipe').scan()
+    response = db.Table('Recipe').scan()
     recipes = sort_list_of_dictionaries(response['Items'], 'id')
     logger.debug(f"Sorted recipes returned from dynamodb: {recipes}")
 
@@ -31,25 +33,35 @@ def index():
 @bp.route('/add_recipe', methods=['GET', 'POST'])
 def add_recipe():
     logger.info("Start of add_recipe()")
-    rform = RecipeForm()
 
-    if rform.validate_on_submit():
-        logger.info("Recipe form submitted.")
-        next_id = sql_db.engine.execute(text("SELECT max(id) FROM recipe")).first()[0] + 1
-        rdata = RecipeRDB(id=next_id, name=rform.name.data, author=rform.author.data, source=rform.source.data,
-                          difficulty=rform.difficulty.data, date_added=date.today())
-        logger.info(f"New recipe data: {rdata.__dict__}")
+    import uuid
+    form = RecipeForm()
 
-        sql_db.session.add(rdata)
-        sql_db.session.commit()
-        logger.debug(f"Recipe_id={next_id} successfully added & committed to the db.")
+    if form.validate_on_submit():
+        logger.info("RecipeForm submitted.")
 
-        recipe_id = rdata.id
+        # Create a JSON document for this new recipe based on the form data submitted
+        # Primary key (id) is an underscore-delimited epoch timestamp plus a random UUID
+        #   Ex: 1560043140.471138_65f078f6-aea2-41e0-be37-a62e2d5d5474
+        new_recipe = {
+            'id':           f"{datetime.utcnow().timestamp()}_{uuid.uuid4()}",
+            'name':         form.name.data,
+            'author':       form.author.data,
+            'source':       form.source.data,
+            'difficulty':   form.difficulty.data,
+            'date_added':   date.today()
+            }
+
+        logger.info(f"New recipe data: {new_recipe}")
+
+        db.Table("Recipe").put_item(Item=new_recipe)
+        logger.info("Recipe successfully added to the db.")
+
         logger.debug("Redirecting to the main recipe page.  End of add_recipe().")
-        return redirect(url_for('main.recipe') + f'?id={recipe_id}')
+        return redirect(url_for("main.recipe") + f"?id={new_recipe['id']}")
 
     logger.debug("End of add_recipe()")
-    return render_template('add_recipe.html', title='Add Recipe', rform=rform)
+    return render_template('add_recipe.html', title='Add Recipe', rform=form)
 
 
 @bp.route('/Images')
@@ -58,9 +70,9 @@ def add_recipe():
 def recipe():
     logger.info(f"Start of recipe(), request method: {request.method}")
 
-    sform = StepForm()
+    form = StepForm()
     recipe_id = request.args.get('id') or 1
-    sform.recipe_id.data = recipe_id
+    form.recipe_id.data = recipe_id
     logger.debug(f"Recipe_id: {recipe_id}")
 
     if recipe_id == 1 and request.args.get('id') != 1:
@@ -74,20 +86,20 @@ def recipe():
     twforms = create_tw_forms(steps)
     seform = create_start_finish_forms(recipe)
 
-    if sform.validate_on_submit():
-        logger.info("Step form submitted.")
+    if form.validate_on_submit():
+        logger.info("StepForm submitted.")
 
         # convert then_wait decimal value to seconds
-        then_wait = hms_to_seconds([sform.then_wait_h.data, sform.then_wait_m.data])
+        then_wait = hms_to_seconds([form.then_wait_h.data, form.then_wait_m.data])
 
-        next_id = sql_db.engine.execute(text("SELECT max(id) FROM step")).first()[0] + 1
-        sdata = StepRDB(id=next_id, recipe_id=recipe_id, number=sform.number.data, text=sform.text.data,
-                        then_wait=then_wait, wait_time_range=sform.wait_time_range.data)
+        next_step_number = sql_db.engine.execute(text("SELECT max(number) FROM step")).first()[0] + 1
+        sdata = StepRDB(id=next_step_number, recipe_id=recipe_id, number=form.number.data, text=form.text.data,
+                        then_wait=then_wait, note=form.note.data)
         logger.info(f"New step data: {sdata.__dict__}")
 
         sql_db.session.add(sdata)
         sql_db.session.commit()
-        logger.debug(f"Step_id={next_id} successfully added & committed to the db.")
+        logger.debug(f"Step {next_step_number} successfully added & committed to the db.")
 
         logger.debug("Redirecting to the main recipe page.  End of recipe().")
         return redirect(url_for('main.recipe') + f'?id={recipe_id}')
@@ -98,12 +110,12 @@ def recipe():
         # increment from the max step number
         max_step = StepRDB.query.filter_by(recipe_id=recipe_id).order_by(StepRDB.number.desc()).first()
         if max_step is None:
-            sform.number.data = 1
+            form.number.data = 1
         else:
-            sform.number.data = max_step.number + 1
+            form.number.data = max_step.number + 1
 
     logger.debug("Rendering the recipe page.  End of recipe().")
-    return render_template('recipe.html', title=recipe.name, recipe=recipe, steps=steps, sform=sform,
+    return render_template('recipe.html', title=recipe.name, recipe=recipe, steps=steps, sform=form,
                            seform=seform, twforms=twforms)
 
 
@@ -225,7 +237,7 @@ def add_recipe_ui_fields(recipe):
     else:
         recipe['difficulty_ui'] = recipe['difficulty']
         recipe['date_added_ui'] = str(recipe['date_added'])[:10]
-        recipe['start_time'] = datetime.now()
+        recipe['start_time'] = PST.localize(datetime.now())
         recipe['start_time_ui'] = recipe['start_time'].strftime('%Y-%m-%d %H:%M:%S')
 
         recipe['total_time'] = recipe['length']
@@ -250,12 +262,17 @@ def create_tw_forms(steps) -> list:
 
     twforms = []
     for s in steps:
-        logger.debug(f"Looking at step: {s.__dict__}")
+        logger.debug(f"Looking at step: {s['number']}")
         tw = ThenWaitForm()
-        tw.step_id = s.id
-        tw.then_wait_h.data = s.then_wait_ui[0]
-        tw.then_wait_m.data = s.then_wait_ui[1]
-        tw.then_wait = s.then_wait
+        tw.step_id = s['number']
+        tw.then_wait_h.data = s['then_wait_ui']
+        tw.then_wait_m.data = s['then_wait_ui']
+
+        # TODO: Fix these fields!  Formerly:
+        # tw.then_wait_h.data = s.then_wait_ui[0]
+        # tw.then_wait_m.data = s.then_wait_ui[1]
+
+        tw.then_wait = s['then_wait']
         twforms.append(tw)
     logger.debug(f"End of create_tw_forms(), returning {twforms}")
     return twforms

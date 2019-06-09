@@ -23,10 +23,19 @@ class Step:
     number = int
     text = str
     then_wait = int
-    wait_time_range = str
+    note = str
 
     def __repr__(self):
         return f'<Step #{self.number}, then_wait: {self.then_wait}>'
+
+
+class Replacement:
+    old = str
+    new = str
+    scope = str
+
+    def __repr__(self):
+        return f'<ReplacementRDB Text old: {self.old}, new: {self.new}, scope: {self.scope}>'
 
 
 class RecipeRDB(sql_db.Model):
@@ -56,10 +65,10 @@ class StepRDB(sql_db.Model):
         return f'<Step id: {self.id}, recipe_id: {self.recipe_id}, then_wait: {self.then_wait}>'
 
 
-class Replacement(sql_db.Model):
+class ReplacementRDB(sql_db.Model):
     old = sql_db.Column(sql_db.String(20), primary_key=True)
     new = sql_db.Column(sql_db.String(20))
     scope = sql_db.Column(sql_db.String(1))
 
     def __repr__(self):
-        return f'<Replacement Text old: {self.old}, new: {self.new}, scope: {self.scope}>'
+        return f'<ReplacementRDB Text old: {self.old}, new: {self.new}, scope: {self.scope}>'
