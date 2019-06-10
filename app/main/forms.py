@@ -2,7 +2,6 @@ from flask_wtf import FlaskForm
 from wtforms import StringField, SubmitField, TextAreaField, IntegerField, SelectField
 from wtforms.fields.html5 import DateField, TimeField
 from wtforms.validators import DataRequired, ValidationError, Length, NumberRange, Optional
-from app.models import RecipeRDB
 
 
 class RecipeForm(FlaskForm):
@@ -30,24 +29,24 @@ class StepForm(FlaskForm):
     number = IntegerField('Step #', id="addStep_number")
     text = TextAreaField('Directions', validators=[DataRequired(), Length(max=512)], id="addStep_directions",
                          render_kw={'autofocus': True})
-    then_wait_h = IntegerField('Then Wait...', validators=[Optional(), NumberRange(min=0, max=999)],
+    then_wait_h = StringField('Then Wait...', validators=[Optional(), NumberRange(min=0, max=999)],
                                id="addStep_then_wait_h", render_kw={'placeholder': 'h'})
-    then_wait_m = IntegerField('Then Wait...', validators=[Optional(), NumberRange(min=0, max=999)],
+    then_wait_m = StringField('Then Wait...', validators=[Optional(), NumberRange(min=0, max=999)],
                                id="addStep_then_wait_m", render_kw={'placeholder': 'm'})
     note = StringField('Notes', id="addNote")
     submit = SubmitField('Add Step', render_kw={'class': 'btn btn-primary'})
 
     def __repr__(self):
-        return f'<StepForm #{self.number} for recipe: {self.name}>'
+        return f'<StepForm #{self.number} for recipe: {self.name}>, twh={self.then_wait_h}, twm={self.then_wait_m}'
 
 
 class ThenWaitForm(FlaskForm):
-    step_id = IntegerField('Step Number')
-    then_wait_h = IntegerField('Then Wait...', validators=[NumberRange(min=0, max=999)], render_kw={'placeholder': 'h'})
-    then_wait_m = IntegerField('Then Wait...', validators=[NumberRange(min=0, max=999)], render_kw={'placeholder': 'm'})
+    step_number = IntegerField('Step Number')
+    then_wait_h = StringField('Then Wait...', validators=[NumberRange(min=0, max=999)], render_kw={'placeholder': 'h'})
+    then_wait_m = StringField('Then Wait...', validators=[NumberRange(min=0, max=999)], render_kw={'placeholder': 'm'})
 
     def __repr__(self):
-        return f'<ThenWaitForm for step #: {self.step_id}>'
+        return f'<ThenWaitForm for step {self.step_number}>, twh={self.then_wait_h}, twm={self.then_wait_m}'
 
 
 class StartFinishForm(FlaskForm):
@@ -60,7 +59,7 @@ class StartFinishForm(FlaskForm):
                                   choices=[('1', 'Start Time'), ('0', 'Finish Time')], render_kw={'autofocus': True})
 
     def __repr__(self):
-        return f'<Start & End Times form for recipe_id: {self.recipe_id}>'
+        return f'<StartFinishForm for recipe_id: {self.recipe_id}>'
 
 
 paprika_recipe_ids = ['1560122081.000008_76057b38-a5d4-46dd-948c-5119c1a235f3',
