@@ -89,13 +89,11 @@ def recipe():
     recipe_id = request.args.get('id') or failsafe_id
 
     form = StepForm()
-    form.recipe_id.data = recipe_id
     logger.debug(f"Recipe_id from the URL querystring: {recipe_id}")
 
     if recipe_id == failsafe_id and request.args.get('id') != failsafe_id:
         logger.warning("Error reading the querystring on the /recipe page.")
         logger.debug(f"Read: {request.args.get('id')}")
-        form.recipe_id.data = recipe_id
         logger.debug(f"Replaced it with the Detroit pizza recipe id: {recipe_id}")
 
     # Retrieve the recipe using the URL querystring's id
@@ -188,19 +186,19 @@ def sort_list_of_dictionaries(unsorted_list, key_to_sort_by) -> list:
 
 
 def convert_recipe_strings_to_datetime(recipe):
-    logger.debug(f"Start of convert_recipe_strings_to_datetime() for: {recipe}")
+    logger.debug(f"Start of convert_recipe_strings_to_datetime() for {len(recipe)} recipe(s)")
 
     # Makes this function recursive if the input was a list
     if isinstance(recipe, list):
         logger.debug(f"Parsing a list of {len(recipe)} recipes.")
         for r in recipe:
-            logger.debug(f"Converting fields for recipe {r['id']}: {r['name']}")
             r = convert_recipe_strings_to_datetime(r)
     else:
+        logger.debug(f"Converting fields for recipe {recipe['id']}: {recipe['name']}")
         recipe['date_added'] = datetime.strptime(recipe['date_added'], '%Y-%m-%d')
         recipe['start_time'] = datetime.strptime(recipe['start_time'], '%Y-%m-%d %H:%M:%S')
 
-    logger.debug(f"End of convert_recipe_strings_to_datetime(), returning: {recipe}")
+    logger.debug(f"End of convert_recipe_strings_to_datetime()")
     return recipe
 
 
@@ -270,33 +268,36 @@ def hms_to_string(data) -> str:
     """Convert a list of [hrs, min, sec] to a human-readable string.  Yet again, because I'm a newbie."""
     logger.debug(f"Start of hms_to_string(), with: {data}")
     result = ''
-    if data[0] == '00':
+    if data[0] in('0', '00'):
         pass
+    elif data[0] == '1':
+        result = f'{data[0]} hr'
     else:
         result = f'{data[0]} hrs'
 
-    if data[1] == '00' and result != '':
+    if data[1] in('0', '00') and result != '':
         logger.debug(f"End of hms_to_string(), returning: {result}")
         return result  # round off the seconds if it's an even number of hours
-    elif data[1] == '00' and result == '':
+    elif data[1] in('0', '00') and result == '':
         pass
     elif result == '':
         result += f'{data[1]} min'
     else:
         result += f', {data[1]} min'
 
-    if data[2] == '00' and result != '':
-        logger.debug(f"End of hms_to_string(), returning: {result}")
-        return result  # round off the seconds if it's an even number of minutes
-    elif data[2] == '00' and result == '':
-        logger.debug(f"End of hms_to_string(), returning: {result}")
-        return result
-    elif result == '':
-        result = f'{data[2]} sec'
-        logger.debug(f"End of hms_to_string(), returning: {result}")
-        return result
-    else:
-        result += f', {data[2]} sec'
+    # No need to display seconds
+    # if data[2] in('0', '00') and result != '':
+    #     logger.debug(f"End of hms_to_string(), returning: {result}")
+    #     return result  # round off the seconds if it's an even number of minutes
+    # elif data[2] in('0', '00') and result == '':
+    #     logger.debug(f"End of hms_to_string(), returning: {result}")
+    #     return result
+    # elif result == '':
+    #     result = f'{data[2]} sec'
+    #     logger.debug(f"End of hms_to_string(), returning: {result}")
+    #     return result
+    # else:
+    #     result += f', {data[2]} sec'
 
     logger.debug(f"End of hms_to_string(), returning: {result}")
     return result
@@ -308,12 +309,21 @@ def set_when(steps, when) -> list:
     Also converts raw seconds to a text string, stored in a UI-specific value for 'then_wait'.
     Returns a list of steps.
     """
-    logger.debug(f"Start of set_when(), with steps: {steps}, when: {when}")
+    logger.debug(f"Start of set_when(), with {len(steps)} steps; when={when}")
     i = 0
     for s in steps:
-        logger.debug(f"Looking at step: {s['number']}")
+        logger.debug(f"Looking at step {s['number']}, when={when.strftime('%a %H:%M')}, then_wait={s['then_wait']}")
+
+        # TODO: Fix the 'when' calculations.  The first step is adding first+last for some reason, and
+        #  the jump right before the last step is waaaaaay off.
+        # s['then_wait'] comes in as type=Decimal, which isn't compatible with the seconds= parameter below
+        if s['then_wait'] is not None:
+            s['then_wait'] = int(s['then_wait'])
+        else:
+            s['then_wait'] = 0
+
         if i == 0:
-            # Define when the first step needs to start
+            # Define when the first step will start
             s['when'] = when.strftime('%a %H:%M')
             s['then_wait_ui'] = str(timedelta(seconds=s['then_wait']))
 
@@ -330,7 +340,7 @@ def set_when(steps, when) -> list:
                 when += timedelta(seconds=s['then_wait'])
         i += 1
 
-    logger.debug(f"End of set_when(), returning: {steps}")
+    logger.debug(f"End of set_when()")
     return steps
 
 
@@ -338,32 +348,40 @@ def add_recipe_ui_fields(recipe):
     """Input: an individual Recipe class, or a list of Recipes.
 
     Populates the date_added_ui, start_time, & finish_time fields."""
-    logger.debug(f"Start of add_recipe_ui_fields() for {len(recipe)} recipe(s): {recipe}")
+    logger.debug(f"Start of add_recipe_ui_fields() for {len(recipe)} recipe(s)")
 
     # Makes this function recursive if the input was a list
     if isinstance(recipe, list):
         logger.debug(f"Parsing a list of {len(recipe)} recipes.")
         for r in recipe:
-            logger.debug(f"Adding UI fields for recipe {r['id']}: {r['name']}")
             r = add_recipe_ui_fields(r)
     else:
+        logger.debug(f"Adding UI fields for recipe {recipe['id']}: {recipe['name']}")
         recipe['date_added_ui'] = str(recipe['date_added'])[:10]
         recipe['start_time'] = PST.localize(datetime.now())
         recipe['start_time_ui'] = recipe['start_time'].strftime('%Y-%m-%d %H:%M:%S')
 
-        recipe['total_time'] = recipe['length']
+        recipe['total_time'] = int(recipe['length'])
         logger.debug(f"recipe['total_time'] = {recipe['total_time']}")
         if recipe['total_time'] is None:
             recipe['finish_time'] = recipe['start_time']
             recipe['finish_time_ui'] = recipe['start_time_ui']
             recipe['total_time'] = 0
         else:
-            recipe['finish_time'] = recipe['start_time'] + timedelta(seconds=int(recipe['total_time']))
+            delta_length = timedelta(seconds=int(recipe['total_time']))
+            recipe['finish_time'] = recipe['start_time'] + delta_length
             recipe['finish_time_ui'] = recipe['finish_time'].strftime('%Y-%m-%d %H:%M:%S')
-            recipe['total_time_ui'] = hms_to_string(str(timedelta(seconds=int(recipe['total_time']))))
+
+            if 'day' in str(delta_length):
+                # If the recipe takes >24hrs, the system formats the string: '2 days, 1:30:05'
+                delta_length_split = str(delta_length).split(", ")
+                delta_to_parse = delta_length_split[1].split(':')
+                recipe['total_time_ui'] = f"{delta_length_split[0]}, {hms_to_string(delta_to_parse)}"
+            else:
+                recipe['total_time_ui'] = hms_to_string(str(delta_length).split(':'))
             logger.debug(f"recipe['total_time_ui'] = {recipe['total_time_ui']}")
 
-    logger.debug(f"End of add_recipe_ui_fields(), returning: {recipe}")
+    logger.debug(f"End of add_recipe_ui_fields()")
     return recipe
 
 
@@ -373,11 +391,30 @@ def create_tw_forms(steps) -> list:
 
     twforms = []
     for s in steps:
-        logger.debug(f"Looking at step: {s['number']}")
+        logger.debug(f"Looking at step {s['number']}, then_wait_ui={s['then_wait_ui']}")
         tw = ThenWaitForm()
-        tw.step_id = s['number']
-        tw.then_wait_h.data = s['then_wait_ui'].split(':')[0]
-        tw.then_wait_m.data = s['then_wait_ui'].split(':')[1]
+        tw.step_number = s['number']
+
+        # If the steps take >24hrs, the system formats the string: '2 days, 1:30:05'
+        then_wait_string = str(s['then_wait_ui'])
+        if 'day' in then_wait_string:
+            # Split the string into days, then everything else
+            then_wait_ui_split = then_wait_string.split(", ")
+            days = int(s['then_wait_ui'].total_seconds() // (60 * 60 * 24))
+
+            # Split the second portion by ':', then add the number of hours
+            hours = int(then_wait_ui_split[1].split(':')[0]) + (days * 24)
+            tw.then_wait_m.data = then_wait_ui_split[1].split(':')[1]
+        else:
+            # Otherwise, just split as normal
+            hours = then_wait_string.split(':')[0]
+            tw.then_wait_m.data = then_wait_string.split(':')[1]
+
+        # timedelta doesn't zero-pad the hours, so we'll do it ourselves
+        if int(hours) <= 9:
+            tw.then_wait_h.data = "0" + str(hours)
+        else:
+            tw.then_wait_h.data = str(hours)
 
         tw.then_wait = s['then_wait']
         twforms.append(tw)
