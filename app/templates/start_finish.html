@@ -87,24 +87,25 @@
 
         // collect all the 'then_wait' inputs from the steps_list table
         var table = document.getElementById("steps_list");
-        var ins = table.getElementsByTagName("input");
+        var input_tags = table.getElementsByTagName("input");
 
         var step_id = 0;
         var seconds = 0;
         var total = 0;
-        var delta = 0;
+        var i = 0;
 
         // clear existing values in the steps array and step_wait_times dictionary
         steps = [];
         step_wait_times = {};
 
-        for (i=0; i < ins.length; i++) {
+        // TODO: Fix this JS calcTime function.  It's wonky.
+        for (i=0; i < input_tags.length; i++) {
             // convert text values to seconds
-            if (ins[i].id.indexOf("then_wait_h") == 0) {
-                seconds = Number(ins[i].value) * 60 * 60;
+            if (input_tags[i].id.indexOf("then_wait_h") == 0) {
+                seconds = Number(input_tags[i].value) * 60 * 60;
             }
-            else if (ins[i].id.indexOf("then_wait_m") == 0) {
-                seconds = Number(ins[i].value) * 60;
+            else if (input_tags[i].id.indexOf("then_wait_m") == 0) {
+                seconds = Number(input_tags[i].value) * 60;
             }
             else {
                 seconds = 0;
@@ -112,7 +113,7 @@
 
             total += seconds;
 
-            step_id = ins[i].id.substring(11);
+            step_id = input_tags[i].id.substring(11);
             // only use use += if this step_id is already in the dictionary
             if (step_wait_times.hasOwnProperty(step_id)) {
                 step_wait_times[step_id] += seconds;
@@ -140,10 +141,9 @@
         }
 
         // update the total time
-        // ttime.innerHTML = sec_to_hms(total);
-        ttime.innerHTML = "Testing";
+        ttime.innerHTML = sec_to_hms(total);
+        // ttime.innerHTML = "Testing";
 
-        var i = 1;
         var next_time = 0;
         var multiplier = 1;
 

@@ -12,7 +12,7 @@ if local:
         mkdir(log_dir)
     log_file = f'{log_dir}/syslog.log'
 
-    logging.basicConfig(filename=log_file, level=logging.DEBUG, datefmt='%Y-%m-%d %H:%M:%S',
+    logging.basicConfig(filename=log_file, level=logging.DEBUG, datefmt='%Y-%m-%d %H:%M:%S', filemode='w',
                         format='%(asctime)s | %(name)s | %(levelname)s | %(message)s')
     glogger = logging.getLogger(__name__)
 else:
