@@ -29,9 +29,9 @@ class StepForm(FlaskForm):
     number = IntegerField('Step #', id="addStep_number")
     text = TextAreaField('Directions', validators=[DataRequired(), Length(max=512)], id="addStep_directions",
                          render_kw={'autofocus': True})
-    then_wait_h = StringField('Then Wait...', validators=[Optional(), NumberRange(min=0, max=999)],
+    then_wait_h = IntegerField('Then Wait...', validators=[Optional(), NumberRange(min=0, max=999)],
                                id="addStep_then_wait_h", render_kw={'placeholder': 'h'})
-    then_wait_m = StringField('Then Wait...', validators=[Optional(), NumberRange(min=0, max=999)],
+    then_wait_m = IntegerField('Then Wait...', validators=[Optional(), NumberRange(min=0, max=999)],
                                id="addStep_then_wait_m", render_kw={'placeholder': 'm'})
     note = StringField('Notes', id="addNote")
     submit = SubmitField('Add Step', render_kw={'class': 'btn btn-primary'})
