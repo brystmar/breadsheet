@@ -47,16 +47,17 @@ def add_recipe():
 
         # Create a JSON document for this new recipe based on the form data submitted
         new_recipe = {
-            'id':           generate_new_id(),
-            'name':         form.name.data,
-            'author':       form.author.data,
-            'source':       form.source.data,
-            'difficulty':   form.difficulty.data,
-            'date_added':   PST.localize(datetime.now()).strftime("%Y-%m-%d"),
-            'start_time':   PST.localize(datetime.now()).strftime("%Y-%m-%d %H:%M:%S"),
-            'steps':        [],
-            'length':       0
-            }
+            'id':            generate_new_id(),
+            'name':          form.name.data,
+            'author':        "--" if form.author.data in (None, "") else form.author.data,
+            'source':        "--" if form.source.data in (None, "") else form.source.data,
+            'difficulty':    form.difficulty.data,
+            'date_added':    PST.localize(datetime.now()).strftime("%Y-%m-%d"),
+            'start_time':    PST.localize(datetime.now()).strftime("%Y-%m-%d %H:%M:%S"),
+            'steps':         [],
+            'length':        0,
+            'total_time_ui': "--"
+        }
 
         logger.info(f"New recipe data: {new_recipe}")
 
@@ -123,10 +124,10 @@ def recipe():
 
         # convert the 'then_wait' inputs to seconds
         new_step = {
-            'number': len(steps) + 1,
-            'text': form.text.data,
+            'number':    len(steps) + 1,
+            'text':      form.text.data,
             'then_wait': hms_to_seconds([form.then_wait_h.data, form.then_wait_m.data, 0]),
-            'note': form.note.data if form.note.data != "" else " "
+            'note':      form.note.data if form.note.data != "" else " "
         }
         logger.info(f"New step data: {new_step}")
 
@@ -190,7 +191,7 @@ def cleanup_before_db_write(recipe_input):
     logger.debug(f"Entering cleanup_before_db_write(), with: {recipe_input}")
 
     # Remove unnecessary attributes
-    recipe_fields_to_remove = ['start_time_ui', 'start_time_split', 'date_added_ui', 'total_time', 'total_time_ui',
+    recipe_fields_to_remove = ['start_time_ui', 'start_time_split', 'date_added_ui', 'total_time',
                                'finish_time', 'finish_time_ui']
     step_fields_to_remove = ['when', 'then_wait_ui', 'then_wait_list', 'then_wait_timedelta']
 
@@ -312,17 +313,17 @@ def hms_to_string(data) -> str:
     """Convert a list of [hrs, min, sec] to a human-readable string.  Yet again, because I'm a newbie."""
     logger.debug(f"Start of hms_to_string(), with: {data}")
     result = ''
-    if data[0] in('0', '00'):
+    if data[0] in ('0', '00'):
         pass
     elif data[0] == '1':
         result = f'{data[0]} hr'
     else:
         result = f'{data[0]} hrs'
 
-    if data[1] in('0', '00') and result != '':
+    if data[1] in ('0', '00') and result != '':
         logger.debug(f"End of hms_to_string(), returning: {result}")
         return result  # round off the seconds if it's an even number of hours
-    elif data[1] in('0', '00') and result == '':
+    elif data[1] in ('0', '00') and result == '':
         pass
     elif result == '':
         result += f'{data[1]} min'
