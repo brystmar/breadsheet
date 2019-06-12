@@ -35,11 +35,6 @@
     // add an event listener for the selection box
     document.getElementById("solve_for_start").addEventListener("change", sfToggle);
 
-    // build a dictionary of step_ids with then_wait values (in seconds)
-    var step_wait_times = {};
-    // list of step_ids
-    var steps = [];
-
     function sfToggle() {
         var box = document.getElementById("solve_for_start");
         var sdate = document.getElementById("start_date");
@@ -89,22 +84,23 @@
         var table = document.getElementById("steps_list");
         var input_tags = table.getElementsByTagName("input");
 
-        var step_id = 0;
+        var step_number = 0;
         var seconds = 0;
         var total = 0;
-        var i = 0;
 
-        // clear existing values in the steps array and step_wait_times dictionary
-        steps = [];
-        step_wait_times = {};
+        // initialize an array of steps
+        var step_list = [];
+        // initialize a dictionary of key-values for wait times
+        var step_wait_times = {};
 
-        // TODO: Fix this JS calcTime function.  It's wonky.
-        for (i=0; i < input_tags.length; i++) {
+        for (var i=0; i < input_tags.length; i++) {
             // convert text values to seconds
             if (input_tags[i].id.indexOf("then_wait_h") == 0) {
+                // make sure we're looking at the then_wait_h tag
                 seconds = Number(input_tags[i].value) * 60 * 60;
             }
             else if (input_tags[i].id.indexOf("then_wait_m") == 0) {
+                // make sure we're looking at the then_wait_m tag
                 seconds = Number(input_tags[i].value) * 60;
             }
             else {
@@ -113,19 +109,23 @@
 
             total += seconds;
 
-            step_id = input_tags[i].id.substring(11);
+            // extract the step_number by taking a substring starting after the 11th character.  Ex: then_wait_h13
+            step_number = Number(input_tags[i].id.substring(11));
+
             // only use use += if this step_id is already in the dictionary
-            if (step_wait_times.hasOwnProperty(step_id)) {
-                step_wait_times[step_id] += seconds;
+            if (step_wait_times.hasOwnProperty(step_number)) {
+                // the hours value (in seconds) for this step is already here, so add the minutes value (in seconds)
+                step_wait_times[step_number] += seconds;
             }
             else {
-                step_wait_times[step_id] = seconds;
+                // add this step to the dictionary
+                step_wait_times[step_number] = seconds;
             }
         }
 
-        // build an array with all step_ids
+        // compile a list of the step_numbers
         for (var key in step_wait_times) {
-            steps.push(key);
+            step_list.push(key);
         }
 
         // update start & finish times
@@ -142,64 +142,95 @@
 
         // update the total time
         ttime.innerHTML = sec_to_hms(total);
-        // ttime.innerHTML = "Testing";
 
         var next_time = 0;
         var multiplier = 1;
 
         // sort the steps array
         if (solve_for_start.value == 0) {  // ascending if we're solving for finish time
-            steps.sort();
+            step_list.sort(sortNumberAsc);  // the built-in sort function returns: 1,10,11,12,13,2,3,4,5,6,7,8,9
             next_time = start_orig;
             multiplier = 1;
         }
         else {  // descending if we're solving for start time
-            steps.sort();
-            steps.reverse();
+            step_list.sort(sortNumberDesc);
+            // step_list.reverse();
             next_time = finish_orig;  // work backwards from the user-defined finish time
             multiplier = -1;  // subtract time since we're working backwards
         }
 
         // update the 'when' labels in the steps list
-        for (i=0; i < steps.length; i++) {
-            label = document.getElementById("step_when" + steps[i]);
+        for (i=0; i < step_list.length; i++) {
+            var when_label = document.getElementById("step_when" + step_list[i]);
             // out1.innerHTML += solve_for_start.value + ", i=" + i + ", steps[i]=" + steps[i] + " -- ";
             // out1.innerHTML += step_wait_times[steps[i]] + ".	time: " + next_time.format('YYYY-MM-DD HH:mm') + "<br>"
 
             if (solve_for_start.value == 0) {
                 // when solving for finish, update the label before incrementing next_time
-                label.innerHTML = next_time.format('ddd HH:mm');
-                next_time = next_time.add(step_wait_times[steps[i]] * multiplier, 'seconds');
+                when_label.innerHTML = next_time.format('ddd HH:mm');
+                next_time = next_time.add(step_wait_times[step_list[i]] * multiplier, 'seconds');
             }
             else {
                 // when solving for the start time, increment the next_time value before updating the label
-                next_time = next_time.add(step_wait_times[steps[i]] * multiplier, 'seconds');
-                label.innerHTML = next_time.format('ddd HH:mm');
+                next_time = next_time.add(step_wait_times[step_list[i]] * multiplier, 'seconds');
+                when_label.innerHTML = next_time.format('ddd HH:mm');
             }
         }
     }
 
     function sec_to_hms(sec) {
-        // accepts a number of seconds (int), returns a string for how many hrs, min, sec
+        // accepts a number of seconds (int), returns a string for how many days, hrs, min, sec
+        if (sec == 0) { return "--"; }
+
         var result = "";
+        var days = "";
         var hours = "";
         var minutes = "";
-        var seconds = "";
 
-        if (sec == 0) {
-            return "--";
+        var d = Math.floor(sec / 86400);
+        if (d > 0) {
+            // select the right verbiage for day(s)
+            if (d > 1) {
+                days = d.toString() + " days";
+            }
+            else {
+                days = d.toString() + " day";
+            }
+
+            // set the result value
+            result = days;
+
+            // remove a rounded-day number of seconds from the sec variable
+            sec -= (d * 86400)
         }
 
         var h = Math.floor(sec / 3600);
-        if (h != 0) {
-            hours = h.toString() + " hrs";
-            result = h.toString() + " hrs";
+        if (h > 0) {
+            // select the right verbiage for hour(s)
+            if (h > 1) {
+                hours = h.toString() + " hrs";
+            }
+            else {
+                hours = h.toString() + " hr";
+            }
+
+            // if there's already data in the result variable, tack on a comma and append the hours
+            if (result != "") {
+                result += ", " + hours;
+            }
+            else {
+                result = hours;
+            }
+
+            // remove a rounded-hour number of seconds from the sec variable
+            sec -= (h * 3600)
         }
 
         var m = Math.floor(sec / 60) % 60;
-        if (m != 0) {
+        if (m > 0) {
             minutes = m.toString() + " min";
 
+            // if there's already data in the result variable, tack on a comma and append the minutes
             if (result != "") {
                 result += ", " + minutes;
             }
@@ -208,17 +239,17 @@
             }
         }
 
-        var s = sec % 60;
-        if (s != 0) {
-            seconds = s.toString() + " sec";
-
-            if (result != "") {
-                result += ", " + seconds;
-            }
-            else {
-                result = seconds;
-            }
-        }
         return result;
+    }
+
+    function sortNumberAsc(a, b) {
+        // A proper sorting function because JavaScript is dumb
+        // The built-in sort function would return: 1,10,11,12,13,2,3,4,5,6,7,8,9
+        return a - b;
+    }
+
+    function sortNumberDesc(a, b) {
+        // The built-in sort function would return: 9,8,7,6,5,4,3,2,13,12,11,10,1
+        return b - a;
     }
 </script>

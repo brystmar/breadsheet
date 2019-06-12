@@ -1,13 +1,13 @@
 from flask_wtf import FlaskForm
 from wtforms import StringField, SubmitField, TextAreaField, IntegerField, SelectField
 from wtforms.fields.html5 import DateField, TimeField
-from wtforms.validators import DataRequired, ValidationError, Length, NumberRange, Optional
+from wtforms.validators import DataRequired, Length, NumberRange, Optional  # , ValidationError
 
 
 class RecipeForm(FlaskForm):
-    name = StringField('Name', validators=[DataRequired(), Length(min=5, max=64)], render_kw={'autofocus': True})
-    author = StringField('Author', validators=[Length(max=64)])
-    source = StringField('Source', validators=[Length(max=128)])
+    name = StringField('Name', validators=[DataRequired()], render_kw={'autofocus': True})
+    author = StringField('Author')
+    source = StringField('Source')
     difficulty = SelectField('Difficulty', validators=[DataRequired()], default='Intermediate',
                              choices=[
                                  ('Beginner', 'Beginner'),
