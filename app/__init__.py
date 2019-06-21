@@ -1,5 +1,5 @@
 """Initialization file that defines items within the app."""
-from global_logger import glogger
+from global_logger import glogger, local
 import logging
 
 from config import Config
@@ -15,8 +15,14 @@ logger.setLevel(logging.DEBUG)
 bootstrap = Bootstrap()
 moment = Moment()
 sql_db = SQLAlchemy()
-db = boto3.resource('dynamodb', region_name=Config.aws_region, aws_access_key_id=Config.aws_access_key_id,
-                    aws_secret_access_key=Config.aws_secret_access_key)
+
+if local:
+    # use the local dynamodb connection when running locally
+    db = boto3.resource('dynamodb', region_name=Config.aws_region, aws_access_key_id=Config.aws_access_key_id,
+                        aws_secret_access_key=Config.aws_secret_access_key, endpoint_url='http://localhost:8008')
+else:
+    db = boto3.resource('dynamodb', region_name=Config.aws_region, aws_access_key_id=Config.aws_access_key_id,
+                        aws_secret_access_key=Config.aws_secret_access_key)
 
 
 def create_app(config_class=Config):

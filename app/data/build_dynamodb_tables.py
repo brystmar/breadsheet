@@ -1,4 +1,4 @@
-from app.data.breadsheet_data import recipes, replacements
+from app.data.breadsheet_data import replacements
 from config import Config
 from datetime import datetime
 import boto3
@@ -49,9 +49,13 @@ def create_recipe_table(db, table_name):
         print(f"{datetime.now()} Table {table_name} created successfully!")
         print(table_response)
 
+        return table_response
+
     except Exception as e:
         print(f"{datetime.now()} Failed to create {table_name}.")
         print(f"{datetime.now()} Exception info: {e}")
+
+        return None
 
 
 def add_recipe_data(recipes, table):
@@ -112,9 +116,13 @@ def create_replacement_table(db, table_name):
         print(f"{datetime.now()} Table {table_name} created successfully!")
         print(table_response, '\n')
 
+        return table_response
+
     except Exception as e:
         print(f"{datetime.now()} Failed to create {table_name}.")
         print(f"{datetime.now()} Exception info: {e}")
+
+        return None
 
 
 def add_replacement_data(data, table):
@@ -131,7 +139,7 @@ def add_replacement_data(data, table):
     print(f"Finished adding {count} objects with {len(errors)} errors.")
 
 # db = boto3.resource('dynamodb', region_name=Config.aws_region, aws_access_key_id=Config.aws_access_key_id,
-#                     aws_secret_access_key=Config.aws_secret_access_key)
+#                     aws_secret_access_key=Config.aws_secret_access_key, endpoint_url='http://localhost:8008')
 #
 # table_name = 'Recipe'
 # create_recipe_table(db, table_name)
