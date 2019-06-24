@@ -62,6 +62,7 @@ class StartFinishForm(FlaskForm):
         return f'<StartFinishForm for recipe_id: {self.recipe_id}>'
 
 
+# TODO: Find a better way to display Paprika recipe info on each page
 paprika_recipe_ids = ['1560122081.000008_76057b38-a5d4-46dd-948c-5119c1a235f3',
                       '1560122082.002055_c4c907a1-9ff7-4b91-927b-b6e16d5c1bdf',
                       '1560122083.005019_af4f7bd5-ed86-44a2-9767-11f761160dee',

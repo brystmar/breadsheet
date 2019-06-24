@@ -1,19 +1,14 @@
 from global_logger import glogger, local
-import logging
 import pytz
 from os import path, environ
 # from google.cloud import firestore
 
 logger = glogger
-logger.setLevel(logging.DEBUG)
 
 
 class Config(object):
-    """Set the config parameters for this app."""
+    """Define the config parameters for this app."""
     logger.info("Start of the Config() class.")
-
-    # silence the madness
-    SQLALCHEMY_TRACK_MODIFICATIONS = False
 
     if local:
         from env_tools import apply_env
@@ -21,14 +16,7 @@ class Config(object):
         logger.info("Applied .env variables using env_tools")
 
         # GCP Credentials #
-        BUCKET_NAME = environ.get('GCP_BUCKET_NAME') or 'local_fail_bucket_name'
-        db_user = environ.get('GCP_CLOUDSQL_USER')
-        db_pw = environ.get('GCP_CLOUDSQL_PW')
-        db_name = environ.get('GCP_CLOUDSQL_DBNAME')
-        db_ip = environ.get('GCP_CLOUDSQL_IP')
-        db_port = environ.get('GCP_CLOUDSQL_PORT')
-        db_instance = environ.get('GCP_CLOUDSQL_INSTANCE')
-        db_url = environ.get('GCP_CLOUDSQL_DATABASE_URI')
+        # ...shouldn't be needed anymore
 
         # AWS Credentials #
         aws_account_id = environ.get('AWS_ACCOUNT_ID')
@@ -46,7 +34,6 @@ class Config(object):
 
         # supply the private key to explicitly use creds for the default service acct
         # fire = firestore.Client().from_service_account_json('breadsheet-prod.json')
-        logger.debug(f"Fire_credentials GCP bucket: {BUCKET_NAME}")
 
     else:
         from google.cloud import firestore
@@ -58,17 +45,7 @@ class Config(object):
         fire_credentials = fire.collection('environment_vars').document('prod').get()
 
         # GCP Credentials #
-        # BUCKET_NAME = fire_credentials._data['GCP_BUCKET_NAME'] or 'fire_fail_bucket_name'
-        # db_user = fire_credentials._data['GCP_CLOUDSQL_USER']
-        # db_pw = fire_credentials._data['GCP_CLOUDSQL_PW']
-        # db_name = fire_credentials._data['GCP_CLOUDSQL_DBNAME']
-        # db_ip = fire_credentials._data['GCP_CLOUDSQL_IP']
-        # db_port = fire_credentials._data['GCP_CLOUDSQL_PORT']
-        # db_instance = fire_credentials._data['GCP_CLOUDSQL_INSTANCE']
-        db_url = fire_credentials._data['GCP_CLOUDSQL_DATABASE_URI']
-
-        # logger.info(f"Fire_credentials GCP bucket: {BUCKET_NAME}")
-        # logger.info(f"DB IP from fire_credentials: {db_ip}")
+        # ...shouldn't be needed anymore
 
         # AWS Credentials #
         aws_account_id = fire_credentials._data['AWS_ACCOUNT_ID']
@@ -80,10 +57,6 @@ class Config(object):
 
         SECRET_KEY = fire_credentials._data['SECRET_KEY'] or '2mW7@LN0n32L6ntaj0d8jzsXiAW4mkPL7u5l'
 
-    SQLALCHEMY_DATABASE_URI = db_url
-    # SQLALCHEMY_DATABASE_URI = 'postgres+psycopg2://USER:PW@/breadsheet?host=/cloudsql/trivialib:us-west2:trivialib'
-
-    logger.debug(f"SQLALCHEMY_DATABASE_URI: {db_url}")
     logger.info("End of the Config() class.")
 
 
