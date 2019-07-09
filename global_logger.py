@@ -3,7 +3,7 @@ import sys
 from os import path, mkdir
 
 basedir = path.abspath(path.dirname(__file__))
-local = '/documents/dev/' in basedir.lower()
+local = '/documents/dev/' in basedir.lower() or 'pycharm' in basedir.lower()
 
 # initialize logging
 if local:
@@ -20,8 +20,10 @@ else:
                         format='%(asctime)s | %(name)s | %(levelname)s | %(message)s')
     glogger = logging.getLogger(__name__)
 
-glogger.info("\n\n=======================================")
-glogger.info("Global logging initialized!")
+glogger.setLevel(logging.DEBUG)
+glogger.info("\n=======================================\n\n")
+glogger.info("Global logging initialized!  Level: Debug")
+glogger.info(f"Logging level: {glogger.getEffectiveLevel()}")
 glogger.info(f"local = {local}")
-# print("local = {}".format(local))
+# print(f"local = {local}")
 # print("__file__ = {}".format(__file__))
