@@ -20,7 +20,7 @@ class Config(object):
         apply_env()
         logger.info("Applied .env variables using env_tools")
 
-        # GCP Credentials #
+        # GCP credentials
         BUCKET_NAME = environ.get('GCP_BUCKET_NAME') or 'local_fail_bucket_name'
         db_user = environ.get('GCP_CLOUDSQL_USER')
         db_pw = environ.get('GCP_CLOUDSQL_PW')
@@ -30,9 +30,9 @@ class Config(object):
         db_instance = environ.get('GCP_CLOUDSQL_INSTANCE')
         db_url = environ.get('GCP_CLOUDSQL_DATABASE_URI')
 
-        # AWS Credentials #
+        # AWS credentials
         aws_account_id = environ.get('AWS_ACCOUNT_ID')
-        aws_access_key_id = environ.get('AWS_ACCESS_KEY')
+        aws_access_key = environ.get('AWS_ACCESS_KEY')
         aws_secret_access_key = environ.get('AWS_SECRET_ACCESS_KEY')
         aws_user = environ.get('AWS_USER')
         aws_region = environ.get('AWS_REGION')
@@ -57,7 +57,7 @@ class Config(object):
         fire = firestore.Client().from_service_account_json('breadsheet-prod.json')
         fire_credentials = fire.collection('environment_vars').document('prod').get()
 
-        # GCP Credentials #
+        # GCP credentials
         # BUCKET_NAME = fire_credentials._data['GCP_BUCKET_NAME'] or 'fire_fail_bucket_name'
         # db_user = fire_credentials._data['GCP_CLOUDSQL_USER']
         # db_pw = fire_credentials._data['GCP_CLOUDSQL_PW']
@@ -70,9 +70,9 @@ class Config(object):
         # logger.info(f"Fire_credentials GCP bucket: {BUCKET_NAME}")
         # logger.info(f"DB IP from fire_credentials: {db_ip}")
 
-        # AWS Credentials #
+        # AWS credentials
         aws_account_id = fire_credentials._data['AWS_ACCOUNT_ID']
-        aws_access_key_id = fire_credentials._data['AWS_ACCESS_KEY']
+        aws_access_key = fire_credentials._data['AWS_ACCESS_KEY']
         aws_secret_access_key = fire_credentials._data['AWS_SECRET_ACCESS_KEY']
         aws_user = fire_credentials._data['AWS_USER']
         aws_region = fire_credentials._data['AWS_REGION']

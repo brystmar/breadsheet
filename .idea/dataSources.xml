@@ -10,12 +10,5 @@
         <property name="enable_load_extension" value="true" />
       </driver-properties>
     </data-source>
-    <data-source source="LOCAL" name="trivialib (breadapp)" uuid="f380acb5-d1a9-459c-9760-b1203d41c4a3">
-      <driver-ref>postgresql</driver-ref>
-      <synchronize>true</synchronize>
-      <remarks>New home for the breadapp SQL database</remarks>
-      <jdbc-driver>org.postgresql.Driver</jdbc-driver>
-      <jdbc-url>jdbc:postgresql://35.235.119.195:5432/breadsheet</jdbc-url>
-    </data-source>
   </component>
 </project>

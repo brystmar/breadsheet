@@ -180,8 +180,8 @@ def generate_new_id() -> str:
     return new_id
 
 
-def sort_list_of_dictionaries(unsorted_list, key_to_sort_by) -> list:
-    return sorted(unsorted_list, key=lambda k: k[key_to_sort_by], reverse=False)
+def sort_list_of_dictionaries(unsorted_list, key_to_sort_by, reverse=False) -> list:
+    return sorted(unsorted_list, key=lambda k: k[key_to_sort_by], reverse=reverse)
 
 
 def cleanup_before_db_write(recipe_input):
@@ -231,7 +231,8 @@ def convert_recipe_strings_to_datetime(recipe_input):
         recipe_input['date_added'] = datetime.strptime(recipe_input['date_added'], '%Y-%m-%d')
 
         # TODO: Make these lines unnecessary!
-        recipe_input['start_time'] = PST.localize(datetime.now())
+        # force PST
+        recipe_input['start_time'] = datetime.utcnow() - timedelta(seconds=3600*7)
         recipe_input['start_time_ui'] = recipe_input['start_time'].strftime('%Y-%m-%d %H:%M:%S')
 
         # Length comes in as type=Decimal; some functions only accept integers
