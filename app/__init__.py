@@ -18,10 +18,10 @@ sql_db = SQLAlchemy()
 
 if local:
     # use the local dynamodb connection when running locally
-    db = boto3.resource('dynamodb', region_name=Config.aws_region, aws_access_key_id=Config.aws_access_key_id,
+    db = boto3.resource('dynamodb', region_name=Config.aws_region, aws_access_key_id=Config.aws_access_key,
                         aws_secret_access_key=Config.aws_secret_access_key, endpoint_url='http://localhost:8008')
 else:
-    db = boto3.resource('dynamodb', region_name=Config.aws_region, aws_access_key_id=Config.aws_access_key_id,
+    db = boto3.resource('dynamodb', region_name=Config.aws_region, aws_access_key_id=Config.aws_access_key,
                         aws_secret_access_key=Config.aws_secret_access_key)
 
 
