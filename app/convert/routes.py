@@ -1,7 +1,6 @@
 from app import db, logger
 from app.convert import bp
 from app.convert.forms import ConvertTextForm
-from app.models import ReplacementRDB
 from flask import render_template, request
 # import pyperclip
 
