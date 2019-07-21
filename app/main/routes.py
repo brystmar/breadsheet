@@ -79,8 +79,6 @@ def add_recipe():
     return render_template('add_recipe.html', title='Add Recipe', rform=form)
 
 
-@bp.route('/Images')
-@bp.route('/Resources')
 @bp.route('/recipe', methods=['GET', 'POST'])
 def recipe():
     logger.info(f"Start of recipe(), request method: {request.method}")
@@ -331,20 +329,6 @@ def hms_to_string(data) -> str:
     else:
         result += f', {data[1]} min'
 
-    # No need to display seconds
-    # if data[2] in('0', '00') and result != '':
-    #     logger.debug(f"End of hms_to_string(), returning: {result}")
-    #     return result  # round off the seconds if it's an even number of minutes
-    # elif data[2] in('0', '00') and result == '':
-    #     logger.debug(f"End of hms_to_string(), returning: {result}")
-    #     return result
-    # elif result == '':
-    #     result = f'{data[2]} sec'
-    #     logger.debug(f"End of hms_to_string(), returning: {result}")
-    #     return result
-    # else:
-    #     result += f', {data[2]} sec'
-
     logger.debug(f"End of hms_to_string(), returning: {result}")
     return result
 
@@ -354,25 +338,26 @@ def set_when(steps, when) -> list:
 
     logger.debug(f"Start of set_when(), with when={when}, {len(steps)} steps, all steps: {steps}")
     i = 0
-    for s in steps:
-        logger.debug(f"Looking at step {s['number']}, when={when.strftime('%a %H:%M')}, then_wait={s['then_wait']}")
+    for step in steps:
+        logger.debug(f"Looking at step {step['number']}, when={when.strftime('%a %H:%M')},"
+                     f"then_wait={step['then_wait']}")
 
         # Set the 'when' for this step
-        s['when'] = when.strftime('%a %H:%M')
+        step['when'] = when.strftime('%a %H:%M')
 
         # Create a timedelta object for then_wait to simplify formulas
-        s['then_wait'] = 0 if s['then_wait'] is None else int(s['then_wait'])
-        s['then_wait_timedelta'] = timedelta(seconds=s['then_wait'])
+        step['then_wait'] = 0 if step['then_wait'] is None else int(step['then_wait'])
+        step['then_wait_timedelta'] = timedelta(seconds=step['then_wait'])
 
         # Increment
-        when += s['then_wait_timedelta']
+        when += step['then_wait_timedelta']
 
-        s['then_wait_ui'] = str(s['then_wait_timedelta'])
-        s['then_wait_list'] = s['then_wait_ui'].split(":")
+        step['then_wait_ui'] = str(step['then_wait_timedelta'])
+        step['then_wait_list'] = step['then_wait_ui'].split(":")
         i += 1
 
-        logger.debug(f"Finished step {s['number']}: then_wait={s['then_wait']}, timedelta={s['then_wait_timedelta']}, "
-                     f"tw_ui={s['then_wait_ui']}, tw_list={s['then_wait_list']}, when={when} (aka next step)")
+        logger.debug(f"Finished step {step['number']}: then_wait={step['then_wait']}, tw_list={step['then_wait_list']},"
+                     f" tw_ui={step['then_wait_ui']}, timedelta={step['then_wait_timedelta']}, when={when} (next step)")
 
     logger.debug(f"End of set_when(), returning: {steps}")
     return steps

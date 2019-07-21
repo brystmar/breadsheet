@@ -33,8 +33,9 @@ if not local:
 app = create_app()
 
 if __name__ == '__main__':
-    app.run(host='localhost', port=8800, debug=True)
-    logger.info("Running locally!")
+    app.run(host='localhost', port=5000, debug=True)
+    logger.info("Running locally via __main__: http://localhost:5000")
+    print("Running locally via __main__: http://localhost:5000")
 
 
 @app.shell_context_processor

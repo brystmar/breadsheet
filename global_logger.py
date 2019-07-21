@@ -7,6 +7,8 @@ local = '/documents/dev/' in basedir.lower() or 'pycharm' in basedir.lower()
 
 # initialize logging
 if local:
+    print("Running locally: http://localhost:5000")
+
     log_dir = 'logs' if local else 'tmp'
     if not path.exists(log_dir):
         mkdir(log_dir)
@@ -25,5 +27,3 @@ glogger.info("\n=======================================\n\n")
 glogger.info("Global logging initialized!  Level: Debug")
 glogger.info(f"Logging level: {glogger.getEffectiveLevel()}")
 glogger.info(f"local = {local}")
-# print(f"local = {local}")
-# print("__file__ = {}".format(__file__))
