@@ -1,12 +1,11 @@
 """Initialization file that defines items within the app."""
-from global_logger import glogger, local
+from global_logger import logger, local
 from config import Config
 from flask import Flask
 from flask_bootstrap import Bootstrap
 from flask_moment import Moment
 import boto3
 
-logger = glogger
 bootstrap = Bootstrap()
 moment = Moment()
 

@@ -18,3 +18,6 @@ error_handlers:
 
 # env_variables:
 #   SQLALCHEMY_DATABASE_URI: postgres+psycopg2://USER:PW@/breadsheet?host=/cloudsql/breadsheet:us-west1:breadsheet
+
+includes:
+  - env_variables.yaml

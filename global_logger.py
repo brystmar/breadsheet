@@ -16,14 +16,14 @@ if local:
 
     logging.basicConfig(filename=log_file, level=logging.DEBUG, datefmt='%Y-%m-%d %H:%M:%S', filemode='w',
                         format='%(asctime)s | %(name)s | %(levelname)s | %(message)s')
-    glogger = logging.getLogger(__name__)
+    logger = logging.getLogger(__name__)
 else:
     logging.basicConfig(stream=sys.stdout, level=logging.DEBUG, datefmt='%Y-%m-%d %H:%M:%S',
                         format='%(asctime)s | %(name)s | %(levelname)s | %(message)s')
-    glogger = logging.getLogger(__name__)
+    logger = logging.getLogger(__name__)
 
-glogger.setLevel(logging.DEBUG)
-glogger.info("\n=======================================\n\n")
-glogger.info("Global logging initialized!  Level: Debug")
-glogger.info(f"Logging level: {glogger.getEffectiveLevel()}")
-glogger.info(f"local = {local}")
+logger.setLevel(logging.DEBUG)
+logger.info("\n=======================================\n\n")
+logger.info("Global logging initialized!  Level: Debug")
+logger.info(f"Logging level: {logger.getEffectiveLevel()}")
+logger.info(f"local = {local}")

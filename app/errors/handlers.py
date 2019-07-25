@@ -1,10 +1,7 @@
 from flask import render_template
+from app import logger
 from app.errors import bp
-from global_logger import glogger
-import logging
-
-logger = glogger
-logger.setLevel(logging.DEBUG)
+from global_logger import logger
 
 
 @bp.app_errorhandler(404)
