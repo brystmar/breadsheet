@@ -1,15 +1,16 @@
-from datetime import date
+from datetime import date, datetime
 
 
 class Recipe:
-    id = int
+    id = str
     name = str
     author = str
     source = str
     difficulty = str
-    date_added = date.today()
-    length = int
+    date_added = date
+    start_time = datetime
     steps = list
+    length = int
 
     def __init__(self):
         self.date_added = date.today()
