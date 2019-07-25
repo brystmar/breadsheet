@@ -53,7 +53,7 @@ py==1.8.0
 pyasn1==0.4.5
 pyasn1-modules==0.2.4
 pynamodb==3.4.1
-pyparsing==2.4.1
+pyparsing==2.4.1.1
 pyperclip==1.7.0
 pytest==5.0.1
 python-dateutil==2.8.0
