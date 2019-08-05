@@ -10,6 +10,16 @@
     <orderEntry type="library" name="R User Library" level="project" />
     <orderEntry type="library" name="R Skeletons" level="application" />
   </component>
+  <component name="TemplatesService">
+    <option name="TEMPLATE_FOLDERS">
+      <list>
+        <option value="$MODULE_DIR$/app/templates" />
+        <option value="$MODULE_DIR$/app/templates/convert" />
+        <option value="$MODULE_DIR$/app/templates/errors" />
+        <option value="$MODULE_DIR$/app/templates/recipes" />
+      </list>
+    </option>
+  </component>
   <component name="TestRunnerService">
     <option name="PROJECT_TEST_RUNNER" value="Unittests" />
   </component>

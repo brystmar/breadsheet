@@ -17,6 +17,7 @@ if local:
     logging.basicConfig(filename=log_file, level=logging.DEBUG, datefmt='%Y-%m-%d %H:%M:%S', filemode='w',
                         format='%(asctime)s | %(name)s | %(levelname)s | %(message)s')
     logger = logging.getLogger(__name__)
+
 else:
     logging.basicConfig(stream=sys.stdout, level=logging.DEBUG, datefmt='%Y-%m-%d %H:%M:%S',
                         format='%(asctime)s | %(name)s | %(levelname)s | %(message)s')

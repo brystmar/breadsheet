@@ -10,6 +10,7 @@ __pycache__/
 env_variables.yaml
 breadsheet.py
 breadsheet-prod.json
+.aws/*
 
 # Created by https://www.gitignore.io/api/venv,macos,pycharm
 # Edit at https://www.gitignore.io/?templates=venv,macos,pycharm
@@ -136,3 +137,4 @@ pyvenv.cfg
 pip-selfcheck.json
 
 # End of https://www.gitignore.io/api/venv,macos,pycharm
+/.aws/*

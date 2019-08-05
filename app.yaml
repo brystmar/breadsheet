@@ -1,11 +1,7 @@
 # https://yamlchecker.com/
 runtime: python37
-
-# instance_class: F1
-#   defaults to F1 anyway
-
-# entrypoint: gunicorn -w 1 --timeout 60 main:app
-#   no longer needed since renaming breadsheet.py --> main.py, and renaming 'breadapp' --> 'app'
+includes:
+  - env_variables.yaml
 
 error_handlers:
   - file: app/templates/errors/default_error.html
@@ -13,11 +9,14 @@ error_handlers:
   - error_code: over_quota
     file: app/templates/errors/over_quota.html
 
+# instance_class: F1
+#   defaults to F1 anyway
+
+# entrypoint: gunicorn -w 1 --timeout 60 main:app
+#   no longer needed since renaming breadsheet.py --> main.py, and renaming 'breadapp' --> 'app'
+
 # beta_settings:
 #   cloud_sql_instances: breadsheet:us-west1:breadsheet
 
 # env_variables:
 #   SQLALCHEMY_DATABASE_URI: postgres+psycopg2://USER:PW@/breadsheet?host=/cloudsql/breadsheet:us-west1:breadsheet
-
-includes:
-  - env_variables.yaml
