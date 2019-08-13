@@ -11,6 +11,8 @@ env_variables.yaml
 breadsheet.py
 breadsheet-prod.json
 .aws/*
+.boto
+.boto/*
 
 # Created by https://www.gitignore.io/api/venv,macos,pycharm
 # Edit at https://www.gitignore.io/?templates=venv,macos,pycharm

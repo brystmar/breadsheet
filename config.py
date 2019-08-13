@@ -25,6 +25,10 @@ class Config(object):
     SECRET_KEY = environ.get('SECRET_KEY') or '0mW7@LN0n32L6ntaj0d8jzsXiAW4mkPL7u5l'
     domain_url = environ.get('DOMAIN_URL')
 
+    # Date & time formatting prefs
+    date_format = '%Y-%m-%d'
+    datetime_format = '%Y-%m-%d %H:%M:%S'
+
     logger.info("End of the Config() class.")
 
 

@@ -6,21 +6,21 @@
         <table id="recipe" class="table table-condensed">
                 <tr id="recipe_row1">
                     <th id="recipe_author_label"><b>Author:</b></th>
-                    <th id="recipe_author">{{ recipe['author'] or "--" }}</th>
+                    <th id="recipe_author">{{ recipe.author or "--" }}</th>
                     <th id="recipe_difficulty_label"><b>Difficulty:</b></th>
-                    <th id="recipe_difficulty">{{ recipe['difficulty'] }}</th>
+                    <th id="recipe_difficulty">{{ recipe.difficulty }}</th>
                 </tr>
 
             <tr id="recipe_row2">
                 <td id="recipe_source_label"><b>Source:</b></td>
-                <td id="recipe_source">{{ recipe['source'] or "--" }}</td>
+                <td id="recipe_source">{{ recipe.source or "--" }}</td>
                 <td id="recipe_date_added_label"><b>Added:</b></td>
-                <td id="recipe_date_added">{{ recipe['date_added_ui'] }}</td>
+                <td id="recipe_date_added">{{ recipe.date_added_ui }}</td>
             </tr>
 
             <tr id="recipe_row3">
                 <td id="recipe_total_time_label"><b>Total Time:</b></td>
-                <td id="recipe_total_time">{{ recipe['total_time_ui'] or "--" }}</td>
+                <td id="recipe_total_time">{{ recipe.total_time_ui or "--" }}</td>
             </tr>
         </table>
     </div>

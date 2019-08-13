@@ -1,12 +1,15 @@
 """Determine which page(s) to render for each browser request."""
+
 from app import db, logger
 from app.main import bp
 from app.main.forms import RecipeForm, StepForm, ThenWaitForm, StartFinishForm, paprika_recipe_ids
+from app.models import Recipe, Step, Replacement
 from boto3.dynamodb.conditions import Key
-from config import PST
+from config import Config, PST
 from datetime import datetime, timedelta
 from flask import render_template, redirect, url_for, request, send_from_directory  # , flash
 from os import path
+# from data import recipes_static
 
 
 # Map the specified URL to this function
@@ -14,24 +17,15 @@ from os import path
 @bp.route('/index')
 @bp.route('/')
 def index():
-    logger.info("Start of index()")
+    logger.info("\n\nStart of index()\n\n")
 
-    # Grab all recipes from the db
-    response = db.Table('Recipe').scan()
-
-    # Check the response code
-    response_code = response['ResponseMetadata']['HTTPStatusCode']
-    logger.debug(f"Scanned the Recipe table, HTTPStatusCode={response_code}")
-    if response_code == 200:
-        logger.debug(f"Recipes returned from dynamodb: {response['Items']}")
-    else:
-        logger.warning(f"DynamoDB error: HTTPStatusCode={response_code}")
-        logger.debug(f"Full response log:\n{response['ResponseMetadata']}")
+    # Grab all recipes from the db, sort by id
+    recipes = sorted(Recipe.scan(), key=lambda r: r.id)
 
     # Optimize the data for processing & display
-    recipes = sort_list_of_dictionaries(response['Items'], 'id')
-    recipes = convert_recipe_strings_to_datetime(recipes)
-    recipes = add_recipe_ui_fields(recipes)
+    for each_recipe in recipes:
+        each_recipe = convert_recipe_strings_to_datetime(each_recipe)
+        each_recipe = add_recipe_ui_fields(each_recipe)
 
     logger.info("Rendering the homepage.  End of index()")
     return render_template('index.html', title='Breadsheet: A Recipe Scheduling Tool', recipes=recipes)
@@ -52,8 +46,8 @@ def add_recipe():
             'author':        "--" if form.author.data in (None, "") else form.author.data,
             'source':        "--" if form.source.data in (None, "") else form.source.data,
             'difficulty':    form.difficulty.data,
-            'date_added':    PST.localize(datetime.now()).strftime("%Y-%m-%d"),
-            'start_time':    PST.localize(datetime.now()).strftime("%Y-%m-%d %H:%M:%S"),
+            'date_added':    PST.localize(datetime.now()).strftime(Config.date_format),
+            'start_time':    PST.localize(datetime.now()).strftime(Config.datetime_format),
             'steps':         [],
             'length':        0,
             'total_time_ui': "--"
@@ -73,7 +67,7 @@ def add_recipe():
             logger.debug(f"Full response log:\n{write_response['ResponseMetadata']}")
 
         logger.debug("Redirecting to the main recipe page.  End of add_recipe().")
-        return redirect(url_for("main.recipe") + f"?id={new_recipe['id']}")
+        return redirect(url_for("main.recipe") + f"?id={new_recipe.id}")
 
     logger.debug("End of add_recipe()")
     return render_template('add_recipe.html', title='Add Recipe', rform=form)
@@ -113,7 +107,7 @@ def recipe():
     recipe = add_recipe_ui_fields(recipe)
 
     # Optimize the step data for display
-    steps = set_when(recipe['steps'], recipe['start_time'])
+    steps = set_when(recipe.steps, recipe.start_time)
     twforms = create_tw_forms(steps)
     seform = create_start_finish_forms(recipe)
 
@@ -121,16 +115,15 @@ def recipe():
         logger.info("StepForm submitted.")
 
         # convert the 'then_wait' inputs to seconds
-        new_step = {
-            'number':    len(steps) + 1,
-            'text':      form.text.data,
-            'then_wait': hms_to_seconds([form.then_wait_h.data, form.then_wait_m.data, 0]),
-            'note':      form.note.data if form.note.data != "" else " "
-        }
+        new_step = Step(number=len(steps) + 1, text=form.text.data,
+                        then_wait=hms_to_seconds([form.then_wait_h.data, form.then_wait_m.data, 0]),
+                        then_wait_ui=hms_to_string([form.then_wait_h.data, form.then_wait_m, 0]),
+                        note=form.note.data if form.note.data != "" else " ")
+
         logger.info(f"New step data: {new_step}")
 
         # Add this new step to the existing list of steps
-        recipe['steps'].append(new_step)
+        recipe.steps.append(new_step)
 
         # Update the database
         write_response = db.Table("Recipe").put_item(Item=cleanup_before_db_write(recipe))
@@ -143,7 +136,7 @@ def recipe():
             logger.warning(f"DynamoDB error: HTTPStatusCode={response_code}")
             logger.debug(f"Full response log:\n{write_response['ResponseMetadata']}")
 
-        logger.info(f"Recipe {recipe['id']} updated in the db to include step {new_step['number']}.")
+        logger.info(f"Recipe {recipe.id} updated in the db to include step {new_step.number}.")
 
         logger.debug("Redirecting to the main recipe page.  End of recipe().")
         return redirect(url_for('main.recipe') + f'?id={recipe_id}')
@@ -154,7 +147,7 @@ def recipe():
         form.number.data = len(steps) + 1
 
     logger.debug("Rendering the recipe page.  End of recipe().")
-    return render_template('recipe.html', title=recipe['name'], recipe=recipe, steps=steps, sform=form,
+    return render_template('recipe.html', title=recipe.name, recipe=recipe, steps=steps, sform=form,
                            seform=seform, twforms=twforms, paprika_recipe_ids=paprika_recipe_ids)
 
 
@@ -186,58 +179,51 @@ def cleanup_before_db_write(recipe_input):
     """Additional attributes are added to recipes & steps for easier local processing.  No need to add these to the db.
 
     Also, DynamoDB doesn't accept datetime objects in string fields, so we need to convert those fields to strings."""
-    logger.debug(f"Entering cleanup_before_db_write(), with: {recipe_input}")
-
-    # Remove unnecessary attributes
-    recipe_fields_to_remove = ['start_time_ui', 'start_time_split', 'date_added_ui', 'total_time',
-                               'finish_time', 'finish_time_ui']
-    step_fields_to_remove = ['when', 'then_wait_ui', 'then_wait_list', 'then_wait_timedelta']
-
-    for r in recipe_fields_to_remove:
-        result = recipe_input.pop(r, None)
-
-        if result is not None:
-            # Only returns a non-null value if something was removed
-            logger.debug(f"Removed recipe item: {r}")
-
-    for step in recipe_input['steps']:
-        for s in step_fields_to_remove:
-            result = step.pop(s, None)
-
-            if result is not None:
-                logger.debug(f"Removed step #{step['number']} item: {s}")
-
-    # Convert datetime objects to strings
-    recipe_input['date_added'] = recipe_input['date_added'].strftime('%Y-%m-%d')
-    recipe_input['start_time'] = recipe_input['start_time'].strftime('%Y-%m-%d %H:%M:%S')
-
-    logger.debug(f"End of cleanup_before_db_write(), with: {recipe_input}")
+    # logger.debug(f"Entering cleanup_before_db_write(), with: {recipe_input}")
+    #
+    # # Remove unnecessary attributes
+    # recipe_fields_to_remove = ['start_time_ui', 'start_time_split', 'date_added_ui', 'total_time',
+    #                            'finish_time', 'finish_time_ui']
+    # step_fields_to_remove = ['when', 'then_wait_ui', 'then_wait_list', 'then_wait_timedelta']
+    #
+    # for r in recipe_fields_to_remove:
+    #     result = recipe_input.pop(r, None)
+    #
+    #     if result is not None:
+    #         # Only returns a non-null value if something was removed
+    #         logger.debug(f"Removed recipe item: {r}")
+    #
+    # for step in recipe_input.steps:
+    #     for s in step_fields_to_remove:
+    #         result = step.pop(s, None)
+    #
+    #         if result is not None:
+    #             logger.debug(f"Removed step #{step.number} item: {s}")
+    #
+    # # Convert datetime objects to strings
+    # recipe_input.date_added = recipe_input.date_added.strftime(Config.date_format)
+    # recipe_input.start_time = recipe_input.start_time.strftime(Config.datetime_format)
+    #
+    # logger.debug(f"End of cleanup_before_db_write(), with: {recipe_input}")
     return recipe_input
 
 
-def convert_recipe_strings_to_datetime(recipe_input):
+def convert_recipe_strings_to_datetime(recipe_input) -> Recipe:
     """Most recipe fields are stored as strings in the db.  Convert them to datetime objects here."""
-    logger.debug(f"Start of convert_recipe_strings_to_datetime() for {len(recipe_input)} recipe_input(s)")
+    logger.debug(f"Start of convert_recipe_strings_to_datetime() for {recipe_input.id}: {recipe_input.name}")
 
-    # Makes this function recursive if the input was a list
-    if isinstance(recipe_input, list):
-        logger.debug(f"Parsing a list of {len(recipe_input)} recipes.")
-        for r in recipe_input:
-            r = convert_recipe_strings_to_datetime(r)
-    else:
-        logger.debug(f"Converting fields for recipe_input {recipe_input['id']}: {recipe_input['name']}")
-        recipe_input['date_added'] = datetime.strptime(recipe_input['date_added'], '%Y-%m-%d')
+    recipe_input.date_added = datetime.strptime(recipe_input.date_added, Config.date_format)
 
-        # TODO: Make these lines unnecessary!
-        # force PST
-        recipe_input['start_time'] = datetime.utcnow() - timedelta(seconds=3600*7)
-        recipe_input['start_time_ui'] = recipe_input['start_time'].strftime('%Y-%m-%d %H:%M:%S')
+    # TODO: Make these lines unnecessary!
+    # force PST
+    recipe_input.start_time = datetime.utcnow() - timedelta(seconds=3600*7)
+    recipe_input.start_time_ui = recipe_input.start_time.strftime(Config.datetime_format)
 
-        # Length comes in as type=Decimal; some functions only accept integers
-        try:
-            recipe_input['length'] = int(recipe_input['length'])
-        except KeyError:
-            recipe_input['length'] = calculate_recipe_length(recipe_input)
+    # Length comes in as type=Decimal; some functions only accept integers
+    try:
+        recipe_input.length = int(recipe_input.length)
+    except KeyError:
+        recipe_input.length = calculate_recipe_length(recipe_input)
 
     logger.debug(f"End of convert_recipe_strings_to_datetime()")
     return recipe_input
@@ -245,21 +231,21 @@ def convert_recipe_strings_to_datetime(recipe_input):
 
 def calculate_recipe_length(recipe_input):
     """Add/update the recipe_input's length (in seconds) by summing the length of each step."""
-    logger.debug(f"Start of calculate_recipe_length() for recipe_input {recipe_input['id']}")
+    logger.debug(f"Start of calculate_recipe_length() for recipe_input {recipe_input.id}")
     try:
-        original_length = recipe_input['length']
+        original_length = recipe_input.length
     except KeyError:
         original_length = -1
 
     length = 0
-    for step in recipe_input['steps']:
-        if isinstance(step['then_wait'], timedelta):
-            length += int(step['then_wait'].total_seconds())  # total_seconds returns a float
+    for step in recipe_input.steps:
+        if isinstance(step.then_wait, timedelta):
+            length += int(step.then_wait.total_seconds())  # total_seconds returns a float
         else:
-            length += step['then_wait']
+            length += step.then_wait
 
     logger.debug(f"Calculated length: {length}, original length: {original_length}")
-    recipe_input['length'] = length
+    recipe_input.length = length
 
     if length != original_length:
         # Update the database if the length changed
@@ -273,7 +259,7 @@ def calculate_recipe_length(recipe_input):
             logger.warning(f"DynamoDB error: HTTPStatusCode={response_code}")
             logger.debug(f"Full response log:\n{write_response['ResponseMetadata']}")
 
-        logger.info(f"Updated recipe_input {recipe_input['id']} in the database to reflect its new length.")
+        logger.info(f"Updated recipe_input {recipe_input.id} in the database to reflect its new length.")
 
     logger.debug("End of calculate_recipe_length()")
     return recipe_input
@@ -333,71 +319,61 @@ def hms_to_string(data) -> str:
     return result
 
 
-def set_when(steps, when) -> list:
+def set_when(steps, when) -> Recipe.steps:
     """Calculate when each step should begin, using a list of steps plus the benchmark time. Returns a list of steps."""
 
     logger.debug(f"Start of set_when(), with when={when}, {len(steps)} steps, all steps: {steps}")
     i = 0
     for step in steps:
-        logger.debug(f"Looking at step {step['number']}, when={when.strftime('%a %H:%M')},"
-                     f"then_wait={step['then_wait']}")
+        logger.debug(f"Looking at step {step.number}, when={when.strftime('%a %H:%M')},"
+                     f"then_wait={step.then_wait}")
 
         # Set the 'when' for this step
-        step['when'] = when.strftime('%a %H:%M')
+        step.when = when.strftime('%a %H:%M')
 
         # Create a timedelta object for then_wait to simplify formulas
-        step['then_wait'] = 0 if step['then_wait'] is None else int(step['then_wait'])
-        step['then_wait_timedelta'] = timedelta(seconds=step['then_wait'])
+        step.then_wait = 0 if step.then_wait is None else int(step.then_wait)
+        step.then_wait_timedelta = timedelta(seconds=step.then_wait)
 
         # Increment
-        when += step['then_wait_timedelta']
+        when += step.then_wait_timedelta
 
-        step['then_wait_ui'] = str(step['then_wait_timedelta'])
-        step['then_wait_list'] = step['then_wait_ui'].split(":")
+        step.then_wait_ui = str(step.then_wait_timedelta)
+        step.then_wait_list = step.then_wait_ui.split(":")
         i += 1
 
-        logger.debug(f"Finished step {step['number']}: then_wait={step['then_wait']}, tw_list={step['then_wait_list']},"
-                     f" tw_ui={step['then_wait_ui']}, timedelta={step['then_wait_timedelta']}, when={when} (next step)")
+        logger.debug(f"Finished step {step.number}")
 
     logger.debug(f"End of set_when(), returning: {steps}")
     return steps
 
 
-def add_recipe_ui_fields(recipe_input):
-    """Input: an individual Recipe class, or a list of Recipes.
+def add_recipe_ui_fields(recipe_input) -> Recipe:
+    """Input: an individual Recipe class.  Populates date_added_ui, start_time, finish_time, & total_time_ui."""
+    logger.debug(f"Start of add_recipe_ui_fields() for {recipe_input.id}: {recipe_input.name}")
 
-    Populates the date_added_ui, start_time, & finish_time fields."""
-    logger.debug(f"Start of add_recipe_ui_fields() for {len(recipe_input)} recipe_input(s)")
+    recipe_input.date_added_ui = str(recipe_input.date_added)[:10]
 
-    # Makes this function recursive if the input was a list
-    if isinstance(recipe_input, list):
-        logger.debug(f"Parsing a list of {len(recipe_input)} recipes.")
-        for r in recipe_input:
-            r = add_recipe_ui_fields(r)
+    # Ensure start_time is a timedelta object
+    if not isinstance(recipe_input.start_time, datetime):
+        recipe_input.start_time = datetime.strptime(recipe_input.start_time, Config.datetime_format)
+
+    if recipe_input.length in (None, 0):
+        recipe_input.finish_time = recipe_input.start_time
+        recipe_input.finish_time_ui = recipe_input.start_time_ui
+        recipe_input.length = 0
     else:
-        logger.debug(f"Adding UI fields for recipe_input {recipe_input['id']}: {recipe_input['name']}")
-        recipe_input['date_added_ui'] = str(recipe_input['date_added'])[:10]
+        delta_length = timedelta(seconds=int(recipe_input.length))
+        recipe_input.finish_time = recipe_input.start_time + delta_length
+        recipe_input.finish_time_ui = recipe_input.finish_time.strftime(Config.datetime_format)
 
-        # Ensure start_time is a timedelta object
-        if not isinstance(recipe_input['start_time'], datetime):
-            recipe_input['start_time'] = datetime.strptime(recipe_input['start_time'], '%Y-%m-%d %H:%M:%S')
-
-        if recipe_input['length'] in (None, 0):
-            recipe_input['finish_time'] = recipe_input['start_time']
-            recipe_input['finish_time_ui'] = recipe_input['start_time_ui']
-            recipe_input['length'] = 0
+        if 'day' in str(delta_length):
+            # If the recipe_input takes >24hrs, the system formats the string: '2 days, 1:30:05'
+            delta_length_split = str(delta_length).split(", ")
+            delta_to_parse = delta_length_split[1].split(':')
+            recipe_input.total_time_ui = f"{delta_length_split[0]}, {hms_to_string(delta_to_parse)}"
         else:
-            delta_length = timedelta(seconds=int(recipe_input['length']))
-            recipe_input['finish_time'] = recipe_input['start_time'] + delta_length
-            recipe_input['finish_time_ui'] = recipe_input['finish_time'].strftime('%Y-%m-%d %H:%M:%S')
-
-            if 'day' in str(delta_length):
-                # If the recipe_input takes >24hrs, the system formats the string: '2 days, 1:30:05'
-                delta_length_split = str(delta_length).split(", ")
-                delta_to_parse = delta_length_split[1].split(':')
-                recipe_input['total_time_ui'] = f"{delta_length_split[0]}, {hms_to_string(delta_to_parse)}"
-            else:
-                recipe_input['total_time_ui'] = hms_to_string(str(delta_length).split(':'))
+            recipe_input.total_time_ui = hms_to_string(str(delta_length).split(':'))
 
     logger.debug(f"End of add_recipe_ui_fields()")
     return recipe_input
@@ -408,24 +384,24 @@ def create_tw_forms(steps) -> list:
     logger.debug(f"Start of create_tw_forms(), with: {steps}")
 
     twforms = []
-    for s in steps:
-        logger.debug(f"Looking at step {s['number']}, then_wait={s['then_wait']}, then_wait_ui={s['then_wait_ui']}")
+    for step in steps:
+        logger.debug(f"Looking at step {step.number}, then_wait={step.then_wait}, then_wait_ui={step.then_wait_ui}")
         tw = ThenWaitForm()
-        tw.step_number = s['number']
+        tw.step_number = step.number
 
         # If steps take >24hrs, timedelta strings are formatted: '2 days, 1:35:28'
-        if 'day' in s['then_wait_ui']:
+        if 'day' in step.then_wait_ui:
             # Split the string into days, then everything else
-            days = int(s['then_wait_ui'].split(" day")[0])
+            days = int(step.then_wait_ui.split(" day")[0])
             # days = days // (60 * 60 * 24)
 
             # Split the second portion by ':', then add the number of hours
-            hours = int(s['then_wait_list'][1]) + (days * 24)
-            tw.then_wait_m.data = s['then_wait_list'][2]
+            hours = int(step.then_wait_list[1]) + (days * 24)
+            tw.then_wait_m.data = step.then_wait_list[2]
         else:
             # Otherwise, just split as normal
-            hours = s['then_wait_list'][0]
-            tw.then_wait_m.data = s['then_wait_list'][1]
+            hours = step.then_wait_list[0]
+            tw.then_wait_m.data = step.then_wait_list[1]
 
         # timedelta doesn't zero-pad the hours, so F* IT! WE'LL DO IT LIVE!
         if int(hours) <= 9:
@@ -433,8 +409,8 @@ def create_tw_forms(steps) -> list:
         else:
             tw.then_wait_h.data = str(hours)
 
-        tw.then_wait = s['then_wait']
-        logger.debug(f"Done w/{s['number']}: then_wait_h={tw.then_wait_h.data}, then_wait_m={tw.then_wait_m.data}")
+        tw.then_wait = step.then_wait
+        logger.debug(f"Done w/{step.number}: then_wait_h={tw.then_wait_h.data}, then_wait_m={tw.then_wait_m.data}")
         twforms.append(tw)
     logger.debug(f"End of create_tw_forms(), returning {twforms}")
     return twforms
@@ -442,14 +418,14 @@ def create_tw_forms(steps) -> list:
 
 def create_start_finish_forms(recipe_input) -> StartFinishForm:
     """Set values for the form displaying start & finish times for this recipe."""
-    logger.debug(f"Start of create_start_finish_forms(), for {recipe_input['id']}")
+    logger.debug(f"Start of create_start_finish_forms(), for {recipe_input.id}")
 
     seform = StartFinishForm()
-    seform.recipe_id.data = recipe_input['id']
-    seform.start_date.data = recipe_input['start_time']
-    seform.start_time.data = recipe_input['start_time']
-    seform.finish_date.data = recipe_input['finish_time']
-    seform.finish_time.data = recipe_input['finish_time']
+    seform.recipe_id.data = recipe_input.id
+    seform.start_date.data = recipe_input.start_time
+    seform.start_time.data = recipe_input.start_time
+    seform.finish_date.data = recipe_input.finish_time
+    seform.finish_time.data = recipe_input.finish_time
     seform.solve_for_start.data = "1"
 
     logger.debug(f"End of create_start_finish_forms(), returning seform: {seform}")
