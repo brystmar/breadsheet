@@ -6,13 +6,12 @@ from wtforms.validators import DataRequired, Length, NumberRange, Optional  # , 
 
 class RecipeForm(FlaskForm):
     name = StringField('Name', validators=[DataRequired()], render_kw={'autofocus': True})
-    author = StringField('Author')
-    source = StringField('Source')
-    difficulty = SelectField('Difficulty', validators=[DataRequired()], default='Intermediate',
-                             choices=[
-                                 ('Beginner', 'Beginner'),
-                                 ('Intermediate', 'Intermediate'),
-                                 ('Advanced', 'Advanced')])
+    author = StringField('Author', validators=[DataRequired()])
+    source = StringField('Source', validators=[DataRequired()])
+    difficulty = SelectField('Difficulty', validators=[DataRequired()], render_kw={'class': 'list-group'},
+                             default='Intermediate', choices=[('Beginner', 'Beginner'),
+                                                              ('Intermediate', 'Intermediate'),
+                                                              ('Advanced', 'Advanced')])
     submit = SubmitField('Add Recipe', render_kw={'class': 'btn btn-primary'})
 
     # ensure recipe name is unique

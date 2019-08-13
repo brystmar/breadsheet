@@ -1,3 +1,4 @@
+from app.main.routes import hms_to_string
 from config import Config
 from datetime import date, datetime, timedelta
 from pynamodb.models import Model
@@ -11,14 +12,14 @@ class Step(MapAttribute):
     then_wait_ui = UnicodeAttribute()
     note = UnicodeAttribute()
 
-    def __init__(self, number, text, then_wait, then_wait_ui, note, **attrs):
+    def __init__(self, number, text, then_wait, note, **attrs):
         super().__init__(**attrs)
 
         # Allows initialization of the class on a single line
         self.number = number
         self.text = text
         self.then_wait = then_wait
-        self.then_wait_ui = then_wait_ui
+        self.then_wait_ui = hms_to_string([0, 0, self.then_wait])
         self.note = note
 
     def __repr__(self):
@@ -43,15 +44,36 @@ class Recipe(Model):
     date_added = UTCDateTimeAttribute(default=date.today())
     date_added_ui = UTCDateTimeAttribute(default=date.today().strftime(Config.date_format))
 
-    # TODO: Set to the browser's timezone automatically instead of forcing PST
-    start_time = UTCDateTimeAttribute(default=datetime.utcnow() - timedelta(seconds=3600 * 7))
-    start_time_ui = UnicodeAttribute(default=(datetime.utcnow() - timedelta(seconds=3600 * 7)).
-                                     strftime(Config.datetime_format))
+    start_time = UTCDateTimeAttribute(default=datetime.utcnow())
+    start_time_ui = UnicodeAttribute(default=datetime.utcnow().strftime(Config.datetime_format))
 
     finish_time = UTCDateTimeAttribute()
     finish_time_ui = UnicodeAttribute()
 
     total_time_ui = UnicodeAttribute()
+
+    def __init__(self, id, name, author, source, difficulty, steps, length, date_added, start_time, **attrs):
+        super().__init__(**attrs)
+
+        self.id = id
+        self.name = name
+        self.author = author
+        self.source = source
+        self.difficulty = difficulty
+        self.steps = steps
+        self.length = length
+
+        # TODO: Set to the browser's timezone automatically instead of forcing PST
+        self.date_added = date_added - timedelta(seconds=3600 * 7)
+        self.date_added_ui = self.date_added.strftime(Config.date_format)
+
+        self.start_time = start_time - timedelta(seconds=3600 * 7)
+        self.start_time_ui = self.start_time.strftime(Config.datetime_format)
+
+        self.finish_time = self.start_time + timedelta(seconds=self.length)
+        self.finish_time_ui = self.finish_time.strftime(Config.datetime_format)
+
+        self.total_time_ui = hms_to_string([0, 0, self.length])
 
     def __repr__(self):
         return f'<Recipe {self.id}: {self.name}>'
