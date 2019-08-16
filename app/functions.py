@@ -1,5 +1,5 @@
 from app import logger
-from datetime import datetime
+from datetime import datetime, timedelta
 
 
 # def sort_list_of_dictionaries(unsorted_list, key_to_sort_by, reverse=False) -> list:
@@ -16,60 +16,50 @@ def generate_new_id() -> str:
     # For my sanity, ensure all ids are the same length.  Timestamps occasionally end in 0, which the system truncates.
     while len(new_id) != 54:
         new_id = f"{datetime.utcnow().timestamp()}_{uuid.uuid4()}"
-
     return new_id
 
 
+def seconds_to_hms(seconds_input) -> list:
+    """Converts a raw number of seconds (int/str) to a list of strings: [hours, minutes, seconds]."""
+    logger.debug(f"Start of seconds_to_hms(), with: {seconds_input}")
+    result = timedelta(seconds=int(seconds_input)).__str__().split(":")
+    logger.debug(f"End of seconds_to_hms(), returning: {result}")
+    return result
+
+
 def hms_to_seconds(hms) -> int:
-    """Convert a list of [hours, minutes, seconds] to a total number of seconds."""
-    logger.debug(f"Start of hms_to_seconds(), with: {hms}")
-    if not (isinstance(hms, list) and len(hms) == 3):
-        logger.warning(f"Error in hms_to_seconds function: Invalid input {hms}.")
-        logger.debug("End of hms_to_seconds(), returning 0")
-        return 0
-
-    if hms[0] is None:
-        hms[0] = 0
-    if hms[1] is None:
-        hms[1] = 0
-    if hms[2] is None:
-        hms[2] = 0
-
-    try:
-        hms[0] = int(hms[0])
-        hms[1] = int(hms[1])
-        hms[2] = int(hms[2])
-        result = (hms[0] * 60 * 60) + (hms[1] * 60) + (hms[2])
-
-        logger.debug(f"End of hms_to_seconds(), returning: {result}")
-        return result
-    except TypeError:
-        logger.warning(f"Error in hms_to_seconds function: List values {hms} cannot be converted to int.")
-        logger.debug("End of hms_to_seconds(), returning 0")
-        return 0
+    """Convert an int/str list of [hours, minutes, seconds] to a total number of seconds (int)."""
+    result = int(timedelta(hours=int(hms[0]), minutes=int(hms[1]), seconds=int(hms[2])).total_seconds())
+    return result
 
 
 def hms_to_string(data) -> str:
-    """Convert a list of [hrs, min, sec] to a human-readable string.  Yet again, because I'm a newbie."""
+    """Convert an int/str list of [hrs, min, sec] to a human-readable string.  Yet again, because I'm a newbie."""
     logger.debug(f"Start of hms_to_string(), with: {data}")
-    result = ''
-    if data[0] in ('0', '00'):
-        pass
-    elif data[0] == '1':
+
+    # TODO: Add support for days
+    # Days
+
+    # Hours
+    if data[0] in('0', '00', 0):
+        result = ''
+    elif data[0] in('1', 1):
         result = f'{data[0]} hr'
     else:
         result = f'{data[0]} hrs'
 
-    if data[1] in ('0', '00') and result != '':
+    # Minutes
+    if data[1] in ('0', '00', 0) and result != '':
         logger.debug(f"End of hms_to_string(), returning: {result}")
         return result  # round off the seconds if it's an even number of hours
-    elif data[1] in ('0', '00') and result == '':
+    elif data[1] in ('0', '00', 0) and result == '':
         pass
     elif result == '':
         result += f'{data[1]} min'
     else:
         result += f', {data[1]} min'
 
+    # We don't care about seconds
     logger.debug(f"End of hms_to_string(), returning: {result}")
     return result
 

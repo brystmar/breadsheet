@@ -28,6 +28,7 @@ class Config(object):
     # Date & time formatting prefs
     date_format = '%Y-%m-%d'
     datetime_format = '%Y-%m-%d %H:%M:%S'
+    step_when_format = '%a %H:%M'
 
     logger.info("End of the Config() class.")
 
