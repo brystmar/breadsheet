@@ -1,21 +1,20 @@
 """Initialization file that defines items within the app."""
-from global_logger import logger, local
+from global_logger import logger
 from config import Config
 from flask import Flask
 from flask_bootstrap import Bootstrap
 from flask_moment import Moment
-import boto3
 
 bootstrap = Bootstrap()
 moment = Moment()
 
 # Use the local dynamodb connection when running locally
-if local:
-    db = boto3.resource('dynamodb', region_name=Config.aws_region, aws_access_key_id=Config.aws_access_key,
-                        aws_secret_access_key=Config.aws_secret_access_key, endpoint_url='http://localhost:8008')
-else:
-    db = boto3.resource('dynamodb', region_name=Config.aws_region, aws_access_key_id=Config.aws_access_key,
-                        aws_secret_access_key=Config.aws_secret_access_key)
+# if local:
+#     db = boto3.resource('dynamodb', region_name=Config.aws_region, aws_access_key_id=Config.aws_access_key,
+#                         aws_secret_access_key=Config.aws_secret_access_key, endpoint_url='http://localhost:8008')
+# else:
+#     db = boto3.resource('dynamodb', region_name=Config.aws_region, aws_access_key_id=Config.aws_access_key,
+#                         aws_secret_access_key=Config.aws_secret_access_key)
 
 
 def create_app(config_class=Config):

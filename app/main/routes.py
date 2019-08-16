@@ -1,6 +1,6 @@
 """Determine which page(s) to render for each browser request."""
 
-from app import db, logger
+from app import logger
 from app.functions import generate_new_id, hms_to_seconds, hms_to_string
 from app.main import bp
 from app.main.forms import RecipeForm, StepForm, ThenWaitForm, StartFinishForm, paprika_recipe_ids
@@ -48,10 +48,10 @@ def add_recipe():
                             steps=[],
                             length=0)
 
-        logger.info(f"New recipe data: {new_recipe}")
-
         # Write this new recipe to the db
-        Recipe.save(new_recipe)
+        logger.info(f"About to write new recipe {new_recipe.name} to the database.")
+        new_recipe.save()
+        logger.info(f"New recipe {new_recipe.name} saved to the database.")
 
         logger.debug("Redirecting to the main recipe page.  End of add_recipe().")
         return redirect(url_for("main.recipe") + f"?id={new_recipe.id}")
@@ -90,17 +90,18 @@ def recipe():
     if form.validate_on_submit():
         logger.info("StepForm submitted.")
 
-        # convert the 'then_wait' inputs to seconds
-        new_step = Step(number=len(recipe_shown.steps) + 1, text=form.text.data,
+        # Create a new Step class for the submitted data
+        new_step = Step(number=len(recipe_shown.steps) + 1,
+                        text=form.text.data,
                         then_wait=hms_to_seconds([form.then_wait_h.data, form.then_wait_m.data, 0]),
                         note=form.note.data if form.note.data != "" else " ")
-        logger.info(f"New step data: {new_step}")
+        logger.info(f"New step #{new_step.number} added.")
 
         # Add this new step to the existing list of steps
-        recipe.steps.append(new_step)
+        recipe_shown.steps.append(new_step)
 
         # Update the database
-        Recipe.save(recipe)
+        recipe_shown.save()
         logger.info(f"Recipe {recipe.name} updated in the db to include step {new_step.number}.")
 
         logger.debug("Redirecting to the main recipe page.  End of recipe().")
@@ -142,17 +143,8 @@ def calculate_recipe_length(recipe_input):
 
     if length != original_length:
         # Update the database if the length changed
-        write_response = db.Table("Recipe").put_item(Item=recipe_input)
-
-        # Check the response code
-        response_code = write_response['ResponseMetadata']['HTTPStatusCode']
-        if response_code == 200:
-            logger.info("Recipe successfully added to the db.")
-        else:
-            logger.warning(f"DynamoDB error: HTTPStatusCode={response_code}")
-            logger.debug(f"Full response log:\n{write_response['ResponseMetadata']}")
-
-        logger.info(f"Updated recipe {recipe_input.name} in the database to reflect its new length.")
+        recipe_input.save()
+        logger.info(f"Updated recipe {recipe_input.name} to reflect its new length.")
 
     logger.debug("End of calculate_recipe_length()")
     return recipe_input

@@ -48,7 +48,7 @@ class Recipe(Model):
 
     # Dates & times
     date_added = UTCDateTimeAttribute(default=date.today())
-    date_added_ui = UTCDateTimeAttribute(default=date.today().strftime(Config.date_format))
+    date_added_ui = UnicodeAttribute(default=date.today().strftime(Config.date_format))
 
     start_time = UTCDateTimeAttribute(default=datetime.utcnow())
     start_time_ui = UnicodeAttribute(default=datetime.utcnow().strftime(Config.datetime_format))
@@ -94,7 +94,7 @@ class Recipe(Model):
         if data_changed:
             logger.debug(f"Data changed for recipe {self.name}")
             # logger.debug(f"About to update the db...")
-            # self.save()
+            self.save()
             # logger.debug(f"...db updated!")
             pass
 

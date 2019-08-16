@@ -14,12 +14,6 @@ class RecipeForm(FlaskForm):
                                                               ('Advanced', 'Advanced')])
     submit = SubmitField('Add Recipe', render_kw={'class': 'btn btn-primary'})
 
-    # ensure recipe name is unique
-    # def validate_recipename(self, name):
-    #     recipe_name = RecipeRDB.query.filter_by(name=name.data).first()
-    #     if recipe_name is not None or recipe_name.lower() == name.data.lower():
-    #         raise ValidationError('Recipe name is already in use.  Please enter a unique name.')
-
     def __repr__(self):  # tells python how to print objects of this class to the console while debugging
         return f'<RecipeForm: {self.name}>'
 
