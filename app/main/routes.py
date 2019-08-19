@@ -94,7 +94,7 @@ def recipe():
         new_step = Step(number=len(recipe_shown.steps) + 1,
                         text=form.text.data,
                         then_wait=hms_to_seconds([form.then_wait_h.data, form.then_wait_m.data, 0]),
-                        note=form.note.data if form.note.data != "" else " ")
+                        note=form.note.data if form.note.data != "" else "--")
         logger.info(f"New step #{new_step.number} added.")
 
         # Add this new step to the existing list of steps
@@ -102,7 +102,7 @@ def recipe():
 
         # Update the database
         recipe_shown.save()
-        logger.info(f"Recipe {recipe.name} updated in the db to include step {new_step.number}.")
+        logger.info(f"Recipe {recipe_shown.name} updated in the db to include step {new_step.number}.")
 
         logger.debug("Redirecting to the main recipe page.  End of recipe().")
         return redirect(url_for("main.recipe") + f"?id={recipe_id}")
@@ -134,7 +134,7 @@ def calculate_recipe_length(recipe_input):
     length = 0
     for step in recipe_input.steps:
         if isinstance(step.then_wait, timedelta):
-            length += int(step.then_wait.total_seconds())  # total_seconds returns a float
+            length += int(step.then_wait.total_seconds())  # wrapping w/int() because total_seconds returns a float
         else:
             length += step.then_wait
 

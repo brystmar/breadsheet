@@ -19,9 +19,9 @@ class RecipeForm(FlaskForm):
 
 
 class StepForm(FlaskForm):
-    number = IntegerField('Step #', id="addStep_number")
-    text = TextAreaField('Directions', validators=[DataRequired(), Length(max=512)], id="addStep_directions",
-                         render_kw={'autofocus': True})
+    number = IntegerField('Step #', validators=[DataRequired()], id="addStep_number")
+    text = StringField('Directions', validators=[DataRequired(), Length(max=128)], id="addStep_directions",
+                       render_kw={'autofocus': True})
     then_wait_h = IntegerField('Then Wait...', validators=[Optional(), NumberRange(min=0, max=999)],
                                id="addStep_then_wait_h", render_kw={'placeholder': 'h'})
     then_wait_m = IntegerField('Then Wait...', validators=[Optional(), NumberRange(min=0, max=999)],

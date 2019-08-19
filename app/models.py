@@ -9,12 +9,12 @@ from pynamodb.attributes import UnicodeAttribute, UTCDateTimeAttribute, NumberAt
 class Step(MapAttribute):
     number = NumberAttribute()
     text = UnicodeAttribute()
-    then_wait = NumberAttribute()
-    then_wait_ui = UnicodeAttribute()
-    note = UnicodeAttribute()
+    then_wait = NumberAttribute(null=True)
+    then_wait_ui = UnicodeAttribute(null=True)
+    note = UnicodeAttribute(null=True)
 
-    when = UnicodeAttribute()
-    then_wait_list = ListAttribute()
+    when = UnicodeAttribute(null=True)
+    then_wait_list = ListAttribute(null=True)
 
     def update_ui_fields(self):
         """Creates the _ui fields for date & time attributes, if they don't already exist."""
@@ -53,10 +53,10 @@ class Recipe(Model):
     start_time = UTCDateTimeAttribute(default=datetime.utcnow())
     start_time_ui = UnicodeAttribute(default=datetime.utcnow().strftime(Config.datetime_format))
 
-    finish_time = UTCDateTimeAttribute()
-    finish_time_ui = UnicodeAttribute()
+    finish_time = UTCDateTimeAttribute(null=True)
+    finish_time_ui = UnicodeAttribute(null=True)
 
-    total_time_ui = UnicodeAttribute()
+    total_time_ui = UnicodeAttribute(null=True)
 
     def adjust_timezone(self, offset_hours):
         """Adjust the date & time fields based on a specified offset."""
@@ -72,23 +72,23 @@ class Recipe(Model):
         data_changed = False
         if not self.date_added_ui and self.date_added:
             self.date_added_ui = self.date_added.strftime(Config.date_format)
-            data_changed = True
             logger.debug(f"date_added_ui changed for recipe {self.name}")
+            data_changed = True
 
         if not self.start_time_ui and self.start_time:
             self.start_time_ui = self.start_time.strftime(Config.datetime_format)
-            data_changed = True
             logger.debug(f"start_time_ui changed for recipe {self.name}")
+            data_changed = True
 
         if not self.finish_time_ui and self.finish_time:
             self.finish_time_ui = self.finish_time.strftime(Config.datetime_format)
-            data_changed = True
             logger.debug(f"finish_time_ui changed for recipe {self.name}")
+            data_changed = True
 
         if not self.total_time_ui and self.length:
             self.total_time_ui = hms_to_string(seconds_to_hms(self.length))
-            data_changed = True
             logger.debug(f"total_time_ui changed for recipe {self.name}")
+            data_changed = True
 
         # Update the db if any data was changed
         if data_changed:
@@ -102,7 +102,7 @@ class Recipe(Model):
         super().__init__(**attrs)
 
         # Update the UI fields when initialized, if necessary
-        self.adjust_timezone(-7)
+        # self.adjust_timezone(-7)
         self.update_ui_fields()
 
     def __repr__(self):

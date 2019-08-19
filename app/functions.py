@@ -29,7 +29,7 @@ def seconds_to_hms(seconds_input) -> list:
 
 def hms_to_seconds(hms) -> int:
     """Convert an int/str list of [hours, minutes, seconds] to a total number of seconds (int)."""
-    result = int(timedelta(hours=int(hms[0]), minutes=int(hms[1]), seconds=int(hms[2])).total_seconds())
+    result = int(timedelta(hours=int(hms[0] or 0), minutes=int(hms[1] or 0), seconds=int(hms[2] or 0)).total_seconds())
     return result
 
 
