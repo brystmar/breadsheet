@@ -15,7 +15,7 @@ class Config(object):
 
     # AWS credentials
     aws_account_id = environ.get('AWS_ACCOUNT_ID')
-    aws_access_key = environ.get('AWS_ACCESS_KEY')
+    aws_access_key = environ.get('AWS_ACCESS_KEY_ID')
     aws_secret_access_key = environ.get('AWS_SECRET_ACCESS_KEY')
     aws_user = environ.get('AWS_USER')
     aws_region = environ.get('AWS_REGION')
