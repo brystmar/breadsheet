@@ -9,7 +9,7 @@ local = '/documents/dev/' in basedir.lower() or 'pycharm' in basedir.lower()
 if local:
     print("Running locally: http://localhost:5000")
 
-    log_dir = 'logs' if local else 'tmp'
+    log_dir = 'logs'
     if not path.exists(log_dir):
         mkdir(log_dir)
     log_file = f'{log_dir}/syslog.log'
@@ -25,6 +25,5 @@ else:
 
 logger.setLevel(logging.DEBUG)
 logger.info("\n=======================================\n\n")
-logger.info("Global logging initialized!  Level: Debug")
-logger.info(f"Logging level: {logger.getEffectiveLevel()}")
+logger.info(f"Global logging initialized!  Level: {logger.getEffectiveLevel()}")
 logger.info(f"local = {local}")

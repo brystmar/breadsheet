@@ -1,6 +1,6 @@
 from app import logger
 from app.functions import hms_to_string, seconds_to_hms
-from config import Config
+from config import Config, local
 from datetime import date, datetime, timedelta
 from pynamodb.models import Model
 from pynamodb.attributes import UnicodeAttribute, UTCDateTimeAttribute, NumberAttribute, MapAttribute, ListAttribute
@@ -34,6 +34,9 @@ class Recipe(Model):
     class Meta:
         table_name = 'Recipe'
         region = 'us-west-2'
+        if local:
+            # Use the local DynamoDB instance when running locally
+            host = 'http://localhost:8008'
 
     # Primary recipe attributes
     id = UnicodeAttribute(hash_key=True)
@@ -113,6 +116,9 @@ class Replacement(Model):
     class Meta:
         table_name = 'Replacement'
         region = 'us-west-2'
+        if local:
+            # Use the local DynamoDB instance when running locally
+            host = 'http://localhost:8008'
 
     scope = UnicodeAttribute(hash_key=True)
     old = UnicodeAttribute(range_key=True)

@@ -10,14 +10,11 @@ logger.debug("Just executed app = create_app()")
 
 @app.before_request
 def handle_before_request():
-    # Redirect breadsheet.appspot.com requests to my domain
-    logger.info(f"User agent request: {request.user_agent.string}")
-    logger.info(f"Request host: {request.host}, lower: {request.host.lower()}")
-
+    """Redirect breadsheet.appspot.com requests to my breadsheet.com domain"""
     if 'AppEngine-Google' not in request.user_agent.string:
         logger.debug(f"AppEngine-Google not in {request.user_agent.string}")
         if 'breadsheet.appspot.com' in request.host.lower():
-            logger.info(f"Requested URL: {request.url}, redirecting to: {Config.domain_url}")
+            logger.info(f"Requested Host & URL: {request.host} & {request.url}; redirecting to: {Config.domain_url}")
             return redirect(Config.domain_url, code=301)
 
 
