@@ -108,8 +108,7 @@ def recipe():
         return redirect(url_for("main.recipe") + f"?id={recipe_id}")
 
     elif request.method == 'GET':
-        logger.debug(f"Entering the 'elif' section to pre-populate the add_step form with the "
-                     f"next logical step number: {len(recipe_shown.steps) + 1}")
+        # When the page loads, pre-populate the add_step form with the next logical step number
         form.number.data = len(recipe_shown.steps) + 1
 
     logger.debug("Rendering the recipe page.  End of recipe().")
