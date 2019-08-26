@@ -65,7 +65,7 @@ def recipe():
     logger.info(f"Start of recipe(), request method: {request.method}")
 
     # Read the recipe_id from the URL querystring
-    failsafe_id = '1560122083.005019_af4f7bd5-ed86-44a2-9767-11f761160dee'  # Detroit-style pizza dough
+    failsafe_id = '1560122083.005019'  # Detroit-style pizza dough
     recipe_id = request.args.get('id') or failsafe_id
 
     form = StepForm()
@@ -180,7 +180,7 @@ def add_recipe_ui_fields(recipe_input) -> Recipe:
     """Input: an individual Recipe class.  Populates date_added_ui, start_time, finish_time, & total_time_ui."""
     logger.debug(f"Start of add_recipe_ui_fields() for {recipe_input.name}")
 
-    if recipe_input.length in (None, 0, "", " "):
+    if recipe_input.length in (None, 0, "", " ", "--", "0", "00"):
         recipe_input.finish_time = recipe_input.start_time
         recipe_input.finish_time_ui = recipe_input.start_time_ui
         recipe_input.length = 0

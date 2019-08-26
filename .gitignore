@@ -10,6 +10,7 @@ __pycache__/
 env_variables.yaml
 breadsheet.py
 breadsheet-prod.json
+breadsheet-prod.json.old
 .aws/*
 .boto
 .boto/*
