@@ -1,6 +1,5 @@
 import unittest
 from datetime import datetime, date
-
 import os
 import sys
 sys.path.append(os.path.abspath('..'))
