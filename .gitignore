@@ -14,6 +14,10 @@ breadsheet-prod.json.old
 .aws/*
 .boto
 .boto/*
+.pytest_cache
+.pytest_cache/**
+**/.pytest_cache
+**/.pytest_cache/**
 
 # Created by https://www.gitignore.io/api/venv,macos,pycharm
 # Edit at https://www.gitignore.io/?templates=venv,macos,pycharm
