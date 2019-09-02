@@ -63,7 +63,6 @@ class Recipe(Model):
 
     def adjust_timezone(self, offset_hours):
         """Adjust the date & time fields based on a specified offset."""
-        # TODO: Set to the browser's timezone automatically instead of forcing PST
         self.date_added = self.date_added + timedelta(seconds=3600 * offset_hours)
         self.start_time = self.start_time + timedelta(seconds=3600 * offset_hours)
 
@@ -105,7 +104,9 @@ class Recipe(Model):
         super().__init__(**attrs)
 
         # Update the UI fields when initialized, if necessary
+        # TODO: Set to the browser's timezone automatically instead of forcing PST
         # self.adjust_timezone(-7)
+        self.length = 0
         self.update_ui_fields()
 
     def __repr__(self):

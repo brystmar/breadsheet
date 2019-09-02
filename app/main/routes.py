@@ -122,7 +122,7 @@ def favicon():
     return send_from_directory(path.join(bp.root_path, 'static'), 'favicon.ico', mimetype='image/vnd.microsoft.icon')
 
 
-def calculate_recipe_length(recipe_input):
+def calculate_recipe_length(recipe_input) -> Recipe:
     """Add/update the recipe_input's length (in seconds) by summing the length of each step."""
     logger.debug(f"Start of calculate_recipe_length() for {recipe_input.name}")
     try:

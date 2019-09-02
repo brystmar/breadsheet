@@ -164,344 +164,343 @@ def test_hms_to_seconds():
         hms_to_seconds([1, 2, 3, 4, 5])
 
 
-def test_hms_to_string_lists():
-    helper_test_hms_to_x(hms_to_string, [0, 0, 0, 0], "")
-    helper_test_hms_to_x(hms_to_string, [0, 0, 0, 4], "")
-    helper_test_hms_to_x(hms_to_string, [0, 0, 0, 59], "")
-    helper_test_hms_to_x(hms_to_string, [0, 0, 0, 101], "1 min")
-    helper_test_hms_to_x(hms_to_string, [0, 0, 1, 0], "1 min")
-    helper_test_hms_to_x(hms_to_string, [0, 0, 1, 59], "1 min")
-    helper_test_hms_to_x(hms_to_string, [0, 0, 1, 77], "2 min")
-    helper_test_hms_to_x(hms_to_string, [0, 1, 0, 0], "1 hr")
-    helper_test_hms_to_x(hms_to_string, [0, 1, 8, 17], "1 hr, 8 min")
-    helper_test_hms_to_x(hms_to_string, [0, 3, 38, 17], "3 hrs, 38 min")
-    helper_test_hms_to_x(hms_to_string, [0, 3, 65, 17], "4 hrs, 5 min")
-    helper_test_hms_to_x(hms_to_string, [0, 3, 65, 93], "4 hrs, 6 min")
-    helper_test_hms_to_x(hms_to_string, [0, 19, 0, 42], "19 hrs")
-    helper_test_hms_to_x(hms_to_string, [1, 0, 0, 49], "1 day")
-    helper_test_hms_to_x(hms_to_string, [2, 0, 1, 49], "2 days, 1 min")
-    helper_test_hms_to_x(hms_to_string, [2, 1, 0, 0], "2 days, 1 hr")
-    helper_test_hms_to_x(hms_to_string, [270, 5, 0, 0], "270 days, 5 hrs")
-    helper_test_hms_to_x(hms_to_string, [270, 5, 34, 55], "270 days, 5 hrs, 34 min")
-    helper_test_hms_to_x(hms_to_string, [16, 16, 44, 8], "16 days, 16 hrs, 44 min")
+class TestHMSToString:
+    """Tests for the hms_to_string() function."""
+    def test_hms_to_string_lists(self):
+        helper_test_hms_to_x(hms_to_string, [0, 0, 0, 0], "")
+        helper_test_hms_to_x(hms_to_string, [0, 0, 0, 4], "")
+        helper_test_hms_to_x(hms_to_string, [0, 0, 0, 59], "")
+        helper_test_hms_to_x(hms_to_string, [0, 0, 0, 101], "1 min")
+        helper_test_hms_to_x(hms_to_string, [0, 0, 1, 0], "1 min")
+        helper_test_hms_to_x(hms_to_string, [0, 0, 1, 59], "1 min")
+        helper_test_hms_to_x(hms_to_string, [0, 0, 1, 77], "2 min")
+        helper_test_hms_to_x(hms_to_string, [0, 1, 0, 0], "1 hr")
+        helper_test_hms_to_x(hms_to_string, [0, 1, 8, 17], "1 hr, 8 min")
+        helper_test_hms_to_x(hms_to_string, [0, 3, 38, 17], "3 hrs, 38 min")
+        helper_test_hms_to_x(hms_to_string, [0, 3, 65, 17], "4 hrs, 5 min")
+        helper_test_hms_to_x(hms_to_string, [0, 3, 65, 93], "4 hrs, 6 min")
+        helper_test_hms_to_x(hms_to_string, [0, 19, 0, 42], "19 hrs")
+        helper_test_hms_to_x(hms_to_string, [1, 0, 0, 49], "1 day")
+        helper_test_hms_to_x(hms_to_string, [2, 0, 1, 49], "2 days, 1 min")
+        helper_test_hms_to_x(hms_to_string, [2, 1, 0, 0], "2 days, 1 hr")
+        helper_test_hms_to_x(hms_to_string, [270, 5, 0, 0], "270 days, 5 hrs")
+        helper_test_hms_to_x(hms_to_string, [270, 5, 34, 55], "270 days, 5 hrs, 34 min")
+        helper_test_hms_to_x(hms_to_string, [16, 16, 44, 8], "16 days, 16 hrs, 44 min")
 
-    # TypeErrors
-    with pytest.raises(TypeError):
-        hms_to_string({1, 2, 3, 4})
+        # TypeErrors
+        with pytest.raises(TypeError):
+            hms_to_string({1, 2, 3, 4})
 
-    with pytest.raises(TypeError):
-        hms_to_string([1, 2, "doughnut", 4])
+        with pytest.raises(TypeError):
+            hms_to_string([1, 2, "doughnut", 4])
 
-    with pytest.raises(TypeError):
-        hms_to_string([1, 2, 3, [0]])
+        with pytest.raises(TypeError):
+            hms_to_string([1, 2, 3, [0]])
 
-    with pytest.raises(TypeError):
-        hms_to_string([str, 2, 3, 4])
+        with pytest.raises(TypeError):
+            hms_to_string([str, 2, 3, 4])
 
-    with pytest.raises(TypeError):
-        hms_to_string([datetime, 2, 3, 4])
+        with pytest.raises(TypeError):
+            hms_to_string([datetime, 2, 3, 4])
 
-    with pytest.raises(TypeError):
-        hms_to_string([1, datetime, 3, 4])
+        with pytest.raises(TypeError):
+            hms_to_string([1, datetime, 3, 4])
 
-    with pytest.raises(TypeError):
-        hms_to_string([1, 2, datetime, 4])
+        with pytest.raises(TypeError):
+            hms_to_string([1, 2, datetime, 4])
 
-    with pytest.raises(TypeError):
-        hms_to_string([1, 2, 3, datetime])
+        with pytest.raises(TypeError):
+            hms_to_string([1, 2, 3, datetime])
 
-    # IndexErrors
-    with pytest.raises(IndexError):
-        hms_to_string([])
+        # IndexErrors
+        with pytest.raises(IndexError):
+            hms_to_string([])
 
-    with pytest.raises(IndexError):
-        hms_to_string([1])
+        with pytest.raises(IndexError):
+            hms_to_string([1])
 
-    with pytest.raises(IndexError):
-        hms_to_string([1, 2])
+        with pytest.raises(IndexError):
+            hms_to_string([1, 2])
 
-    with pytest.raises(IndexError):
-        hms_to_string([1, 2, 3])
+        with pytest.raises(IndexError):
+            hms_to_string([1, 2, 3])
 
-    with pytest.raises(IndexError):
-        hms_to_string([1, 2, 3, 4, 5])
+        with pytest.raises(IndexError):
+            hms_to_string([1, 2, 3, 4, 5])
 
-    with pytest.raises(IndexError):
-        hms_to_string(["doughnut"])
+        with pytest.raises(IndexError):
+            hms_to_string(["doughnut"])
 
+    def test_hms_to_string_strings(self):
+        assert hms_to_string("1:2:3") == "1 hr, 2 min"
+        assert hms_to_string("1:02:3") == "1 hr, 2 min"
+        assert hms_to_string("1:2:03") == "1 hr, 2 min"
+        assert hms_to_string("1:02:03") == "1 hr, 2 min"
+        assert hms_to_string("01:2:3") == "1 hr, 2 min"
+        assert hms_to_string("01:02:3") == "1 hr, 2 min"
+        assert hms_to_string("01:2:03") == "1 hr, 2 min"
+        assert hms_to_string("01:02:03") == "1 hr, 2 min"
 
-def test_hms_to_string_strings():
-    assert hms_to_string("1:2:3") == "1 hr, 2 min"
-    assert hms_to_string("1:02:3") == "1 hr, 2 min"
-    assert hms_to_string("1:2:03") == "1 hr, 2 min"
-    assert hms_to_string("1:02:03") == "1 hr, 2 min"
-    assert hms_to_string("01:2:3") == "1 hr, 2 min"
-    assert hms_to_string("01:02:3") == "1 hr, 2 min"
-    assert hms_to_string("01:2:03") == "1 hr, 2 min"
-    assert hms_to_string("01:02:03") == "1 hr, 2 min"
+        assert hms_to_string("21:2:3") == "21 hrs, 2 min"
+        assert hms_to_string("21:02:3") == "21 hrs, 2 min"
+        assert hms_to_string("21:2:03") == "21 hrs, 2 min"
+        assert hms_to_string("21:02:03") == "21 hrs, 2 min"
 
-    assert hms_to_string("21:2:3") == "21 hrs, 2 min"
-    assert hms_to_string("21:02:3") == "21 hrs, 2 min"
-    assert hms_to_string("21:2:03") == "21 hrs, 2 min"
-    assert hms_to_string("21:02:03") == "21 hrs, 2 min"
+        assert hms_to_string("0 day 1:2:3") == "1 hr, 2 min"
+        assert hms_to_string("0 day 1:02:3") == "1 hr, 2 min"
+        assert hms_to_string("0 day 1:2:03") == "1 hr, 2 min"
+        assert hms_to_string("0 day 1:02:03") == "1 hr, 2 min"
+        assert hms_to_string("0 day 01:2:3") == "1 hr, 2 min"
+        assert hms_to_string("0 day 01:02:3") == "1 hr, 2 min"
+        assert hms_to_string("0 day 01:2:03") == "1 hr, 2 min"
+        assert hms_to_string("0 day 01:02:03") == "1 hr, 2 min"
+        assert hms_to_string("0 day 21:2:3") == "21 hrs, 2 min"
+        assert hms_to_string("0 day 21:02:3") == "21 hrs, 2 min"
+        assert hms_to_string("0 day 21:2:03") == "21 hrs, 2 min"
+        assert hms_to_string("0 day 21:02:03") == "21 hrs, 2 min"
 
-    assert hms_to_string("0 day 1:2:3") == "1 hr, 2 min"
-    assert hms_to_string("0 day 1:02:3") == "1 hr, 2 min"
-    assert hms_to_string("0 day 1:2:03") == "1 hr, 2 min"
-    assert hms_to_string("0 day 1:02:03") == "1 hr, 2 min"
-    assert hms_to_string("0 day 01:2:3") == "1 hr, 2 min"
-    assert hms_to_string("0 day 01:02:3") == "1 hr, 2 min"
-    assert hms_to_string("0 day 01:2:03") == "1 hr, 2 min"
-    assert hms_to_string("0 day 01:02:03") == "1 hr, 2 min"
-    assert hms_to_string("0 day 21:2:3") == "21 hrs, 2 min"
-    assert hms_to_string("0 day 21:02:3") == "21 hrs, 2 min"
-    assert hms_to_string("0 day 21:2:03") == "21 hrs, 2 min"
-    assert hms_to_string("0 day 21:02:03") == "21 hrs, 2 min"
+        assert hms_to_string("0 day, 1:2:3") == "1 hr, 2 min"
+        assert hms_to_string("0 day, 1:02:3") == "1 hr, 2 min"
+        assert hms_to_string("0 day, 1:2:03") == "1 hr, 2 min"
+        assert hms_to_string("0 day, 1:02:03") == "1 hr, 2 min"
+        assert hms_to_string("0 day, 01:2:3") == "1 hr, 2 min"
+        assert hms_to_string("0 day, 01:02:3") == "1 hr, 2 min"
+        assert hms_to_string("0 day, 01:2:03") == "1 hr, 2 min"
+        assert hms_to_string("0 day, 01:02:03") == "1 hr, 2 min"
+        assert hms_to_string("0 day, 21:2:3") == "21 hrs, 2 min"
+        assert hms_to_string("0 day, 21:02:3") == "21 hrs, 2 min"
+        assert hms_to_string("0 day, 21:2:03") == "21 hrs, 2 min"
+        assert hms_to_string("0 day, 21:02:03") == "21 hrs, 2 min"
 
-    assert hms_to_string("0 day, 1:2:3") == "1 hr, 2 min"
-    assert hms_to_string("0 day, 1:02:3") == "1 hr, 2 min"
-    assert hms_to_string("0 day, 1:2:03") == "1 hr, 2 min"
-    assert hms_to_string("0 day, 1:02:03") == "1 hr, 2 min"
-    assert hms_to_string("0 day, 01:2:3") == "1 hr, 2 min"
-    assert hms_to_string("0 day, 01:02:3") == "1 hr, 2 min"
-    assert hms_to_string("0 day, 01:2:03") == "1 hr, 2 min"
-    assert hms_to_string("0 day, 01:02:03") == "1 hr, 2 min"
-    assert hms_to_string("0 day, 21:2:3") == "21 hrs, 2 min"
-    assert hms_to_string("0 day, 21:02:3") == "21 hrs, 2 min"
-    assert hms_to_string("0 day, 21:2:03") == "21 hrs, 2 min"
-    assert hms_to_string("0 day, 21:02:03") == "21 hrs, 2 min"
+        assert hms_to_string("0 days 1:2:3") == "1 hr, 2 min"
+        assert hms_to_string("0 days 1:02:3") == "1 hr, 2 min"
+        assert hms_to_string("0 days 1:2:03") == "1 hr, 2 min"
+        assert hms_to_string("0 days 1:02:03") == "1 hr, 2 min"
+        assert hms_to_string("0 days 01:2:3") == "1 hr, 2 min"
+        assert hms_to_string("0 days 01:02:3") == "1 hr, 2 min"
+        assert hms_to_string("0 days 01:2:03") == "1 hr, 2 min"
+        assert hms_to_string("0 days 01:02:03") == "1 hr, 2 min"
+        assert hms_to_string("0 days 21:2:3") == "21 hrs, 2 min"
+        assert hms_to_string("0 days 21:02:3") == "21 hrs, 2 min"
+        assert hms_to_string("0 days 21:2:03") == "21 hrs, 2 min"
+        assert hms_to_string("0 days 21:02:03") == "21 hrs, 2 min"
 
-    assert hms_to_string("0 days 1:2:3") == "1 hr, 2 min"
-    assert hms_to_string("0 days 1:02:3") == "1 hr, 2 min"
-    assert hms_to_string("0 days 1:2:03") == "1 hr, 2 min"
-    assert hms_to_string("0 days 1:02:03") == "1 hr, 2 min"
-    assert hms_to_string("0 days 01:2:3") == "1 hr, 2 min"
-    assert hms_to_string("0 days 01:02:3") == "1 hr, 2 min"
-    assert hms_to_string("0 days 01:2:03") == "1 hr, 2 min"
-    assert hms_to_string("0 days 01:02:03") == "1 hr, 2 min"
-    assert hms_to_string("0 days 21:2:3") == "21 hrs, 2 min"
-    assert hms_to_string("0 days 21:02:3") == "21 hrs, 2 min"
-    assert hms_to_string("0 days 21:2:03") == "21 hrs, 2 min"
-    assert hms_to_string("0 days 21:02:03") == "21 hrs, 2 min"
+        assert hms_to_string("0 days, 1:2:3") == "1 hr, 2 min"
+        assert hms_to_string("0 days, 1:02:3") == "1 hr, 2 min"
+        assert hms_to_string("0 days, 1:2:03") == "1 hr, 2 min"
+        assert hms_to_string("0 days, 1:02:03") == "1 hr, 2 min"
+        assert hms_to_string("0 days, 01:2:3") == "1 hr, 2 min"
+        assert hms_to_string("0 days, 01:02:3") == "1 hr, 2 min"
+        assert hms_to_string("0 days, 01:2:03") == "1 hr, 2 min"
+        assert hms_to_string("0 days, 01:02:03") == "1 hr, 2 min"
+        assert hms_to_string("0 days, 21:2:3") == "21 hrs, 2 min"
+        assert hms_to_string("0 days, 21:02:3") == "21 hrs, 2 min"
+        assert hms_to_string("0 days, 21:2:03") == "21 hrs, 2 min"
+        assert hms_to_string("0 days, 21:02:03") == "21 hrs, 2 min"
 
-    assert hms_to_string("0 days, 1:2:3") == "1 hr, 2 min"
-    assert hms_to_string("0 days, 1:02:3") == "1 hr, 2 min"
-    assert hms_to_string("0 days, 1:2:03") == "1 hr, 2 min"
-    assert hms_to_string("0 days, 1:02:03") == "1 hr, 2 min"
-    assert hms_to_string("0 days, 01:2:3") == "1 hr, 2 min"
-    assert hms_to_string("0 days, 01:02:3") == "1 hr, 2 min"
-    assert hms_to_string("0 days, 01:2:03") == "1 hr, 2 min"
-    assert hms_to_string("0 days, 01:02:03") == "1 hr, 2 min"
-    assert hms_to_string("0 days, 21:2:3") == "21 hrs, 2 min"
-    assert hms_to_string("0 days, 21:02:3") == "21 hrs, 2 min"
-    assert hms_to_string("0 days, 21:2:03") == "21 hrs, 2 min"
-    assert hms_to_string("0 days, 21:02:03") == "21 hrs, 2 min"
+        assert hms_to_string("1 day 1:2:3") == "1 day, 1 hr, 2 min"
+        assert hms_to_string("1 day 1:02:3") == "1 day, 1 hr, 2 min"
+        assert hms_to_string("1 day 1:2:03") == "1 day, 1 hr, 2 min"
+        assert hms_to_string("1 day 1:02:03") == "1 day, 1 hr, 2 min"
+        assert hms_to_string("1 day 01:2:3") == "1 day, 1 hr, 2 min"
+        assert hms_to_string("1 day 01:02:3") == "1 day, 1 hr, 2 min"
+        assert hms_to_string("1 day 01:2:03") == "1 day, 1 hr, 2 min"
+        assert hms_to_string("1 day 01:02:03") == "1 day, 1 hr, 2 min"
+        assert hms_to_string("1 day 21:2:3") == "1 day, 21 hrs, 2 min"
+        assert hms_to_string("1 day 21:02:3") == "1 day, 21 hrs, 2 min"
+        assert hms_to_string("1 day 21:2:03") == "1 day, 21 hrs, 2 min"
+        assert hms_to_string("1 day 21:02:03") == "1 day, 21 hrs, 2 min"
 
-    assert hms_to_string("1 day 1:2:3") == "1 day, 1 hr, 2 min"
-    assert hms_to_string("1 day 1:02:3") == "1 day, 1 hr, 2 min"
-    assert hms_to_string("1 day 1:2:03") == "1 day, 1 hr, 2 min"
-    assert hms_to_string("1 day 1:02:03") == "1 day, 1 hr, 2 min"
-    assert hms_to_string("1 day 01:2:3") == "1 day, 1 hr, 2 min"
-    assert hms_to_string("1 day 01:02:3") == "1 day, 1 hr, 2 min"
-    assert hms_to_string("1 day 01:2:03") == "1 day, 1 hr, 2 min"
-    assert hms_to_string("1 day 01:02:03") == "1 day, 1 hr, 2 min"
-    assert hms_to_string("1 day 21:2:3") == "1 day, 21 hrs, 2 min"
-    assert hms_to_string("1 day 21:02:3") == "1 day, 21 hrs, 2 min"
-    assert hms_to_string("1 day 21:2:03") == "1 day, 21 hrs, 2 min"
-    assert hms_to_string("1 day 21:02:03") == "1 day, 21 hrs, 2 min"
+        assert hms_to_string("1 day, 1:2:3") == "1 day, 1 hr, 2 min"
+        assert hms_to_string("1 day, 1:02:3") == "1 day, 1 hr, 2 min"
+        assert hms_to_string("1 day, 1:2:03") == "1 day, 1 hr, 2 min"
+        assert hms_to_string("1 day, 1:02:03") == "1 day, 1 hr, 2 min"
+        assert hms_to_string("1 day, 01:2:3") == "1 day, 1 hr, 2 min"
+        assert hms_to_string("1 day, 01:02:3") == "1 day, 1 hr, 2 min"
+        assert hms_to_string("1 day, 01:2:03") == "1 day, 1 hr, 2 min"
+        assert hms_to_string("1 day, 01:02:03") == "1 day, 1 hr, 2 min"
+        assert hms_to_string("1 day, 21:2:3") == "1 day, 21 hrs, 2 min"
+        assert hms_to_string("1 day, 21:02:3") == "1 day, 21 hrs, 2 min"
+        assert hms_to_string("1 day, 21:2:03") == "1 day, 21 hrs, 2 min"
+        assert hms_to_string("1 day, 21:02:03") == "1 day, 21 hrs, 2 min"
 
-    assert hms_to_string("1 day, 1:2:3") == "1 day, 1 hr, 2 min"
-    assert hms_to_string("1 day, 1:02:3") == "1 day, 1 hr, 2 min"
-    assert hms_to_string("1 day, 1:2:03") == "1 day, 1 hr, 2 min"
-    assert hms_to_string("1 day, 1:02:03") == "1 day, 1 hr, 2 min"
-    assert hms_to_string("1 day, 01:2:3") == "1 day, 1 hr, 2 min"
-    assert hms_to_string("1 day, 01:02:3") == "1 day, 1 hr, 2 min"
-    assert hms_to_string("1 day, 01:2:03") == "1 day, 1 hr, 2 min"
-    assert hms_to_string("1 day, 01:02:03") == "1 day, 1 hr, 2 min"
-    assert hms_to_string("1 day, 21:2:3") == "1 day, 21 hrs, 2 min"
-    assert hms_to_string("1 day, 21:02:3") == "1 day, 21 hrs, 2 min"
-    assert hms_to_string("1 day, 21:2:03") == "1 day, 21 hrs, 2 min"
-    assert hms_to_string("1 day, 21:02:03") == "1 day, 21 hrs, 2 min"
+        assert hms_to_string("1 days 1:2:3") == "1 day, 1 hr, 2 min"
+        assert hms_to_string("1 days 1:02:3") == "1 day, 1 hr, 2 min"
+        assert hms_to_string("1 days 1:2:03") == "1 day, 1 hr, 2 min"
+        assert hms_to_string("1 days 1:02:03") == "1 day, 1 hr, 2 min"
+        assert hms_to_string("1 days 01:2:3") == "1 day, 1 hr, 2 min"
+        assert hms_to_string("1 days 01:02:3") == "1 day, 1 hr, 2 min"
+        assert hms_to_string("1 days 01:2:03") == "1 day, 1 hr, 2 min"
+        assert hms_to_string("1 days 01:02:03") == "1 day, 1 hr, 2 min"
+        assert hms_to_string("1 days 21:2:3") == "1 day, 21 hrs, 2 min"
+        assert hms_to_string("1 days 21:02:3") == "1 day, 21 hrs, 2 min"
+        assert hms_to_string("1 days 21:2:03") == "1 day, 21 hrs, 2 min"
+        assert hms_to_string("1 days 21:02:03") == "1 day, 21 hrs, 2 min"
 
-    assert hms_to_string("1 days 1:2:3") == "1 day, 1 hr, 2 min"
-    assert hms_to_string("1 days 1:02:3") == "1 day, 1 hr, 2 min"
-    assert hms_to_string("1 days 1:2:03") == "1 day, 1 hr, 2 min"
-    assert hms_to_string("1 days 1:02:03") == "1 day, 1 hr, 2 min"
-    assert hms_to_string("1 days 01:2:3") == "1 day, 1 hr, 2 min"
-    assert hms_to_string("1 days 01:02:3") == "1 day, 1 hr, 2 min"
-    assert hms_to_string("1 days 01:2:03") == "1 day, 1 hr, 2 min"
-    assert hms_to_string("1 days 01:02:03") == "1 day, 1 hr, 2 min"
-    assert hms_to_string("1 days 21:2:3") == "1 day, 21 hrs, 2 min"
-    assert hms_to_string("1 days 21:02:3") == "1 day, 21 hrs, 2 min"
-    assert hms_to_string("1 days 21:2:03") == "1 day, 21 hrs, 2 min"
-    assert hms_to_string("1 days 21:02:03") == "1 day, 21 hrs, 2 min"
+        assert hms_to_string("1 days, 1:2:3") == "1 day, 1 hr, 2 min"
+        assert hms_to_string("1 days, 1:02:3") == "1 day, 1 hr, 2 min"
+        assert hms_to_string("1 days, 1:2:03") == "1 day, 1 hr, 2 min"
+        assert hms_to_string("1 days, 1:02:03") == "1 day, 1 hr, 2 min"
+        assert hms_to_string("1 days, 01:2:3") == "1 day, 1 hr, 2 min"
+        assert hms_to_string("1 days, 01:02:3") == "1 day, 1 hr, 2 min"
+        assert hms_to_string("1 days, 01:2:03") == "1 day, 1 hr, 2 min"
+        assert hms_to_string("1 days, 01:02:03") == "1 day, 1 hr, 2 min"
+        assert hms_to_string("1 days, 21:2:3") == "1 day, 21 hrs, 2 min"
+        assert hms_to_string("1 days, 21:02:3") == "1 day, 21 hrs, 2 min"
+        assert hms_to_string("1 days, 21:2:03") == "1 day, 21 hrs, 2 min"
+        assert hms_to_string("1 days, 21:02:03") == "1 day, 21 hrs, 2 min"
 
-    assert hms_to_string("1 days, 1:2:3") == "1 day, 1 hr, 2 min"
-    assert hms_to_string("1 days, 1:02:3") == "1 day, 1 hr, 2 min"
-    assert hms_to_string("1 days, 1:2:03") == "1 day, 1 hr, 2 min"
-    assert hms_to_string("1 days, 1:02:03") == "1 day, 1 hr, 2 min"
-    assert hms_to_string("1 days, 01:2:3") == "1 day, 1 hr, 2 min"
-    assert hms_to_string("1 days, 01:02:3") == "1 day, 1 hr, 2 min"
-    assert hms_to_string("1 days, 01:2:03") == "1 day, 1 hr, 2 min"
-    assert hms_to_string("1 days, 01:02:03") == "1 day, 1 hr, 2 min"
-    assert hms_to_string("1 days, 21:2:3") == "1 day, 21 hrs, 2 min"
-    assert hms_to_string("1 days, 21:02:3") == "1 day, 21 hrs, 2 min"
-    assert hms_to_string("1 days, 21:2:03") == "1 day, 21 hrs, 2 min"
-    assert hms_to_string("1 days, 21:02:03") == "1 day, 21 hrs, 2 min"
+        assert hms_to_string("76 day 1:2:3") == "76 days, 1 hr, 2 min"
+        assert hms_to_string("76 day 1:02:3") == "76 days, 1 hr, 2 min"
+        assert hms_to_string("76 day 1:2:03") == "76 days, 1 hr, 2 min"
+        assert hms_to_string("76 day 1:02:03") == "76 days, 1 hr, 2 min"
+        assert hms_to_string("76 day 01:2:3") == "76 days, 1 hr, 2 min"
+        assert hms_to_string("76 day 01:02:3") == "76 days, 1 hr, 2 min"
+        assert hms_to_string("76 day 01:2:03") == "76 days, 1 hr, 2 min"
+        assert hms_to_string("76 day 01:02:03") == "76 days, 1 hr, 2 min"
+        assert hms_to_string("76 day 21:2:3") == "76 days, 21 hrs, 2 min"
+        assert hms_to_string("76 day 21:02:3") == "76 days, 21 hrs, 2 min"
+        assert hms_to_string("76 day 21:2:03") == "76 days, 21 hrs, 2 min"
+        assert hms_to_string("76 day 21:02:03") == "76 days, 21 hrs, 2 min"
 
-    assert hms_to_string("76 day 1:2:3") == "76 days, 1 hr, 2 min"
-    assert hms_to_string("76 day 1:02:3") == "76 days, 1 hr, 2 min"
-    assert hms_to_string("76 day 1:2:03") == "76 days, 1 hr, 2 min"
-    assert hms_to_string("76 day 1:02:03") == "76 days, 1 hr, 2 min"
-    assert hms_to_string("76 day 01:2:3") == "76 days, 1 hr, 2 min"
-    assert hms_to_string("76 day 01:02:3") == "76 days, 1 hr, 2 min"
-    assert hms_to_string("76 day 01:2:03") == "76 days, 1 hr, 2 min"
-    assert hms_to_string("76 day 01:02:03") == "76 days, 1 hr, 2 min"
-    assert hms_to_string("76 day 21:2:3") == "76 days, 21 hrs, 2 min"
-    assert hms_to_string("76 day 21:02:3") == "76 days, 21 hrs, 2 min"
-    assert hms_to_string("76 day 21:2:03") == "76 days, 21 hrs, 2 min"
-    assert hms_to_string("76 day 21:02:03") == "76 days, 21 hrs, 2 min"
+        assert hms_to_string("76 day, 1:2:3") == "76 days, 1 hr, 2 min"
+        assert hms_to_string("76 day, 1:02:3") == "76 days, 1 hr, 2 min"
+        assert hms_to_string("76 day, 1:2:03") == "76 days, 1 hr, 2 min"
+        assert hms_to_string("76 day, 1:02:03") == "76 days, 1 hr, 2 min"
+        assert hms_to_string("76 day, 01:2:3") == "76 days, 1 hr, 2 min"
+        assert hms_to_string("76 day, 01:02:3") == "76 days, 1 hr, 2 min"
+        assert hms_to_string("76 day, 01:2:03") == "76 days, 1 hr, 2 min"
+        assert hms_to_string("76 day, 01:02:03") == "76 days, 1 hr, 2 min"
+        assert hms_to_string("76 day, 21:2:3") == "76 days, 21 hrs, 2 min"
+        assert hms_to_string("76 day, 21:02:3") == "76 days, 21 hrs, 2 min"
+        assert hms_to_string("76 day, 21:2:03") == "76 days, 21 hrs, 2 min"
+        assert hms_to_string("76 day, 21:02:03") == "76 days, 21 hrs, 2 min"
 
-    assert hms_to_string("76 day, 1:2:3") == "76 days, 1 hr, 2 min"
-    assert hms_to_string("76 day, 1:02:3") == "76 days, 1 hr, 2 min"
-    assert hms_to_string("76 day, 1:2:03") == "76 days, 1 hr, 2 min"
-    assert hms_to_string("76 day, 1:02:03") == "76 days, 1 hr, 2 min"
-    assert hms_to_string("76 day, 01:2:3") == "76 days, 1 hr, 2 min"
-    assert hms_to_string("76 day, 01:02:3") == "76 days, 1 hr, 2 min"
-    assert hms_to_string("76 day, 01:2:03") == "76 days, 1 hr, 2 min"
-    assert hms_to_string("76 day, 01:02:03") == "76 days, 1 hr, 2 min"
-    assert hms_to_string("76 day, 21:2:3") == "76 days, 21 hrs, 2 min"
-    assert hms_to_string("76 day, 21:02:3") == "76 days, 21 hrs, 2 min"
-    assert hms_to_string("76 day, 21:2:03") == "76 days, 21 hrs, 2 min"
-    assert hms_to_string("76 day, 21:02:03") == "76 days, 21 hrs, 2 min"
+        assert hms_to_string("76 days 1:2:3") == "76 days, 1 hr, 2 min"
+        assert hms_to_string("76 days 1:02:3") == "76 days, 1 hr, 2 min"
+        assert hms_to_string("76 days 1:2:03") == "76 days, 1 hr, 2 min"
+        assert hms_to_string("76 days 1:02:03") == "76 days, 1 hr, 2 min"
+        assert hms_to_string("76 days 01:2:3") == "76 days, 1 hr, 2 min"
+        assert hms_to_string("76 days 01:02:3") == "76 days, 1 hr, 2 min"
+        assert hms_to_string("76 days 01:2:03") == "76 days, 1 hr, 2 min"
+        assert hms_to_string("76 days 01:02:03") == "76 days, 1 hr, 2 min"
+        assert hms_to_string("76 days 21:2:3") == "76 days, 21 hrs, 2 min"
+        assert hms_to_string("76 days 21:02:3") == "76 days, 21 hrs, 2 min"
+        assert hms_to_string("76 days 21:2:03") == "76 days, 21 hrs, 2 min"
+        assert hms_to_string("76 days 21:02:03") == "76 days, 21 hrs, 2 min"
 
-    assert hms_to_string("76 days 1:2:3") == "76 days, 1 hr, 2 min"
-    assert hms_to_string("76 days 1:02:3") == "76 days, 1 hr, 2 min"
-    assert hms_to_string("76 days 1:2:03") == "76 days, 1 hr, 2 min"
-    assert hms_to_string("76 days 1:02:03") == "76 days, 1 hr, 2 min"
-    assert hms_to_string("76 days 01:2:3") == "76 days, 1 hr, 2 min"
-    assert hms_to_string("76 days 01:02:3") == "76 days, 1 hr, 2 min"
-    assert hms_to_string("76 days 01:2:03") == "76 days, 1 hr, 2 min"
-    assert hms_to_string("76 days 01:02:03") == "76 days, 1 hr, 2 min"
-    assert hms_to_string("76 days 21:2:3") == "76 days, 21 hrs, 2 min"
-    assert hms_to_string("76 days 21:02:3") == "76 days, 21 hrs, 2 min"
-    assert hms_to_string("76 days 21:2:03") == "76 days, 21 hrs, 2 min"
-    assert hms_to_string("76 days 21:02:03") == "76 days, 21 hrs, 2 min"
+        assert hms_to_string("76 days, 1:2:3") == "76 days, 1 hr, 2 min"
+        assert hms_to_string("76 days, 1:02:3") == "76 days, 1 hr, 2 min"
+        assert hms_to_string("76 days, 1:2:03") == "76 days, 1 hr, 2 min"
+        assert hms_to_string("76 days, 1:02:03") == "76 days, 1 hr, 2 min"
+        assert hms_to_string("76 days, 01:2:3") == "76 days, 1 hr, 2 min"
+        assert hms_to_string("76 days, 01:02:3") == "76 days, 1 hr, 2 min"
+        assert hms_to_string("76 days, 01:2:03") == "76 days, 1 hr, 2 min"
+        assert hms_to_string("76 days, 01:02:03") == "76 days, 1 hr, 2 min"
+        assert hms_to_string("76 days, 21:2:3") == "76 days, 21 hrs, 2 min"
+        assert hms_to_string("76 days, 21:02:3") == "76 days, 21 hrs, 2 min"
+        assert hms_to_string("76 days, 21:2:03") == "76 days, 21 hrs, 2 min"
+        assert hms_to_string("76 days, 21:02:03") == "76 days, 21 hrs, 2 min"
 
-    assert hms_to_string("76 days, 1:2:3") == "76 days, 1 hr, 2 min"
-    assert hms_to_string("76 days, 1:02:3") == "76 days, 1 hr, 2 min"
-    assert hms_to_string("76 days, 1:2:03") == "76 days, 1 hr, 2 min"
-    assert hms_to_string("76 days, 1:02:03") == "76 days, 1 hr, 2 min"
-    assert hms_to_string("76 days, 01:2:3") == "76 days, 1 hr, 2 min"
-    assert hms_to_string("76 days, 01:02:3") == "76 days, 1 hr, 2 min"
-    assert hms_to_string("76 days, 01:2:03") == "76 days, 1 hr, 2 min"
-    assert hms_to_string("76 days, 01:02:03") == "76 days, 1 hr, 2 min"
-    assert hms_to_string("76 days, 21:2:3") == "76 days, 21 hrs, 2 min"
-    assert hms_to_string("76 days, 21:02:3") == "76 days, 21 hrs, 2 min"
-    assert hms_to_string("76 days, 21:2:03") == "76 days, 21 hrs, 2 min"
-    assert hms_to_string("76 days, 21:02:03") == "76 days, 21 hrs, 2 min"
+        with pytest.raises(ValueError):
+            hms_to_string("1 day 24:3:4")
 
-    with pytest.raises(ValueError):
-        hms_to_string("1 day 24:3:4")
+        with pytest.raises(ValueError):
+            hms_to_string("1 day, 1:60:3")
 
-    with pytest.raises(ValueError):
-        hms_to_string("1 day, 1:60:3")
+        with pytest.raises(ValueError):
+            hms_to_string("1 day, 1:0:63")
 
-    with pytest.raises(ValueError):
-        hms_to_string("1 day, 1:0:63")
+        with pytest.raises(ValueError):
+            hms_to_string("1 day, 1:00:63")
 
-    with pytest.raises(ValueError):
-        hms_to_string("1 day, 1:00:63")
+        with pytest.raises(ValueError):
+            hms_to_string("1 week 2:3:4")
 
-    with pytest.raises(ValueError):
-        hms_to_string("1 week 2:3:4")
+        with pytest.raises(ValueError):
+            hms_to_string("")
 
-    with pytest.raises(ValueError):
-        hms_to_string("")
+        with pytest.raises(ValueError):
+            hms_to_string(" ")
 
-    with pytest.raises(ValueError):
-        hms_to_string(" ")
+        with pytest.raises(ValueError):
+            hms_to_string("\n")
 
-    with pytest.raises(ValueError):
-        hms_to_string("\n")
+        with pytest.raises(ValueError):
+            hms_to_string("tacos")
 
-    with pytest.raises(ValueError):
-        hms_to_string("tacos")
+        with pytest.raises(ValueError):
+            hms_to_string("15")
 
-    with pytest.raises(ValueError):
-        hms_to_string("15")
+        with pytest.raises(ValueError):
+            hms_to_string("15.8947")
 
-    with pytest.raises(ValueError):
-        hms_to_string("15.8947")
+        with pytest.raises(ValueError):
+            hms_to_string("-15")
 
-    with pytest.raises(ValueError):
-        hms_to_string("-15")
+        with pytest.raises(ValueError):
+            hms_to_string("-15.8947")
 
-    with pytest.raises(ValueError):
-        hms_to_string("-15.8947")
+    def test_hms_to_string_timedelta(self):
+        assert hms_to_string(timedelta()) == ""
+        assert hms_to_string(timedelta(seconds=0)) == ""
+        assert hms_to_string(timedelta(seconds=-0)) == ""
+        assert hms_to_string(timedelta(seconds=46)) == ""
+        assert hms_to_string(timedelta(seconds=468)) == "7 min"
+        assert hms_to_string(timedelta(minutes=7)) == "7 min"
+        assert hms_to_string(timedelta(minutes=7, seconds=48)) == "7 min"
+        assert hms_to_string(timedelta(minutes=7, seconds=-48)) == "6 min"
+        assert hms_to_string(timedelta(hours=1, minutes=8)) == "1 hr, 8 min"
+        assert hms_to_string(timedelta(hours=4, minutes=8)) == "4 hrs, 8 min"
+        assert hms_to_string(timedelta(hours=4, minutes=8, seconds=59)) == "4 hrs, 8 min"
+        assert hms_to_string(timedelta(days=5, hours=16, minutes=8, seconds=59)) == "5 days, 16 hrs, 8 min"
+        assert hms_to_string(timedelta(hours=13, minutes=58)) == "13 hrs, 58 min"
+        assert hms_to_string(timedelta(hours=137, minutes=58)) == "5 days, 17 hrs, 58 min"
+        assert hms_to_string(timedelta(days=1, hours=7)) == "1 day, 7 hrs"
+        assert hms_to_string(timedelta(days=2, hours=7)) == "2 days, 7 hrs"
+        assert hms_to_string(timedelta(days=1, minutes=7)) == "1 day, 7 min"
+        assert hms_to_string(timedelta(days=2, minutes=7)) == "2 days, 7 min"
+        assert hms_to_string(timedelta(days=1, seconds=7)) == "1 day"
+        assert hms_to_string(timedelta(days=2, seconds=7)) == "2 days"
+        assert hms_to_string(timedelta(days=42, seconds=7)) == "42 days"
+        assert hms_to_string(timedelta(days=42, seconds=-7)) == "41 days, 23 hrs, 59 min"
 
+        with pytest.raises(ValueError):
+            hms_to_string(timedelta(seconds=-3))
 
-def test_hms_to_string_timedelta():
-    assert hms_to_string(timedelta()) == ""
-    assert hms_to_string(timedelta(seconds=0)) == ""
-    assert hms_to_string(timedelta(seconds=-0)) == ""
-    assert hms_to_string(timedelta(seconds=46)) == ""
-    assert hms_to_string(timedelta(seconds=468)) == "7 min"
-    assert hms_to_string(timedelta(minutes=7)) == "7 min"
-    assert hms_to_string(timedelta(minutes=7, seconds=48)) == "7 min"
-    assert hms_to_string(timedelta(minutes=7, seconds=-48)) == "6 min"
-    assert hms_to_string(timedelta(hours=1, minutes=8)) == "1 hr, 8 min"
-    assert hms_to_string(timedelta(hours=4, minutes=8)) == "4 hrs, 8 min"
-    assert hms_to_string(timedelta(hours=4, minutes=8, seconds=59)) == "4 hrs, 8 min"
-    assert hms_to_string(timedelta(days=5, hours=16, minutes=8, seconds=59)) == "5 days, 16 hrs, 8 min"
-    assert hms_to_string(timedelta(hours=13, minutes=58)) == "13 hrs, 58 min"
-    assert hms_to_string(timedelta(hours=137, minutes=58)) == "5 days, 17 hrs, 58 min"
-    assert hms_to_string(timedelta(days=1, hours=7)) == "1 day, 7 hrs"
-    assert hms_to_string(timedelta(days=2, hours=7)) == "2 days, 7 hrs"
-    assert hms_to_string(timedelta(days=1, minutes=7)) == "1 day, 7 min"
-    assert hms_to_string(timedelta(days=2, minutes=7)) == "2 days, 7 min"
-    assert hms_to_string(timedelta(days=1, seconds=7)) == "1 day"
-    assert hms_to_string(timedelta(days=2, seconds=7)) == "2 days"
-    assert hms_to_string(timedelta(days=42, seconds=7)) == "42 days"
-    assert hms_to_string(timedelta(days=42, seconds=-7)) == "41 days, 23 hrs, 59 min"
+        with pytest.raises(ValueError):
+            hms_to_string(timedelta(minutes=-2, seconds=77))
 
-    with pytest.raises(ValueError):
-        hms_to_string(timedelta(seconds=-3))
+    def test_hms_to_string_type_checks(self):
+        with pytest.raises(TypeError):
+            hms_to_string(15)
 
-    with pytest.raises(ValueError):
-        hms_to_string(timedelta(minutes=-2, seconds=77))
+        with pytest.raises(TypeError):
+            hms_to_string(-15)
 
+        with pytest.raises(TypeError):
+            hms_to_string(73)
 
-def test_hms_to_string_type_checks():
-    with pytest.raises(TypeError):
-        hms_to_string(15)
+        with pytest.raises(TypeError):
+            hms_to_string(-73)
 
-    with pytest.raises(TypeError):
-        hms_to_string(-15)
+        with pytest.raises(TypeError):
+            hms_to_string(2.145)
 
-    with pytest.raises(TypeError):
-        hms_to_string(73)
+        with pytest.raises(TypeError):
+            hms_to_string(-2.145)
 
-    with pytest.raises(TypeError):
-        hms_to_string(-73)
+        with pytest.raises(TypeError):
+            hms_to_string({})
 
-    with pytest.raises(TypeError):
-        hms_to_string(2.145)
+        with pytest.raises(TypeError):
+            hms_to_string(datetime)
 
-    with pytest.raises(TypeError):
-        hms_to_string(-2.145)
+        with pytest.raises(TypeError):
+            hms_to_string(datetime.utcnow())
 
-    with pytest.raises(TypeError):
-        hms_to_string({})
-
-    with pytest.raises(TypeError):
-        hms_to_string(datetime)
-
-    with pytest.raises(TypeError):
-        hms_to_string(datetime.utcnow())
-
-    with pytest.raises(TypeError):
-        hms_to_string(timedelta)
+        with pytest.raises(TypeError):
+            hms_to_string(timedelta)
 
 
 def helper_test_seconds_to_hms(data, result):
@@ -525,7 +524,7 @@ def helper_test_seconds_to_hms(data, result):
 
 
 def helper_test_hms_to_x(fn, hms, result, use_negatives=True):
-    """Runs 18+ asserts on a given function for various permutations of hms, a 4-length list input."""
+    """Runs asserts on a given function for various permutations of hms, a 4-length list input."""
     hms_original = hms
     assert fn(hms_original) == result
 
