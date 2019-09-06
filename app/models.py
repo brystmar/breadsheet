@@ -21,8 +21,16 @@ class Step(MapAttribute):
         if not self.then_wait_ui and self.then_wait:
             self.then_wait_ui = hms_to_string(seconds_to_hms(self.then_wait))
 
-    def __init__(self, **attrs):
+    def __init__(self, number=number, text=text, then_wait=then_wait, then_wait_ui=then_wait_ui, note=note, when=when,
+                 then_wait_list=then_wait_list, **attrs):
         super().__init__(**attrs)
+        self.number = number
+        self.text = text
+        self.then_wait = then_wait
+        self.then_wait_ui = then_wait_ui
+        self.note = note
+        self.when = when
+        self.then_wait_list = then_wait_list
 
         self.update_ui_fields()
 
@@ -72,6 +80,7 @@ class Recipe(Model):
     def update_ui_fields(self):
         """Creates the _ui fields for date & time attributes, if they don't already exist."""
         data_changed = False
+
         if not self.date_added_ui and self.date_added:
             self.date_added_ui = self.date_added.strftime(Config.date_format)
             logger.debug(f"date_added_ui changed for recipe {self.name}")
@@ -97,17 +106,43 @@ class Recipe(Model):
             logger.debug(f"Data changed for recipe {self.name}")
             # logger.debug(f"About to update the db...")
             self.save()
-            # logger.debug(f"...db updated!")
+            logger.debug(f"...db updated!")
             pass
 
-    def __init__(self, **attrs):
+    def __init__(self, id=id, name=name, author=author, source=source, difficulty=difficulty, length=length,
+                 steps=steps, date_added=date_added, start_time=start_time, finish_time=finish_time,
+                 date_added_ui=date_added_ui, start_time_ui=start_time_ui, finish_time_ui=finish_time_ui,
+                 total_time_ui=total_time_ui, **attrs):
         super().__init__(**attrs)
+
+        self.id = id
+        self.name = name
+        self.author = author
+        self.source = source
+        self.difficulty = difficulty
+
+        self.length = length or 0
+        self.steps = steps or []
+
+        self.date_added = date_added or date.today()
+        self.date_added_ui = date_added_ui
+
+        self.start_time = start_time or datetime.utcnow()
+        self.start_time_ui = start_time_ui
+
+        self.finish_time = finish_time
+        self.finish_time_ui = finish_time_ui
+        if not finish_time_ui and self.finish_time is not None:
+            self.finish_time_ui = self.finish_time.strftime(Config.datetime_format)
+
+        self.total_time_ui = total_time_ui
+        if not self.total_time_ui and self.length:
+            self.total_time_ui = hms_to_string(seconds_to_hms(self.length))
 
         # Update the UI fields when initialized, if necessary
         # TODO: Set to the browser's timezone automatically instead of forcing PST
         # self.adjust_timezone(-7)
-        self.length = 0
-        self.update_ui_fields()
+        # self.update_ui_fields()
 
     def __repr__(self):
         return f'<Recipe {self.id}: {self.name}>'
@@ -124,6 +159,12 @@ class Replacement(Model):
     scope = UnicodeAttribute(hash_key=True)
     old = UnicodeAttribute(range_key=True)
     new = UnicodeAttribute()
+
+    def __init__(self, scope=scope, old=old, new=new, **attrs):
+        super().__init__(**attrs)
+        self.scope = scope
+        self.old = old
+        self.new = new
 
     def __repr__(self):
         return f'<Replacement Text | scope: {self.scope}, old: {self.old}, new: {self.new}>'
