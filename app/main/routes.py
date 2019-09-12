@@ -167,7 +167,6 @@ def set_when(steps, when) -> Recipe.steps:
         when += timedelta(seconds=step.then_wait)
 
         step.then_wait_ui = str(timedelta(seconds=step.then_wait))
-        step.then_wait_list = step.then_wait_ui.split(":")
         i += 1
 
         logger.debug(f"Finished step {step.number}")
@@ -210,6 +209,7 @@ def create_tw_forms(steps) -> list:
         logger.debug(f"Looking at step {step.number}, then_wait={step.then_wait}, then_wait_ui={step.then_wait_ui}")
         tw = ThenWaitForm()
         tw.step_number = step.number
+        split = step.then_wait_ui.split(":")
 
         # If steps take >24hrs, timedelta strings are formatted: '2 days, 1:35:28'
         if 'day' in step.then_wait_ui:
@@ -218,12 +218,12 @@ def create_tw_forms(steps) -> list:
             # days = days // (60 * 60 * 24)
 
             # Split the second portion by ':', then add the number of hours
-            hours = int(step.then_wait_list[1]) + (days * 24)
-            tw.then_wait_m.data = step.then_wait_list[2]
+            hours = int(split[1]) + (days * 24)
+            tw.then_wait_m.data = split[2]
         else:
             # Otherwise, just split as normal
-            hours = step.then_wait_list[0]
-            tw.then_wait_m.data = step.then_wait_list[1]
+            hours = split[0]
+            tw.then_wait_m.data = split[1]
 
         # timedelta doesn't zero-pad the hours, so F* IT! WE'LL DO IT LIVE!
         if int(hours) <= 9:

@@ -24,8 +24,9 @@ class Config(object):
     # App-related
     SECRET_KEY = environ.get('SECRET_KEY') or '0mW7@LN0n32L6ntaj0d8jzsXiAW4mkPL7u5l'
     domain_url = environ.get('DOMAIN_URL')
+    aaa = environ.get('aaa')
 
-    # Date & time formatting prefs
+    # Date & time formatting
     date_format = '%Y-%m-%d'
     datetime_format = '%Y-%m-%d %H:%M:%S'
     step_when_format = '%a %H:%M'

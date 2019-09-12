@@ -7,22 +7,21 @@ from pynamodb.attributes import UnicodeAttribute, UTCDateTimeAttribute, NumberAt
 
 
 class Step(MapAttribute):
+    """Each Step is used as a list item underneath the Recipe class."""
     number = NumberAttribute()
     text = UnicodeAttribute()
     then_wait = NumberAttribute(null=True)
     then_wait_ui = UnicodeAttribute(null=True)
     note = UnicodeAttribute(null=True)
-
     when = UnicodeAttribute(null=True)
-    then_wait_list = ListAttribute(null=True)
 
     def update_ui_fields(self):
         """Creates the _ui fields for date & time attributes, if they don't already exist."""
         if not self.then_wait_ui and self.then_wait:
             self.then_wait_ui = hms_to_string(seconds_to_hms(self.then_wait))
 
-    def __init__(self, number=number, text=text, then_wait=then_wait, then_wait_ui=then_wait_ui, note=note, when=when,
-                 then_wait_list=then_wait_list, **attrs):
+    def __init__(self, number=number, text=text, then_wait=then_wait, then_wait_ui=then_wait_ui, note=note,
+                 when=when, **attrs):
         super().__init__(**attrs)
         self.number = number
         self.text = text
@@ -30,7 +29,6 @@ class Step(MapAttribute):
         self.then_wait_ui = then_wait_ui
         self.note = note
         self.when = when
-        self.then_wait_list = then_wait_list
 
         self.update_ui_fields()
 
@@ -41,9 +39,8 @@ class Step(MapAttribute):
 class Recipe(Model):
     class Meta:
         table_name = 'Recipe'
-        region = 'us-west-2'
-        if local:
-            # Use the local DynamoDB instance when running locally
+        region = Config.aws_region
+        if local:  # Use the local DynamoDB instance when running locally
             host = 'http://localhost:8008'
 
     # Primary recipe attributes
@@ -52,6 +49,14 @@ class Recipe(Model):
     author = UnicodeAttribute()
     source = UnicodeAttribute()
     difficulty = UnicodeAttribute()
+
+    # TODO: Figure out class-based validation that works with NumberAttribute()
+    #  length = property(operator.attrgetter('_length'))
+    #  @length.setter
+    #  def length(self, l):
+    #     if l < 0:
+    #         raise ValueError("Length must be greater than zero.")
+    #     self._length = l
     length = NumberAttribute(default=0)
 
     # Steps is an embedded list of dictionaries ("maps")
@@ -151,9 +156,8 @@ class Recipe(Model):
 class Replacement(Model):
     class Meta:
         table_name = 'Replacement'
-        region = 'us-west-2'
-        if local:
-            # Use the local DynamoDB instance when running locally
+        region = Config.aws_region
+        if local:  # Use the local DynamoDB instance when running locally
             host = 'http://localhost:8008'
 
     scope = UnicodeAttribute(hash_key=True)
