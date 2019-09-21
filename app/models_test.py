@@ -1,8 +1,20 @@
 import pytest
 from config import Config
 from app.models import Recipe, Step, Replacement
-from app.functions import hms_to_string, seconds_to_hms
+from app.functions import hms_to_string, seconds_to_hms, generate_new_id
 from datetime import date, datetime, timedelta
+from pynamodb.attributes import NumberAttribute
+
+
+def step_creator(recipe_input: Recipe, steps_to_create, multiplier=1) -> Recipe:
+    step_number = 1
+    while step_number <= steps_to_create:
+        new_step = Step(number=step_number, text=f"step_{step_number}",
+                        then_wait=step_number * multiplier)
+        recipe_input.steps.append(new_step)
+        step_number += 1
+
+    return recipe_input
 
 
 class TestStepModel:
@@ -192,6 +204,19 @@ class TestRecipeModel:
         # TODO: Validate date_added == date.today() when initialized.  Raises an AttributeError:
         #  self = <pynamodb.attributes.UTCDateTimeAttribute object at 0x103a8c588>
         #  value = datetime.date(2019, 9, 11)
+
+    def test_recipe_update_length(self):
+        recipe = Recipe(id=f"test_{generate_new_id()}", length=0, steps=[])
+        # with pytest.raises(TypeError):
+        #     pass
+        assert recipe.length == 0
+        recipe.update_length(save=False)
+        assert recipe.length == 0
+
+        # Add 4 steps
+        recipe = step_creator(recipe, 4, 100)
+        recipe.update_length(save=False)
+        assert recipe.length == 100 + 200 + 300 + 400
 
 
 class TestReplacementModel:

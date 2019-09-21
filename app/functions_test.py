@@ -44,6 +44,9 @@ def test_zero_pad():
     assert zero_pad("344") == "344"
     assert zero_pad("0344") == "344"
 
+    for number in range(0, 9):
+        assert zero_pad(number) == f"0{number}"
+
     with pytest.raises(TypeError):
         zero_pad(None)
 

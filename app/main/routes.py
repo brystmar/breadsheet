@@ -9,6 +9,7 @@ from config import Config
 from datetime import datetime, timedelta
 from flask import render_template, redirect, url_for, request, send_from_directory  # , flash
 from os import path
+from pynamodb.attributes import ListAttribute
 
 
 # Map the specified URL to this function
@@ -79,7 +80,7 @@ def recipe():
     recipe_shown = Recipe.query(recipe_id).next()
     logger.debug(f"Recipe retrieved: {recipe_shown.name} ({recipe_shown.id})")
 
-    recipe_shown = calculate_recipe_length(recipe_shown)
+    recipe_shown.update_length()
     recipe_shown = add_recipe_ui_fields(recipe_shown)
 
     # Optimize the step data for display
@@ -122,34 +123,7 @@ def favicon():
     return send_from_directory(path.join(bp.root_path, 'static'), 'favicon.ico', mimetype='image/vnd.microsoft.icon')
 
 
-def calculate_recipe_length(recipe_input) -> Recipe:
-    """Add/update the recipe_input's length (in seconds) by summing the length of each step."""
-    logger.debug(f"Start of calculate_recipe_length() for {recipe_input.name}")
-    try:
-        original_length = recipe_input.length
-    except KeyError:
-        original_length = -1
-
-    length = 0
-    for step in recipe_input.steps:
-        if isinstance(step.then_wait, timedelta):
-            length += int(step.then_wait.total_seconds())  # wrapping w/int() because total_seconds returns a float
-        else:
-            length += step.then_wait
-
-    logger.debug(f"Calculated length: {length}, original length: {original_length}")
-    recipe_input.length = length
-
-    if length != original_length:
-        # Update the database if the length changed
-        recipe_input.save()
-        logger.info(f"Updated recipe {recipe_input.name} to reflect its new length.")
-
-    logger.debug("End of calculate_recipe_length()")
-    return recipe_input
-
-
-def set_when(steps, when) -> Recipe.steps:
+def set_when(steps: ListAttribute(), when: datetime) -> Recipe.steps:
     """Calculate when each step should begin, using a list of steps plus the benchmark time. Returns a list of steps."""
     logger.debug(f"Start of set_when(), with when={when}, {len(steps)} steps, all steps: {steps}")
     i = 0
@@ -175,7 +149,7 @@ def set_when(steps, when) -> Recipe.steps:
     return steps
 
 
-def add_recipe_ui_fields(recipe_input) -> Recipe:
+def add_recipe_ui_fields(recipe_input: Recipe) -> Recipe:
     """Input: an individual Recipe class.  Populates date_added_ui, start_time, finish_time, & total_time_ui."""
     logger.debug(f"Start of add_recipe_ui_fields() for {recipe_input.name}")
 
@@ -200,7 +174,7 @@ def add_recipe_ui_fields(recipe_input) -> Recipe:
     return recipe_input
 
 
-def create_tw_forms(steps) -> list:
+def create_tw_forms(steps: ListAttribute()) -> list:
     """Create a form for the 'then wait...' display for recipe steps, then populate it with data."""
     logger.debug(f"Start of create_tw_forms(), with: {steps}")
 
@@ -238,7 +212,7 @@ def create_tw_forms(steps) -> list:
     return twforms
 
 
-def create_start_finish_forms(recipe_input) -> StartFinishForm:
+def create_start_finish_forms(recipe_input: Recipe) -> StartFinishForm:
     """Set values for the form displaying start & finish times for this recipe."""
     logger.debug(f"Start of create_start_finish_forms() for {recipe_input.name}")
 

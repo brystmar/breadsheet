@@ -74,13 +74,39 @@ class Recipe(Model):
 
     total_time_ui = UnicodeAttribute(null=True)
 
-    def adjust_timezone(self, offset_hours):
+    def adjust_time(self, offset_hours):
         """Adjust the date & time fields based on a specified offset."""
         self.date_added = self.date_added + timedelta(seconds=3600 * offset_hours)
         self.start_time = self.start_time + timedelta(seconds=3600 * offset_hours)
 
         # Finish timestamp is dynamic based on start time & length
         self.finish_time = self.start_time + timedelta(seconds=self.length)
+
+    def update_length(self, save=True):
+        """Update the recipe's length (in seconds) by summing the length of each step."""
+        logger.debug(f"Start of Recipe.update_length() for {self.name}")
+        if not self.steps:  # if steps is an empty list
+            self.length = 0
+            return
+
+        original_length = self.length or -1
+        length = 0
+
+        for step in self.steps:
+            if isinstance(step.then_wait, timedelta):
+                length += int(step.then_wait.total_seconds())  # wrapping w/int() because total_seconds() returns float
+            else:
+                length += step.then_wait
+
+        logger.debug(f"Calculated length: {length}, original length: {original_length}")
+        self.length = length
+
+        if length != original_length and save:
+            # Update the database if the length changed
+            self.save()
+            logger.info(f"Updated recipe {self.name} to reflect its new length: {self.length}.")
+
+        logger.debug("End of Recipe.update_length()")
 
     def update_ui_fields(self):
         """Creates the _ui fields for date & time attributes, if they don't already exist."""
