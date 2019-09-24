@@ -7,7 +7,15 @@ from pynamodb.attributes import NumberAttribute
 
 
 def step_creator(recipe_input: Recipe, steps_to_create, multiplier=1) -> Recipe:
+    # Determine the next step number to use
     step_number = 1
+    if recipe_input.steps:
+        for step in recipe_input.steps:
+            if step.number > step_number:
+                step_number = step.number
+    else:
+        step_number = 1
+
     while step_number <= steps_to_create:
         new_step = Step(number=step_number, text=f"step_{step_number}",
                         then_wait=step_number * multiplier)
@@ -151,8 +159,8 @@ class TestRecipeModel:
         self.test_recipe.author = "The voice in my head"
         assert self.test_recipe.author == "The voice in my head"
 
-        self.test_recipe.source = "http://unnecessarilylongdomain.com/food/chicken?fried=True&deliciousness_quotient=9"
-        assert self.test_recipe.source == "http://unnecessarilylongdomain.com/food/chicken?fried=True&deliciousness_quotient=9"
+        self.test_recipe.source = "http://longdomain.com/food/chicken?fried=True&deliciousness_quotient=9"
+        assert self.test_recipe.source == "http://longdomain.com/food/chicken?fried=True&deliciousness_quotient=9"
 
         self.test_recipe.difficulty = "Advanced"
         assert self.test_recipe.difficulty == "Advanced"
@@ -177,11 +185,12 @@ class TestRecipeModel:
         assert self.test_recipe.steps[1].text == "score the dough"
         assert self.test_recipe.steps[1].then_wait == 300
 
-        self.test_recipe.date_added = date.today()
-        assert self.test_recipe.date_added == date.today()
+        testing_date_added = datetime.utcnow()
+        self.test_recipe.date_added = testing_date_added
+        assert self.test_recipe.date_added == testing_date_added
 
-        self.test_recipe.date_added_ui = date.today().strftime(Config.date_format)
-        assert self.test_recipe.date_added_ui == date.today().strftime(Config.date_format)
+        self.test_recipe.date_added_ui = testing_date_added.strftime(Config.date_format)
+        assert self.test_recipe.date_added_ui == testing_date_added.strftime(Config.date_format)
 
         testing_start_time = datetime.utcnow()
         self.test_recipe.start_time = testing_start_time
@@ -201,9 +210,46 @@ class TestRecipeModel:
         assert self.total_time_ui == "6 hrs, 39 min"
         assert self.total_time_ui == hms_to_string(seconds_to_hms(self.test_recipe.length))
 
-        # TODO: Validate date_added == date.today() when initialized.  Raises an AttributeError:
+        # TODO: Validate date_added == datetime.utcnow() when initialized.  Raises an AttributeError:
         #  self = <pynamodb.attributes.UTCDateTimeAttribute object at 0x103a8c588>
-        #  value = datetime.date(2019, 9, 11)
+        #  value = datetime(2019, 9, 11)
+
+    def test_recipe_adjust_start_time(self):
+        start_time = datetime(2019, 9, 14, 10, 0, 0)
+        recipe = Recipe(id=f"test_{generate_new_id()}", length=0, start_time=start_time)
+        assert recipe.start_time == start_time
+
+        # Start 35 minutes later
+        recipe.adjust_start_time(seconds=35 * 60)
+        assert recipe.start_time == datetime(2019, 9, 14, 10, 35, 0)
+
+        # Start 3 hrs, 10 min sooner
+        recipe.adjust_start_time(seconds=-1 * (10800 + 600))
+        assert recipe.start_time == datetime(2019, 9, 14, 7, 25, 0)
+
+    def test_recipe_adjust_timezone(self):
+        date_added = datetime(2019, 9, 14, 2, 15, 0)
+        start_time = datetime(2019, 9, 14, 10, 0, 0)
+        finish_time = datetime(2019, 9, 14, 15, 50, 0)  # 21000s = 5 hrs, 10 min
+
+        recipe = Recipe(id=f"test_{generate_new_id()}", length=21000, date_added=date_added, start_time=start_time)
+
+        # Default check
+        assert recipe.date_added == recipe.date_added
+        assert recipe.start_time == recipe.start_time
+        assert recipe.finish_time == recipe.finish_time
+
+        # Remove 7 hours
+        recipe.adjust_timezone(hours=-7)
+        assert recipe.date_added == datetime(2019, 9, 13, 19, 15, 0)
+        assert recipe.start_time == datetime(2019, 9, 14, 3, 0, 0)
+        assert recipe.finish_time == datetime(2019, 9, 14, 8, 50, 0)
+
+        # Add 3 hours
+        recipe.adjust_timezone(hours=3)
+        assert recipe.date_added == datetime(2019, 9, 13, 22, 15, 0)
+        assert recipe.start_time == datetime(2019, 9, 14, 6, 0, 0)
+        assert recipe.finish_time == datetime(2019, 9, 14, 9, 0, 0)
 
     def test_recipe_update_length(self):
         recipe = Recipe(id=f"test_{generate_new_id()}", length=0, steps=[])

@@ -63,24 +63,31 @@ class Recipe(Model):
     steps = ListAttribute(of=Step)
 
     # Dates & times
-    date_added = UTCDateTimeAttribute(default=date.today())
-    date_added_ui = UnicodeAttribute(default=date.today().strftime(Config.date_format))
+    now = datetime.utcnow()
+    date_added = UTCDateTimeAttribute(default=now)
+    date_added_ui = UnicodeAttribute(default=now.strftime(Config.date_format))
+    # TODO: Ensure date_added always remains a datetime() -- not a date() object
 
-    start_time = UTCDateTimeAttribute(default=datetime.utcnow())
-    start_time_ui = UnicodeAttribute(default=datetime.utcnow().strftime(Config.datetime_format))
+    start_time = UTCDateTimeAttribute(default=now)
+    start_time_ui = UnicodeAttribute(default=now.strftime(Config.datetime_format))
 
     finish_time = UTCDateTimeAttribute(null=True)
     finish_time_ui = UnicodeAttribute(null=True)
 
     total_time_ui = UnicodeAttribute(null=True)
 
-    def adjust_time(self, offset_hours):
-        """Adjust the date & time fields based on a specified offset."""
-        self.date_added = self.date_added + timedelta(seconds=3600 * offset_hours)
-        self.start_time = self.start_time + timedelta(seconds=3600 * offset_hours)
+    def adjust_start_time(self, seconds):
+        """Adjust the starting timestamp by a specified number of seconds."""
+        self.start_time = self.start_time + timedelta(seconds=seconds)
 
         # Finish timestamp is dynamic based on start time & length
         self.finish_time = self.start_time + timedelta(seconds=self.length)
+
+    def adjust_timezone(self, hours):
+        """Adjust all timestamps by a specified number of hours."""
+        self.date_added = self.date_added + timedelta(seconds=3600 * hours)
+        self.start_time = self.start_time + timedelta(seconds=3600 * hours)
+        self.finish_time = self.finish_time + timedelta(seconds=3600 * hours)
 
     def update_length(self, save=True):
         """Update the recipe's length (in seconds) by summing the length of each step."""
