@@ -12,14 +12,10 @@ def test_generate_new_id():
         assert isinstance(test_id, str)
         assert len(test_id) == 17
 
-    # Ensure timestamps are created in UTC
-    test_id = generate_new_id()
-    now = float(datetime.utcnow().timestamp())
-    assert now - 1 <= float(test_id) <= now + 1
+        # TODO: Ensure id is unique
 
 
 def test_zero_pad():
-    assert zero_pad(0) == "00"
     assert zero_pad(00) == "00"
     assert zero_pad("0") == "00"
     assert zero_pad("00") == "00"
@@ -28,11 +24,9 @@ def test_zero_pad():
     assert zero_pad("-1") == "-1"
     assert zero_pad("-01") == "-1"
 
-    assert zero_pad(1) == "01"
     assert zero_pad("1") == "01"
     assert zero_pad("01") == "01"
 
-    assert zero_pad(9) == "09"
     assert zero_pad("9") == "09"
     assert zero_pad("09") == "09"
 
@@ -43,6 +37,12 @@ def test_zero_pad():
     assert zero_pad(344) == "344"
     assert zero_pad("344") == "344"
     assert zero_pad("0344") == "344"
+
+    assert zero_pad(Decimal(3)) == "03"
+    assert zero_pad(Decimal(4.3)) == "04"
+    assert zero_pad(Decimal(4.9)) == "04"
+    assert zero_pad(Decimal(43)) == "43"
+    assert zero_pad(Decimal(-43)) == "-43"
 
     for number in range(0, 9):
         assert zero_pad(number) == f"0{number}"

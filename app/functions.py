@@ -19,6 +19,7 @@ def zero_pad(num) -> str:
         num = int(num)
     except (TypeError, ValueError) as e:
         raise e(f"Input {num} {type(num)} to zero_pad() must convert to int.")
+
     if 0 <= num <= 9:
         return f"0{num}"
     else:
