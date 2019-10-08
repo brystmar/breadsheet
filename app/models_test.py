@@ -1,9 +1,7 @@
 import pytest
 from config import Config
 from app.models import Recipe, Step, Replacement
-from app.functions import hms_to_string, seconds_to_hms, generate_new_id
-from datetime import date, datetime, timedelta
-from pynamodb.attributes import NumberAttribute
+from datetime import datetime, timedelta
 
 
 def step_creator(recipe_input: Recipe, steps_to_create, multiplier=1) -> Recipe:
@@ -42,38 +40,24 @@ class TestStepModel:
         assert step.text == 'Another step test!!@'
         assert step.then_wait == 86856
 
-        step.then_wait_ui = '1 day, 7 min'
-        assert step.number == 2
-        assert step.text == 'Another step test!!@'
-        assert step.then_wait == 86856
-        assert step.then_wait_ui == '1 day, 7 min'
-        assert step.then_wait_ui == hms_to_string(seconds_to_hms(step.then_wait))
-
         step.note = 'Message in a bottle 0_o?'
         assert step.number == 2
         assert step.text == 'Another step test!!@'
         assert step.then_wait == 86856
-        assert step.then_wait_ui == '1 day, 7 min'
-        assert step.then_wait_ui == hms_to_string(seconds_to_hms(step.then_wait))
         assert step.note == 'Message in a bottle 0_o?'
 
         step.when = 'build me a string;!^'
         assert step.number == 2
         assert step.text == 'Another step test!!@'
         assert step.then_wait == 86856
-        assert step.then_wait_ui == '1 day, 7 min'
-        assert step.then_wait_ui == hms_to_string(seconds_to_hms(step.then_wait))
         assert step.note == 'Message in a bottle 0_o?'
 
     def test_step_constructor(self):
-        step = Step(number=3, text='step test!', then_wait=5573, then_wait_ui='1 hr, 32 min',
-                    note='another note :D', when='at some point in time :O')
+        step = Step(number=3, text='step test!', then_wait=5573, note='another note :D', when='sometime...?')
 
         assert step.number == 3
         assert step.text == 'step test!'
         assert step.then_wait == 5573
-        assert step.then_wait_ui == '1 hr, 32 min'
-        assert step.then_wait_ui == hms_to_string(seconds_to_hms(step.then_wait))
         assert step.note == 'another note :D'
         assert step.when == 'at some point in time :O'
 
@@ -82,8 +66,6 @@ class TestStepModel:
         assert step.number == 5
         assert step.text == 'step test!'
         assert step.then_wait == 5573
-        assert step.then_wait_ui == '1 hr, 32 min'
-        assert step.then_wait_ui == hms_to_string(seconds_to_hms(step.then_wait))
         assert step.note == 'another note :D'
         assert step.when == 'at some point in time :O'
 
@@ -91,19 +73,13 @@ class TestStepModel:
         assert step.number == 5
         assert step.text == '$#( switch it up $*&'
         assert step.then_wait == 5573
-        assert step.then_wait_ui == '1 hr, 32 min'
-        assert step.then_wait_ui == hms_to_string(seconds_to_hms(step.then_wait))
         assert step.note == 'another note :D'
         assert step.when == 'at some point in time :O'
 
         step.then_wait = 415395
-        step.then_wait_ui = '4 days, 19 hrs, 23 min'
-        # TODO: Update the _ui values when the primary value changes
         assert step.number == 5
         assert step.text == '$#( switch it up $*&'
         assert step.then_wait == 415395
-        assert step.then_wait_ui == '4 days, 19 hrs, 23 min'
-        assert step.then_wait_ui == hms_to_string(seconds_to_hms(step.then_wait))
         assert step.note == 'another note :D'
         assert step.when == 'at some point in time :O'
 
@@ -111,8 +87,6 @@ class TestStepModel:
         assert step.number == 5
         assert step.text == '$#( switch it up $*&'
         assert step.then_wait == 415395
-        assert step.then_wait_ui == '4 days, 19 hrs, 23 min'
-        assert step.then_wait_ui == hms_to_string(seconds_to_hms(step.then_wait))
         assert step.note == 'something else :,X'
         assert step.when == 'at some point in time :O'
 
@@ -120,8 +94,6 @@ class TestStepModel:
         assert step.number == 5
         assert step.text == '$#( switch it up $*&'
         assert step.then_wait == 415395
-        assert step.then_wait_ui == '4 days, 19 hrs, 23 min'
-        assert step.then_wait_ui == hms_to_string(seconds_to_hms(step.then_wait))
         assert step.note == 'something else :,X'
         assert step.when == 'maybe in the future?'
 
@@ -189,26 +161,13 @@ class TestRecipeModel:
         self.test_recipe.date_added = testing_date_added
         assert self.test_recipe.date_added == testing_date_added
 
-        self.test_recipe.date_added_ui = testing_date_added.strftime(Config.date_format)
-        assert self.test_recipe.date_added_ui == testing_date_added.strftime(Config.date_format)
-
         testing_start_time = datetime.utcnow()
         self.test_recipe.start_time = testing_start_time
         assert self.test_recipe.start_time == testing_start_time
 
-        self.test_recipe.start_time_ui = testing_start_time.strftime(Config.datetime_format)
-        assert self.test_recipe.start_time_ui == testing_start_time.strftime(Config.datetime_format)
-
         testing_finish_time = datetime.utcnow()
         self.test_recipe.finish_time = testing_finish_time
         assert self.test_recipe.finish_time == testing_finish_time
-
-        self.test_recipe.finish_time_ui = testing_finish_time.strftime(Config.datetime_format)
-        assert self.test_recipe.finish_time_ui == testing_finish_time.strftime(Config.datetime_format)
-
-        self.total_time_ui = "6 hrs, 39 min"
-        assert self.total_time_ui == "6 hrs, 39 min"
-        assert self.total_time_ui == hms_to_string(seconds_to_hms(self.test_recipe.length))
 
         # TODO: Validate date_added == datetime.utcnow() when initialized.  Raises an AttributeError:
         #  self = <pynamodb.attributes.UTCDateTimeAttribute object at 0x103a8c588>
@@ -226,30 +185,6 @@ class TestRecipeModel:
         # Start 3 hrs, 10 min sooner
         recipe.adjust_start_time(seconds=-1 * (10800 + 600))
         assert recipe.start_time == datetime(2019, 9, 14, 7, 25, 0)
-
-    def test_recipe_adjust_timezone(self):
-        date_added = datetime(2019, 9, 14, 2, 15, 0)
-        start_time = datetime(2019, 9, 14, 10, 0, 0)
-        finish_time = datetime(2019, 9, 14, 15, 50, 0)  # 21000s = 5 hrs, 10 min
-
-        recipe = Recipe(id=f"test_{generate_new_id()}", length=21000, date_added=date_added, start_time=start_time)
-
-        # Default check
-        assert recipe.date_added == recipe.date_added
-        assert recipe.start_time == recipe.start_time
-        assert recipe.finish_time == recipe.finish_time
-
-        # Remove 7 hours
-        recipe.adjust_timezone(hours=-7)
-        assert recipe.date_added == datetime(2019, 9, 13, 19, 15, 0)
-        assert recipe.start_time == datetime(2019, 9, 14, 3, 0, 0)
-        assert recipe.finish_time == datetime(2019, 9, 14, 8, 50, 0)
-
-        # Add 3 hours
-        recipe.adjust_timezone(hours=3)
-        assert recipe.date_added == datetime(2019, 9, 13, 22, 15, 0)
-        assert recipe.start_time == datetime(2019, 9, 14, 6, 0, 0)
-        assert recipe.finish_time == datetime(2019, 9, 14, 9, 0, 0)
 
     def test_recipe_update_length(self):
         recipe = Recipe(id=f"test_{generate_new_id()}", length=0, steps=[])

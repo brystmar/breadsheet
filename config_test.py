@@ -18,8 +18,3 @@ def test_config():
     # App-related
     assert Config.SECRET_KEY is not None
     assert Config.domain_url is not None
-
-    # Date & time formatting
-    assert Config.date_format is not None
-    assert Config.datetime_format is not None
-    assert Config.step_when_format is not None

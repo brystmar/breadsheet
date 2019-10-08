@@ -1,6 +1,5 @@
 from global_logger import logger, local
 from os import environ
-import pytz
 
 
 class Config(object):
@@ -25,13 +24,4 @@ class Config(object):
     SECRET_KEY = environ.get('SECRET_KEY') or '0mW7@LN0n32L6ntaj0d8jzsXiAW4mkPL7u5l'
     domain_url = environ.get('DOMAIN_URL')
 
-    # Date & time formatting
-    date_format = '%Y-%m-%d'
-    datetime_format = '%Y-%m-%d %H:%M:%S'
-    step_when_format = '%a %H:%M'
-
     logger.info("End of the Config() class.")
-
-
-# TODO: Add support for moment.js
-PST = pytz.timezone('US/Pacific')

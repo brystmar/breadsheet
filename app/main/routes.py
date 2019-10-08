@@ -1,7 +1,6 @@
 """Determine which page(s) to render for each browser request."""
 
 from app import logger
-from app.functions import generate_new_id, hms_to_seconds, hms_to_string
 from app.main import bp
 from app.main.forms import RecipeForm, StepForm, ThenWaitForm, StartFinishForm, paprika_recipe_ids
 from app.models import Recipe, Step
@@ -13,18 +12,15 @@ from pynamodb.attributes import ListAttribute
 
 
 # Map the specified URL to this function
-@bp.route('/breadsheet')
-@bp.route('/index')
 @bp.route('/')
+@bp.route('/index')
+@bp.route('/breadsheet')
 def index():
-    logger.info("\n\nStart of index()\n\n")
+    logger.info("\n\nStart of breadsheet index()\n\n")
 
     # Grab all recipes from the db, sort by id
     recipes = Recipe.scan()
     recipes = sorted(recipes, key=lambda r: r.id)
-
-    for each_recipe in recipes:
-        each_recipe = add_recipe_ui_fields(each_recipe)
 
     logger.info("Rendering the homepage.  End of index()")
     return render_template('index.html', title='Breadsheet: A Recipe Scheduling Tool', recipes=recipes)
@@ -38,21 +34,23 @@ def add_recipe():
     if form.validate_on_submit():
         logger.info("RecipeForm submitted.")
 
+        now = datetime.utcnow()
+
         # Use the form data submitted to create an instance of the Recipe class
         new_recipe = Recipe(id=generate_new_id(),
                             name=form.name.data,
                             author=form.author.data,
                             source=form.source.data,
                             difficulty=form.difficulty.data,
-                            date_added=datetime.utcnow(),
-                            start_time=datetime.utcnow(),
+                            date_added=now,
+                            start_time=now,
                             steps=[],
                             length=0)
 
         # Write this new recipe to the db
-        logger.info(f"About to write new recipe {new_recipe.name} to the database.")
+        logger.info(f"Writing new recipe {new_recipe.__repr__()} to the database.")
         new_recipe.save()
-        logger.info(f"New recipe {new_recipe.name} saved to the database.")
+        logger.info(f"Database write successful.")
 
         logger.debug("Redirecting to the main recipe page.  End of add_recipe().")
         return redirect(url_for("main.recipe") + f"?id={new_recipe.id}")
@@ -121,6 +119,15 @@ def recipe():
 def favicon():
     logger.info("The favicon was requested!! :D")
     return send_from_directory(path.join(bp.root_path, 'static'), 'favicon.ico', mimetype='image/vnd.microsoft.icon')
+
+
+def generate_new_id() -> str:
+    """Primary key (id) is a 17-digit epoch timestamp.  Ex: 1560043140.168794"""
+    # For sanity, ensure all ids are the same length.  Timestamps occasionally end in 0, which the system truncates.
+    new_id = ""
+    while len(new_id) != 17:
+        new_id = str(datetime.utcnow().timestamp())
+    return new_id
 
 
 def set_when(steps: ListAttribute(), when: datetime) -> Recipe.steps:

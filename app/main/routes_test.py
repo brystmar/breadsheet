@@ -1,10 +1,20 @@
 import pytest
-from app.main.routes import set_when, add_recipe_ui_fields
+from app.main.routes import generate_new_id, set_when, add_recipe_ui_fields
 from app.main.routes import create_tw_forms, create_start_finish_forms
 from app.main.forms import RecipeForm, StepForm, ThenWaitForm, StartFinishForm
 from app.models import Recipe, Step
 from datetime import datetime, timedelta
 from pynamodb.attributes import ListAttribute
+
+
+def test_generate_new_id():
+    # Run this 100 times to ensure it always returns a 17-character string
+    for i in range(100):
+        test_id = generate_new_id()
+        assert isinstance(test_id, str)
+        assert len(test_id) == 17
+
+        # TODO: Ensure id is unique
 
 
 def step_creator(recipe_input: Recipe, steps_to_create, multiplier=1) -> Recipe:
