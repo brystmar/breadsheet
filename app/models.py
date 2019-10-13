@@ -32,8 +32,6 @@ class Step(MapAttribute):
         self.note = note
         self.when = when
 
-        self.update_ui_fields()
-
     def __repr__(self):
         return f'<Step #{self.number}, then_wait: {self.then_wait}>'
 

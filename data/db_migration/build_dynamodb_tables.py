@@ -1,4 +1,4 @@
-from app.data.breadsheet_data import replacements
+from data import replacements_static
 from config import Config
 from datetime import datetime
 import boto3

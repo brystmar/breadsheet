@@ -1,14 +1,16 @@
 """Determine which page(s) to render for each browser request."""
 
+import json
 from app import logger
 from app.main import bp
 from app.main.forms import RecipeForm, StepForm, ThenWaitForm, StartFinishForm, paprika_recipe_ids
-from app.models import Recipe, Step
+from app.models import Recipe, Step, Replacement
 from config import Config
 from datetime import datetime, timedelta
 from flask import render_template, redirect, url_for, request, send_from_directory  # , flash
 from os import path
 from pynamodb.attributes import ListAttribute
+from pynamodb.exceptions import ScanError, TableDoesNotExist
 
 
 # Map the specified URL to this function
@@ -75,11 +77,10 @@ def recipe():
         logger.warning(f"Read this value: {request.args.get('id')}; replaced with the Detroit Pizza id: {recipe_id}")
 
     # Retrieve the recipe using the URL querystring's id
-    recipe_shown = Recipe.query(recipe_id).next()
+    recipe_shown = Recipe.get(recipe_id)
     logger.debug(f"Recipe retrieved: {recipe_shown.name} ({recipe_shown.id})")
 
     recipe_shown.update_length()
-    recipe_shown = add_recipe_ui_fields(recipe_shown)
 
     # Optimize the step data for display
     recipe_shown.steps = set_when(recipe_shown.steps, recipe_shown.start_time)
@@ -92,8 +93,8 @@ def recipe():
         # Create a new Step class for the submitted data
         new_step = Step(number=len(recipe_shown.steps) + 1,
                         text=form.text.data,
-                        then_wait=hms_to_seconds([form.then_wait_h.data, form.then_wait_m.data, 0]),
-                        note=form.note.data if form.note.data != "" else "--")
+                        then_wait=form.then_wait_s,
+                        note=form.note.data)
         logger.info(f"New step #{new_step.number} added.")
 
         # Add this new step to the existing list of steps
@@ -115,9 +116,126 @@ def recipe():
                            sform=form, seform=seform, twforms=twforms, paprika_recipe_ids=paprika_recipe_ids)
 
 
+@bp.route('/get_single_recipe')
+def get_single_recipe(recipe_id) -> json:
+    """Given an id, return the requested recipe as a serialized JSON string."""
+    # Input validation
+    if not isinstance(recipe_id, str):
+        return {
+            'Status': '400',
+            'Details': {
+                'ErrorType': TypeError,
+                'Message': 'RecipeId must be a string.'
+            }
+        }
+    
+    elif recipe_id == "":
+        return {
+            'Status': '400',
+            'Details': {
+                'ErrorType': ValueError,
+                'Message': 'RecipeId cannot be an empty string.'
+            }
+        }
+
+    try:
+        output = Recipe.get(recipe_id)
+        return {
+            'Status': '200',
+            'Details': {
+                'Data': output.dumps(),
+                'Message': 'Success!'
+            }
+        }
+
+    except Recipe.DoesNotExist as e:
+        return {
+            'Status': '404',
+            'Details': {
+                'Error': str(e),
+                'ErrorType': Recipe.DoesNotExist,
+                'Message': 'Invalid recipe id.'
+            }
+        }
+
+
+@bp.route('/get_all_recipes')
+def get_all_recipes() -> json:
+    """Returns a list of JSON objects, representing every recipe in the database."""
+
+    try:
+        recipes = Recipe.scan()
+        output = []
+        for r in recipes:
+            output.append(r.dumps())
+
+        return {
+            'Status': '200',
+            'Details': {
+                'Data': output,
+                'Message': 'Success!'
+            }
+        }
+
+    except ScanError as e:
+        return {
+            'Status': '400',
+            'Details': {
+                'Error': str(e),
+                'ErrorType': ScanError,
+                'Message': 'Scan error on the Recipe table.'
+            }
+        }
+
+    except TableDoesNotExist as e:
+        return {
+            'Status': '404',
+            'Details': {
+                'Error': str(e),
+                'ErrorType': TableDoesNotExist,
+                'Message': 'Recipe table does not exist.'
+            }
+        }
+
+
+@bp.route('/get_replacements_data')
+def get_replacements_data() -> json:
+    """Returns all replacements data."""
+
+    try:
+        reps = Replacement.scan()
+        return {
+            'Status': '200',
+            'Details': {
+                'Data': reps.next().dumps(),
+                'Message': 'Success!'
+            }
+        }
+
+    except ScanError as e:
+        return {
+            'Status': '400',
+            'Details': {
+                'Error': str(e),
+                'ErrorType': ScanError,
+                'Message': 'Scan error on the Replacement table.'
+            }
+        }
+
+    except TableDoesNotExist as e:
+        return {
+            'Status': '404',
+            'Details': {
+                'Error': str(e),
+                'ErrorType': TableDoesNotExist,
+                'Message': 'Replacement table does not exist.'
+            }
+        }
+
+
 @bp.route('/favicon.ico')
 def favicon():
-    logger.info("The favicon was requested!! :D")
+    logger.info("Favicon was requested!! :D")
     return send_from_directory(path.join(bp.root_path, 'static'), 'favicon.ico', mimetype='image/vnd.microsoft.icon')
 
 
@@ -131,15 +249,15 @@ def generate_new_id() -> str:
 
 
 def set_when(steps: ListAttribute(), when: datetime) -> Recipe.steps:
-    """Calculate when each step should begin, using a list of steps plus the benchmark time. Returns a list of steps."""
+    """Calculate when each step should begin, using a list of steps plus the benchmark time.  Return a list of steps."""
     logger.debug(f"Start of set_when(), with when={when}, {len(steps)} steps, all steps: {steps}")
     i = 0
     for step in steps:
-        logger.debug(f"Looking at step {step.number}, when={when.strftime(Config.step_when_format)}, "
+        logger.debug(f"Looking at step {step.number}, when={when.strftime('%Y-%m-%d %H:%M:%S')}, "
                      f"then_wait={step.then_wait}")
 
         # Set the 'when' for this step
-        step.when = when.strftime(Config.step_when_format)
+        step.when = when.strftime('%Y-%m-%d %H:%M:%S')
 
         # Create a timedelta object for then_wait to simplify formulas
         step.then_wait = 0 if step.then_wait is None else int(step.then_wait)
@@ -154,31 +272,6 @@ def set_when(steps: ListAttribute(), when: datetime) -> Recipe.steps:
 
     logger.debug(f"End of set_when(), returning: {steps}")
     return steps
-
-
-def add_recipe_ui_fields(recipe_input: Recipe) -> Recipe:
-    """Input: an individual Recipe class.  Populates date_added_ui, start_time, finish_time, & total_time_ui."""
-    logger.debug(f"Start of add_recipe_ui_fields() for {recipe_input.name}")
-
-    if recipe_input.length in (None, 0, "", " ", "--", "0", "00"):
-        recipe_input.finish_time = recipe_input.start_time
-        recipe_input.finish_time_ui = recipe_input.start_time_ui
-        recipe_input.length = 0
-    else:
-        delta_length = timedelta(seconds=int(recipe_input.length))
-        recipe_input.finish_time = recipe_input.start_time + delta_length
-        recipe_input.finish_time_ui = recipe_input.finish_time.strftime(Config.datetime_format)
-
-        if 'day' in str(delta_length):
-            # If the recipe_input takes >24hrs, the system formats the string: '2 days, 1:30:05'
-            delta_length_split = str(delta_length).split(", ")
-            delta_to_parse = delta_length_split[1].split(':')
-            recipe_input.total_time_ui = f"{delta_length_split[0]}, {hms_to_string(delta_to_parse)}"
-        else:
-            recipe_input.total_time_ui = hms_to_string(str(delta_length).split(':'))
-
-    logger.debug(f"End of add_recipe_ui_fields()")
-    return recipe_input
 
 
 def create_tw_forms(steps: ListAttribute()) -> list:
