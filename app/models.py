@@ -15,7 +15,7 @@ class Step(MapAttribute):
 
     # How long to wait after finishing this step?
     # Similar to length, but more descriptive for a Step object
-    then_wait = NumberAttribute(null=True)
+    then_wait = NumberAttribute(default=0)
 
     # Longer notes field
     note = UnicodeAttribute(null=True)
@@ -75,14 +75,10 @@ class Recipe(Model):
     # Each is stored as a UTC timestamp, no time zone
     date_added = UTCDateTimeAttribute()
     start_time = UTCDateTimeAttribute()
-    finish_time = UTCDateTimeAttribute()
 
     def adjust_start_time(self, seconds):
         """Adjust the starting timestamp by a specified number of seconds."""
         self.start_time = self.start_time + timedelta(seconds=seconds)
-
-        # Finish timestamp is dynamic based on start time & length
-        self.finish_time = self.start_time + timedelta(seconds=self.length)
 
     def update_length(self, save=True):
         """Update the recipe's length (in seconds) by summing the length of each step."""
@@ -126,7 +122,6 @@ class Recipe(Model):
 
         self.date_added = date_added or datetime.utcnow()
         self.start_time = self.date_added
-        self.finish_time = self.date_added
 
     def __repr__(self):
         return f'<Recipe | id: {self.id}, name: {self.name}, added: {self.date_added}>'
