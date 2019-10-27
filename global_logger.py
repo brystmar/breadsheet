@@ -23,7 +23,7 @@ else:
                         format='%(asctime)s | %(name)s | %(levelname)s | %(message)s')
     logger = logging.getLogger(__name__)
 
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.DEBUG)
 logger.info("\n=======================================\n\n")
 logger.info(f"Global logging initialized!  Level: {logger.getEffectiveLevel()}")
 logger.info(f"local = {local}")

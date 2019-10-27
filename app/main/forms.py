@@ -1,7 +1,7 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, SubmitField, TextAreaField, IntegerField, SelectField
+from wtforms import StringField, SubmitField, IntegerField, SelectField
 from wtforms.fields.html5 import DateField, TimeField
-from wtforms.validators import DataRequired, Length, NumberRange, Optional  # , ValidationError
+from wtforms.validators import DataRequired, Length, NumberRange, Optional
 
 
 class RecipeForm(FlaskForm):
@@ -35,8 +35,8 @@ class StepForm(FlaskForm):
 
 class ThenWaitForm(FlaskForm):
     step_number = IntegerField('Step Number')
-    then_wait_h = StringField('Then Wait...', validators=[NumberRange(min=0, max=999)], render_kw={'placeholder': 'h'})
-    then_wait_m = StringField('Then Wait...', validators=[NumberRange(min=0, max=999)], render_kw={'placeholder': 'm'})
+    then_wait_h = StringField('Then Wait...', validators=[NumberRange(min=0, max=99)], render_kw={'placeholder': 'h'})
+    then_wait_m = StringField('Then Wait...', validators=[NumberRange(min=0, max=99)], render_kw={'placeholder': 'm'})
 
     def __repr__(self):
         return f'<ThenWaitForm for step {self.step_number}>, twh={self.then_wait_h}, twm={self.then_wait_m}'
@@ -44,12 +44,13 @@ class ThenWaitForm(FlaskForm):
 
 class StartFinishForm(FlaskForm):
     recipe_id = IntegerField('Recipe ID')
-    start_date = DateField('Start Date', id='start_date', render_kw={'placeholder': 'date', 'disabled': ''})
-    start_time = TimeField('Start Time', id='start_time', render_kw={'disabled': ''})
+    start_date = DateField('Start Date', id='start_date', render_kw={'placeholder': 'date'})
+    start_time = TimeField('Start Time', id='start_time', render_kw={'placeholder': 'time'})
     finish_date = DateField('Finish Date', id='finish_date', render_kw={'placeholder': 'date'})
-    finish_time = TimeField('Finish Time', id='finish_time')
-    solve_for_start = SelectField('Solve For', id='solve_for_start', default='1', validators=[DataRequired()],
-                                  choices=[('1', 'Start Time'), ('0', 'Finish Time')], render_kw={'autofocus': True})
+    finish_time = TimeField('Finish Time', id='finish_time', render_kw={'placeholder': 'time'})
+    solve_for_start = SelectField('Solve for', id='solve_for_start', default='1', validators=[DataRequired()],
+                                  choices=[('1', 'Start Time'), ('0', 'Finish Time')],
+                                  render_kw={'autofocus': True})
 
     def __repr__(self):
         return f'<StartFinishForm for recipe_id: {self.recipe_id}>'
@@ -60,5 +61,4 @@ paprika_recipe_ids = ['1560122081.000008_76057b38-a5d4-46dd-948c-5119c1a235f3',
                       '1560122082.002055_c4c907a1-9ff7-4b91-927b-b6e16d5c1bdf',
                       '1560122083.005019_af4f7bd5-ed86-44a2-9767-11f761160dee',
                       '1560122084.005266_2d6bdbc1-b1bb-492f-bca5-90b94eac8bfe',
-                      '1560122085.006554_0f74e954-f2e3-475c-aa36-1847cfd3ae9c'
-                      ]
+                      '1560122085.006554_0f74e954-f2e3-475c-aa36-1847cfd3ae9c']

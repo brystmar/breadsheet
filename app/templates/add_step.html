@@ -1,10 +1,10 @@
-<div id="ask_add_step" class="container">
+<div id="ask_add_step" class="container-fluid">
     <p>
         <button onclick="addStep()" id="ask_add_step_button" class="btn btn-default">Add a Step</button>
     </p>
 </div>
 
-<div id="add_step_section" class="container" style="display: none;">
+<div id="add_step_section" class="container-fluid" style="display: none;">
     <h1>Add Step</h1>
     <form id="add_step" action="" method="POST">
         {{ sform.hidden_tag() }}
@@ -92,7 +92,7 @@
     }
 
     function toggleRecipe() {
-        recipe_section = document.getElementById("recipe_section");
+        var recipe_section = document.getElementById("recipe_section");
 
         if (recipe_section.style.display == "none") {
             recipe_section.style.display = "block"

@@ -1,70 +1,70 @@
-<div class="container" id="start_finish_div">
-    <table id="start_finish" class="table table-condensed">
-        <tr id="summary_start_row">
-            <th>Start:</th>
-            <td>
-                <!-- <div id="start_time_text">{{ recipe.start_time_ui }}</div> -->
-                <div id="start_time_controls">
-                    {{ seform.start_date }} &nbsp; {{ seform.start_time }}
-                    <button onclick="setNow('start')" id="start_now" class="btn btn-default" disabled>Start Now</button>
-                </div>
-            </td>
-
-        </tr>
-        <tr id="summary_finish_row">
-            <th>Finish:</th>
-            <td>
-                <!-- <div id="finish_time_text">{{ recipe.finish_time_ui }}</div> -->
-                <div id="finish_time_controls">
-                    {{ seform.finish_date }} &nbsp; {{ seform.finish_time }}
-                    <button onclick="setNow('finish')" id="finish_now" class="btn btn-default">Finish Now</button>
-                </div>
-            </td>
-        </tr>
-        <tr>
-            <th>{{ seform.solve_for_start.label }}:</th>
+<div class="container-fluid" id="start_finish_div">
+<!--    <table id="start_finish" class="table table-condensed">-->
+    <table id="start_finish">
+        <tr id="summary_solve_for_row">
+            <td>Solve for &nbsp;</td>
             <td>
                 {{ seform.solve_for_start(size=2) }}
-                <button id="calculate" onclick="calcTime()" class="btn btn-success">Calculate</button>
+<!--                <button id="calculate" onclick="calcTime()" class="btn btn-success">Calculate</button>-->
+            </td>
+            <td id="solve_for_start_label" hidden>
+                and start at
+            </td>
+            <td id="solve_for_start_datetime" hidden>
+                {{ seform.start_date }} {{ seform.start_time }}
+                <button onclick="setNow('start')" id="start_now" class="btn btn-default">Start Now</button>
+            </td>
+            <td id="solve_for_finish_label">
+                and finish at
+            </td>
+            <td id="solve_for_finish_datetime">
+                {{ seform.finish_date }} {{ seform.finish_time }}
+                <button onclick="setNow('finish')" id="finish_now" class="btn btn-default">Finish Now</button>
             </td>
         </tr>
     </table>
+    <p></p>
 </div>
 
 <script onload="sfToggle()">
     // add an event listener for the selection box
     document.getElementById("solve_for_start").addEventListener("change", sfToggle);
 
-    function sfToggle() {
-        var box = document.getElementById("solve_for_start");
-        var sdate = document.getElementById("start_date");
-        var stime = document.getElementById("start_time");
-        var fdate = document.getElementById("finish_date");
-        var ftime = document.getElementById("finish_time");
-        var s_now = document.getElementById("start_now");
-        var f_now = document.getElementById("finish_now");
+    // add event listeners to the set_start_time & set_finish_time controls
+    document.getElementById("start_date").addEventListener("change", calcTime);
+    document.getElementById("start_time").addEventListener("change", calcTime);
+    document.getElementById("finish_date").addEventListener("change", calcTime);
+    document.getElementById("finish_time").addEventListener("change", calcTime);
 
-        if (box.value == "1") {
-            sdate.disabled = true;
-            stime.disabled = true;
-            s_now.disabled = true;
-            fdate.disabled = false;
-            ftime.disabled = false;
-            f_now.disabled = false;
+
+
+    function sfToggle() {
+        var start_finish_selection = document.getElementById("solve_for_start");
+        var start_label = document.getElementById("solve_for_start_label");
+        var start_datetime = document.getElementById("solve_for_start_datetime");
+        var finish_label = document.getElementById("solve_for_finish_label");
+        var finish_datetime = document.getElementById("solve_for_finish_datetime");
+
+        if (start_finish_selection.value == "1") {
+            start_label.hidden = true;
+            start_datetime.hidden = true;
+            finish_label.hidden = false;
+            finish_datetime.hidden = false;
         }
         else {
-            sdate.disabled = false;
-            stime.disabled = false;
-            s_now.disabled = false;
-            fdate.disabled = true;
-            ftime.disabled = true;
-            f_now.disabled = true;
+            start_label.hidden = false;
+            start_datetime.hidden = false;
+            finish_label.hidden = true;
+            finish_datetime.hidden = true;
         }
+        // Re-calculate all timestamps
+        calcTime();
     }
 
     function setNow(obj_prefix) {
         document.getElementById(obj_prefix + '_date').value = moment().format('YYYY-MM-DD');
         document.getElementById(obj_prefix + '_time').value = moment().format('HH:mm');
+        calcTime();
     }
 
     function calcTime() {
@@ -160,22 +160,23 @@
         }
 
         // update the 'when' labels in the steps list
-        for (i=0; i < step_list.length; i++) {
-            var when_label = document.getElementById("step_when" + step_list[i]);
-            // out1.innerHTML += solve_for_start.value + ", i=" + i + ", steps[i]=" + steps[i] + " -- ";
-            // out1.innerHTML += step_wait_times[steps[i]] + ".	time: " + next_time.format('YYYY-MM-DD HH:mm') + "<br>"
+        for (var j=0; j < step_list.length; j++) {
+            var when_label = document.getElementById("step_when" + step_list[j]);
+            // out1.innerHTML += solve_for_start.value + ", j=" + j + ", steps[j]=" + steps[j] + " -- ";
+            // out1.innerHTML += step_wait_times[steps[j]] + ".	time: " + next_time.format('YYYY-MM-DD HH:mm') + "<br>"
 
             if (solve_for_start.value == 0) {
                 // when solving for finish, update the label before incrementing next_time
                 when_label.innerHTML = next_time.format('ddd HH:mm');
-                next_time = next_time.add(step_wait_times[step_list[i]] * multiplier, 'seconds');
+                next_time = next_time.add(step_wait_times[step_list[j]] * multiplier, 'seconds');
             }
             else {
                 // when solving for the start time, increment the next_time value before updating the label
-                next_time = next_time.add(step_wait_times[step_list[i]] * multiplier, 'seconds');
+                next_time = next_time.add(step_wait_times[step_list[j]] * multiplier, 'seconds');
                 when_label.innerHTML = next_time.format('ddd HH:mm');
             }
         }
+        // console.log("calcTime() done, sfs: " + solve_for_start.value);
     }
 
     function sec_to_hms(sec) {

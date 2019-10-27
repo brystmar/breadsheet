@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 
 {% block breadapp_content %}
-    <div class="container" id="recipe_div">
+    <div class="container-fluid" id="recipe_div">
         <h1>{{ recipe.name }}</h1>
         <table id="recipe" class="table table-condensed">
                 <tr id="recipe_row1">
@@ -25,8 +25,8 @@
         </table>
     </div>
 
-    {% include "steps.html" %}
-    {% include "start_finish.html" %}
+{% include "start_finish.html" %}
+{% include "steps.html" %}
     {% include "add_step.html" %}
 
 {% endblock %}

@@ -4,11 +4,13 @@
 
     table#start_finish th {
         border:   none !important;
-        text-align: right;
+        text-align: left;
         }
 
     table#start_finish td {
         border:   none !important;
+        vertical-align: center;
+        padding: 3px;
         }
 
     table#start_finish td#middle {
@@ -42,6 +44,10 @@
 
     #debug_fields {
         display:    block
+    }
+
+    .step_when2 {
+        font-weight:  bold;
     }
 
     /* Paprika styles */
