@@ -13,7 +13,7 @@ if local:
     log_dir = 'logs'
     if not path.exists(log_dir):
         mkdir(log_dir)
-    log_file = f'{log_dir}/syslog.log'
+    log_file = f'{log_dir}/breadlog.log'
 
     logging.basicConfig(filename=log_file,
                         level=log_level,
