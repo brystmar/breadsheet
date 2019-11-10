@@ -1,10 +1,5 @@
-import pytest
-from app.main.routes import generate_new_id, set_when, add_recipe_ui_fields
-from app.main.routes import create_tw_forms, create_start_finish_forms
-from app.main.forms import RecipeForm, StepForm, ThenWaitForm, StartFinishForm
-from app.models import Recipe, Step
-from datetime import datetime, timedelta
-from pynamodb.attributes import ListAttribute
+from backend.routes_main import generate_new_id
+from backend.models import Recipe, Step
 
 
 def test_generate_new_id():

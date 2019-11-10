@@ -1,6 +1,6 @@
 import pytest
 from config import Config
-from app.models import Recipe, Step, Replacement
+from backend.models import Recipe, Step, Replacement
 from datetime import datetime, timedelta
 
 

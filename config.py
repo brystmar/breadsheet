@@ -1,10 +1,10 @@
-from global_logger import logger, local
+from main import logger, local
 from os import environ
 
 
 class Config(object):
     """Define the config parameters for this app."""
-    logger.info("Start of the Config() class.")
+    logger.debug("Start of the Config() class.")
 
     # Location for environment variables is automatically set by the env_variables.yaml file when running in GCP
     if local:
@@ -24,4 +24,4 @@ class Config(object):
     SECRET_KEY = environ.get('SECRET_KEY') or '0mW7@LN0n32L6ntaj0d8jzsXiAW4mkPL7u5l'
     domain_url = environ.get('DOMAIN_URL')
 
-    logger.info("End of the Config() class.")
+    logger.debug("End of the Config() class.")

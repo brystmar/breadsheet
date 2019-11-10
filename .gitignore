@@ -1,7 +1,7 @@
 .git/
 logs/
 venv/
-app/creds.py
+backend/creds.py
 **/creds.py
 **/__pycache__/
 __pycache__/

@@ -1,17 +1,15 @@
 from flask import render_template
-from app import logger
-from app.errors import bp
-from global_logger import logger
+from main import logger, breadapp
 
 
-@bp.app_errorhandler(404)
+@breadapp.app_errorhandler(404)
 def not_found_error(error):
     logger.warning(f"Error 404: {error}")
     logger.debug("Rendering the 404.html page.")
     return render_template('errors/404.html'), 404
 
 
-@bp.app_errorhandler(500)
+@breadapp.app_errorhandler(500)
 def internal_error(error):
     logger.warning(f"Error 500: {error}")
 

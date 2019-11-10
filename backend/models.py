@@ -1,4 +1,4 @@
-from app import logger
+from main import logger
 from config import Config, local
 from datetime import datetime, timedelta
 from pynamodb.models import Model

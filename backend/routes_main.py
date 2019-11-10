@@ -1,22 +1,18 @@
-"""Determine which page(s) to render for each browser request."""
+"""Defines the API endpoints that the front end will consume."""
 
 import json
-from app import logger
-from app.main import bp
-from app.main.forms import RecipeForm, StepForm, ThenWaitForm, StartFinishForm, paprika_recipe_ids
-from app.models import Recipe, Step, Replacement
+from main import logger, breadapp
+from backend.models import Recipe, Step, Replacement
 from config import Config
 from datetime import datetime, timedelta
-from flask import render_template, redirect, url_for, request, send_from_directory  # , flash
+from flask import render_template, redirect, url_for, request, send_from_directory
 from os import path
 from pynamodb.attributes import ListAttribute
 from pynamodb.exceptions import ScanError, TableDoesNotExist
 
 
 # Map the specified URL to this function
-@bp.route('/')
-@bp.route('/index')
-@bp.route('/breadsheet')
+@breadapp.route('/breadsheet')
 def index():
     logger.info("\n\nStart of breadsheet index()\n\n")
 
@@ -28,7 +24,7 @@ def index():
     return render_template('index.html', title='Breadsheet: A Recipe Scheduling Tool', recipes=recipes)
 
 
-@bp.route('/add_recipe', methods=['GET', 'POST'])
+@breadapp.route('/add_recipe', methods=['GET', 'POST'])
 def add_recipe():
     logger.info("Start of add_recipe()")
 
@@ -61,7 +57,7 @@ def add_recipe():
     return render_template('add_recipe.html', title='Add Recipe', rform=form)
 
 
-@bp.route('/recipe', methods=['GET', 'POST'])
+@breadapp.route('/recipe', methods=['GET', 'POST'])
 def recipe():
     logger.info(f"Start of recipe(), request method: {request.method}")
 
@@ -116,7 +112,7 @@ def recipe():
                            sform=form, seform=seform, twforms=twforms, paprika_recipe_ids=paprika_recipe_ids)
 
 
-@bp.route('/get_single_recipe')
+@breadapp.route('/get_single_recipe')
 def get_single_recipe(recipe_id) -> json:
     """Given an id, return the requested recipe as a serialized JSON string."""
     # Input validation
@@ -159,7 +155,7 @@ def get_single_recipe(recipe_id) -> json:
         }
 
 
-@bp.route('/get_all_recipes')
+@breadapp.route('/get_all_recipes')
 def get_all_recipes() -> json:
     """Returns a list of JSON objects, representing every recipe in the database."""
 
@@ -198,7 +194,7 @@ def get_all_recipes() -> json:
         }
 
 
-@bp.route('/get_replacements_data')
+@breadapp.route('/get_replacements_data')
 def get_replacements_data() -> json:
     """Returns all replacements data."""
 
@@ -233,7 +229,7 @@ def get_replacements_data() -> json:
         }
 
 
-@bp.route('/favicon.ico')
+@breadapp.route('/favicon.ico')
 def favicon():
     logger.info("Favicon was requested!! :D")
     return send_from_directory(path.join(bp.root_path, 'static'), 'favicon.ico', mimetype='image/vnd.microsoft.icon')
@@ -272,57 +268,3 @@ def set_when(steps: ListAttribute(), when: datetime) -> Recipe.steps:
 
     logger.debug(f"End of set_when(), returning: {steps}")
     return steps
-
-
-def create_tw_forms(steps: ListAttribute()) -> list:
-    """Create a form for the 'then wait...' display for recipe steps, then populate it with data."""
-    logger.debug(f"Start of create_tw_forms(), with: {steps}")
-
-    twforms = []
-    for step in steps:
-        logger.debug(f"Looking at step {step.number}, then_wait={step.then_wait}, then_wait_ui={step.then_wait_ui}")
-        tw = ThenWaitForm()
-        tw.step_number = step.number
-        split = step.then_wait_ui.split(":")
-
-        # If steps take >24hrs, timedelta strings are formatted: '2 days, 1:35:28'
-        if 'day' in step.then_wait_ui:
-            # Split the string into days, then everything else
-            days = int(step.then_wait_ui.split(" day")[0])
-            # days = days // (60 * 60 * 24)
-
-            # Split the second portion by ':', then add the number of hours
-            hours = int(split[1]) + (days * 24)
-            tw.then_wait_m.data = split[2]
-        else:
-            # Otherwise, just split as normal
-            hours = split[0]
-            tw.then_wait_m.data = split[1]
-
-        # timedelta doesn't zero-pad the hours, so F* IT! WE'LL DO IT LIVE!
-        if int(hours) <= 9:
-            tw.then_wait_h.data = "0" + str(hours)
-        else:
-            tw.then_wait_h.data = str(hours)
-
-        tw.then_wait = step.then_wait
-        logger.debug(f"Done w/{step.number}: then_wait_h={tw.then_wait_h.data}, then_wait_m={tw.then_wait_m.data}")
-        twforms.append(tw)
-    logger.debug(f"End of create_tw_forms(), returning {twforms}")
-    return twforms
-
-
-def create_start_finish_forms(recipe_input: Recipe) -> StartFinishForm:
-    """Set values for the form displaying start & finish times for this recipe."""
-    logger.debug(f"Start of create_start_finish_forms() for {recipe_input.name}")
-
-    seform = StartFinishForm()
-    seform.recipe_id.data = recipe_input.id
-    seform.start_date.data = recipe_input.start_time
-    seform.start_time.data = recipe_input.start_time
-    seform.finish_date.data = recipe_input.finish_time
-    seform.finish_time.data = recipe_input.finish_time
-    seform.solve_for_start.data = "1"
-
-    logger.debug(f"End of create_start_finish_forms(), returning seform: {seform}")
-    return seform

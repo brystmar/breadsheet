@@ -1,9 +1,6 @@
-from app import logger
-from app.convert import bp
-from app.convert.forms import ConvertTextForm
-from app.models import Replacement
+from main import logger, breadapp
+from backend.models import Replacement
 from flask import render_template, request
-# import pyperclip
 
 
 @bp.route('/convert', methods=['GET', 'POST'])
