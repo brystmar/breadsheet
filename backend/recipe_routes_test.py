@@ -1,4 +1,4 @@
-from backend.routes_main import generate_new_id
+from backend.functions import generate_new_id
 from backend.models import Recipe, Step
 
 

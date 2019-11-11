@@ -123,6 +123,24 @@ class Recipe(Model):
         self.date_added = date_added or datetime.utcnow()
         self.start_time = self.date_added
 
+    def __iter__(self):
+        # Serializes the JSON output, since pynamodb doesn't natively support this
+        # See: https://github.com/pynamodb/PynamoDB/issues/152
+        for name, attr in self.get_attributes().items():
+            if isinstance(attr, ListAttribute):
+                yield name, [list_attr.as_dict() for list_attr in getattr(self, name)]
+            elif isinstance(attr, MapAttribute):
+                if getattr(self, name):
+                    yield name, getattr(self, name).as_dict()
+            elif isinstance(attr, UTCDateTimeAttribute):
+                if getattr(self, name):
+                    yield name, attr.serialize(getattr(self, name))
+            elif isinstance(attr, NumberAttribute):
+                # if numeric, return value as-is
+                yield name, getattr(self, name)
+            else:
+                yield name, attr.serialize(getattr(self, name))
+
     def __repr__(self):
         return f'<Recipe | id: {self.id}, name: {self.name}, added: {self.date_added}>'
 

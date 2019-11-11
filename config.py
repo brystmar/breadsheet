@@ -6,7 +6,8 @@ class Config(object):
     """Define the config parameters for this app."""
     logger.debug("Start of the Config() class.")
 
-    # Location for environment variables is automatically set by the env_variables.yaml file when running in GCP
+    # Apply the environment variables when running locally
+    # When running in GCP, these are set by the env_variables.yaml file
     if local:
         from env_tools import apply_env
         apply_env()

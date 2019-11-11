@@ -1,6 +1,7 @@
 import pytest
 from config import Config
 from backend.models import Recipe, Step, Replacement
+from backend.recipe_routes import generate_new_id
 from datetime import datetime, timedelta
 
 
