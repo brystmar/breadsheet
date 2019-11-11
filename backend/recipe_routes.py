@@ -1,12 +1,10 @@
 """Defines the API endpoints that the front end will consume."""
-from main import logger, breadapp, api
+from main import logger, breadapp
 from backend.functions import generate_new_id
 from backend.models import Recipe
 from datetime import datetime, timedelta
 from flask import request, send_from_directory, redirect, url_for
 from flask_restful import Resource
-from os import path
-from pynamodb.attributes import ListAttribute
 from pynamodb.exceptions import ScanError, TableDoesNotExist
 import json
 
@@ -21,8 +19,13 @@ class RecipeCollectionApi(Resource):
         recipes = Recipe.scan()
         recipes = sorted(recipes, key=lambda r: r.id)
 
+        output = []
+
+        for recipe in recipes:
+            output.append(recipe.to_dict())
+
         logger.debug(f"End of request: {request.method}")
-        return recipes
+        return output
 
     def post(self):
         """Add a new recipe."""
@@ -55,7 +58,7 @@ class RecipeCollectionApi(Resource):
 
 
 class RecipeApi(Resource):
-    def get_a_recipe(self, recipe_id):
+    def get(self, recipe_id):
         """Return a single recipe."""
         logger.debug(f"Request: {request}.")
         logger.debug(f"Args provided: {request.args}.")
@@ -63,13 +66,13 @@ class RecipeApi(Resource):
         print(self.__repr__())
 
         # Retrieve the recipe from the database
-        recipe_requested = Recipe.get(recipe_id)
-        logger.debug(f"Recipe retrieved: {recipe_requested.__repr__()})")
+        recipe = Recipe.get(recipe_id)
+        logger.debug(f"Recipe retrieved: {recipe.__repr__()})")
 
-        recipe_requested.update_length()
+        recipe.update_length()
 
         logger.debug(f"End of GET /recipe/{recipe_id}")
-        return recipe_requested
+        return recipe.to_dict()
 
 
 @breadapp.route('/get_single_recipe_verbose')

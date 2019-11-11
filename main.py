@@ -7,10 +7,10 @@ from flask_restful import Resource, Api
 from os import path
 
 breadapp = create_app()
-logger.debug("Created the Flask breadapp")
+logger.info("Created the Flask breadapp")
 
 api = Api(breadapp)
-logger.debug("Initialized the API")
+logger.info("Initialized the API")
 
 
 @breadapp.before_request
@@ -46,5 +46,5 @@ from backend.step_routes import StepApi
 api.add_resource(RecipeCollectionApi, '/recipes')
 api.add_resource(RecipeApi, '/recipe/<recipe_id>/')
 api.add_resource(StepApi, '/recipe/<recipe_id>/<step_number>')
-api.add_resource(ReplacementCollectionApi, '/replacements')
+api.add_resource(ReplacementCollectionApi, '/replacements/<scope>')
 api.add_resource(ReplacementApi, '/replacement')

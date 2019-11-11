@@ -11,15 +11,21 @@ class StepApi(Resource):
         logger.debug(f"Args provided (view): {request.view_args}.")
         print(self.__repr__())
 
+        # Convert (and validate) step_number to int
+        try:
+            step_number = int(step_number)
+        except ValueError as e:
+            return e.__str__(), 404
+
         recipe = Recipe.get(recipe_id)
 
-        for step in recipe.steps:
-            if step.number == step_number:
-                logger.debug(f"Recipe found -- End of request: {request.method}")
-                return step, 200
-
-        logger.debug(f"Recipe not found -- End of request: {request.method}")
-        return f"Step {step_number} not found for recipe {recipe.id, recipe.name}.", 404
+        try:
+            output = recipe.steps[step_number - 1].to_dict()
+            logger.debug(f"Recipe found -- End of request: {request.method}")
+            return output
+        except IndexError as e:
+            logger.debug(f"Index out of range for step #{step_number}")
+            return e.__str__(), 404
 
     def put(self, recipe_id, step_number):
         logger.debug(f"Request: {request}.")

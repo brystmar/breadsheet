@@ -3,6 +3,7 @@ from config import Config, local
 from datetime import datetime, timedelta
 from pynamodb.models import Model
 from pynamodb.attributes import UnicodeAttribute, UTCDateTimeAttribute, NumberAttribute, MapAttribute, ListAttribute
+import json
 
 
 class Step(MapAttribute):
@@ -23,6 +24,21 @@ class Step(MapAttribute):
     # When to begin this step?
     when = UnicodeAttribute(null=True)
 
+    def to_dict(self) -> dict:
+        output = {
+            "number":       self.number.__int__(),
+            "text":         self.text.__str__(),
+            "then_wait":    self.then_wait.__int__(),
+            "note":         self.note.__str__(),
+            "when":         self.when.__str__()
+        }
+
+        return output
+
+    def to_json(self) -> str:
+        """Converts output from the to_dict() method to a JSON-serialized string."""
+        return json.dumps(self.to_dict(), ensure_ascii=True)
+
     def __init__(self, number=number, text=text, then_wait=then_wait, note=note, when=when, **attrs):
         super().__init__(**attrs)
 
@@ -32,7 +48,7 @@ class Step(MapAttribute):
         self.note = note
         self.when = when
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f'<Step #{self.number}, then_wait: {self.then_wait}>'
 
 
@@ -66,7 +82,6 @@ class Recipe(Model):
     #     if l < 0:
     #         raise ValueError("Length must be greater than zero.")
     #     self._length = l
-    ""
 
     # Steps is an embedded list of dictionaries ("maps")
     steps = ListAttribute(of=Step)
@@ -106,9 +121,34 @@ class Recipe(Model):
 
         logger.debug("End of Recipe.update_length()")
 
+    def to_dict(self) -> dict:
+        """Converts this recipe (including any steps) to a python dictionary."""
+        steps = []
+        if self.steps:
+            for step in self.steps:
+                steps.append(step.to_dict())
+
+        output = {
+            "id":           self.id.__str__(),
+            "name":         self.name.__str__(),
+            "author":       self.author.__str__(),
+            "source":       self.source.__str__(),
+            "difficulty":   self.difficulty.__str__(),
+            "length":       self.length.__int__(),
+            "date_added":   self.date_added.__str__(),
+            "start_time":   self.start_time.__str__(),
+            "steps":        steps
+        }
+
+        return output
+
+    def to_json(self) -> str:
+        """Converts output from the to_dict() method to a JSON-serialized string."""
+        return json.dumps(self.to_dict(), ensure_ascii=True)
+
     def __init__(self, id=id, name=name, author=author, source=source, difficulty=difficulty, length=length,
                  steps=steps, date_added=date_added, start_time=start_time, **attrs):
-        # Update the UI fields when initialized, if necessary
+        """Update the UI fields when initialized, as necessary."""
         super().__init__(**attrs)
 
         self.id = id
@@ -124,8 +164,12 @@ class Recipe(Model):
         self.start_time = self.date_added
 
     def __iter__(self):
-        # Serializes the JSON output, since pynamodb doesn't natively support this
-        # See: https://github.com/pynamodb/PynamoDB/issues/152
+        """
+        Outputs to a JSON-serializable format, since pynamodb doesn't natively support this
+        See: https://github.com/pynamodb/PynamoDB/issues/152
+        Decided to use a low-fi homemade to_dict() method instead, keeping this here for future reference.
+        """
+
         for name, attr in self.get_attributes().items():
             if isinstance(attr, ListAttribute):
                 yield name, [list_attr.as_dict() for list_attr in getattr(self, name)]
@@ -141,8 +185,8 @@ class Recipe(Model):
             else:
                 yield name, attr.serialize(getattr(self, name))
 
-    def __repr__(self):
-        return f'<Recipe | id: {self.id}, name: {self.name}, added: {self.date_added}>'
+    def __repr__(self) -> str:
+        return f'<Recipe | id: {self.id}, name: {self.name}, length: {self.length}, steps: {len(self.steps)}>'
 
 
 class Replacement(Model):
@@ -156,11 +200,24 @@ class Replacement(Model):
     old = UnicodeAttribute(range_key=True)
     new = UnicodeAttribute()
 
+    def to_dict(self) -> dict:
+        output = {
+            "scope":    self.scope.__str__(),
+            "old":      self.old.__str__(),
+            "new":      self.new.__str__()
+        }
+
+        return output
+
+    def to_json(self) -> str:
+        """Converts output from the to_dict() method to a JSON-serialized string."""
+        return json.dumps(self.to_dict(), ensure_ascii=True)
+
     def __init__(self, scope=scope, old=old, new=new, **attrs):
         super().__init__(**attrs)
         self.scope = scope
         self.old = old
         self.new = new
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f'<Replacement Text | scope: {self.scope}, old: {self.old}, new: {self.new}>'

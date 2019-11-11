@@ -1,22 +1,25 @@
-from main import logger, breadapp
+from main import logger
 from backend.models import Replacement
-from flask import render_template, request
+from flask import request
 from flask_restful import Resource
-from pynamodb.attributes import ListAttribute
 from pynamodb.exceptions import ScanError, TableDoesNotExist
 import json
 
 
 class ReplacementCollectionApi(Resource):
-    def get(self, scope=None):
+    def get(self, scope='all'):
         """Returns a collection of all replacements for Paprika-compliant markup."""
         print(self.__repr__())
         logger.debug(f"Request: {request.method}")
 
-        if scope is None:
-            output = Replacement.scan()
+        if scope == 'all':
+            items = Replacement.scan()
         else:
-            output = Replacement.query(scope)
+            items = Replacement.query(scope)
+
+        output = []
+        for i in items:
+            output.append(i.to_dict())
 
         logger.debug(f"End of request: {request.method}")
         return output, 200
