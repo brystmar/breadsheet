@@ -154,7 +154,6 @@ Note:
 | Code | Title | Description |
 | ---- | ----- | ----------- |
 | 201 | Created | The resource was successfully created. |
-| 202 | Async created | The resource was asynchronously created. |
 | 422 | Validation error | A validation error occurred. |
 | 50X | Internal Server Error | An error occurred with the API. |
 
@@ -168,7 +167,7 @@ Note:
 ```
 
 ## Get data for a single recipe
-`GET /recipe/<id>`
+`GET /recipes/<id>`
 
 Returns a single recipe object, including any embedded steps.
 
@@ -185,7 +184,7 @@ Returns a single recipe object, including any embedded steps.
 | 50X | Internal Server Error | An error occurred with the API. |
 
 ### Example Request
-`GET /recipe/123456.789`
+`GET /recipes/123456.789`
 
 ### Example Response
 ```json
@@ -203,7 +202,7 @@ Returns a single recipe object, including any embedded steps.
 ```
 
 ## Update an existing recipe
-`PUT /recipe/<id>`
+`PUT /recipes/<id>`
 
 Modifies data of the recipe identified by the provided ID.  The response for this `PUT` request only returns a status.
 
@@ -241,7 +240,7 @@ Updates are permitted for the following recipe attributes:
 ```
 
 ## Delete a recipe
-`DELETE /recipe/<id>`
+`DELETE /recipes/<id>`
 
 Deletes the specified recipe.  The response for this endpoint only returns a status.
 
@@ -258,7 +257,7 @@ Deletes the specified recipe.  The response for this endpoint only returns a sta
 | 50X | Internal Server Error | An error occurred with the API. |
 
 ## Add or update a step
-`PUT /recipe/<id>/<step_number>`
+`PUT /recipes/<id>/<step_number>`
 
 Adds or updates a step to the specified recipe.  The response for this `PUT` request only returns a status.
 
@@ -272,7 +271,6 @@ Adds or updates a step to the specified recipe.  The response for this `PUT` req
 | Code | Title | Description |
 | ---- | ----- | ----------- |
 | 201 | Created | The resource was successfully created. |
-| 202 | Async created | The resource was asynchronously created. |
 | 50X | Internal Server Error | An error occurred with the API. |
 
 ### Example Request
@@ -286,7 +284,7 @@ Adds or updates a step to the specified recipe.  The response for this `PUT` req
 ```
 
 ## Get data for a single step
-`GET /recipe/<id>/<step_number>`
+`GET /recipes/<id>/<step_number>`
 
 Returns a step object.
 
@@ -304,7 +302,7 @@ Returns a step object.
 | 50X | Internal Server Error | An error occurred with the API. |
 
 ### Example Request
-`GET /recipe/1560122081.000008/2`
+`GET /recipes/1560122081.000008/2`
 
 ### Example Response
 ```json
@@ -317,7 +315,7 @@ Returns a step object.
 ```
 
 ## Delete a step
-`DELETE /recipe/<id>/<step_number>`
+`DELETE /recipes/<id>/<step_number>`
 
 Modifies the step number indicated.  Updates are made to all attributes provided.  The response for this endpoint only returns a status.
 
@@ -360,9 +358,6 @@ Modifies the step number indicated.  Updates are made to all attributes provided
 | ---- | ----- | ----------- |
 | 200 | OK | The request was successful. |
 | 201 | Created | The resource was successfully created. |
-| 202 | Async Created | The resource was asynchronously created. |
-| 400 | Bad Request | Bad request. |
-| 401 | Unauthorized | Your API key is invalid. |
 | 404 | Not Found | The resource does not exist. |
 | 422 | Validation Error | A validation error occurred. |
 | 50X | Internal Server Error | An error occurred with the API. |

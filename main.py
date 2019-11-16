@@ -44,7 +44,7 @@ from backend.step_routes import StepApi
 
 # Define the endpoints
 api.add_resource(RecipeCollectionApi, '/recipes')
-api.add_resource(RecipeApi, '/recipe/<recipe_id>/')
-api.add_resource(StepApi, '/recipe/<recipe_id>/<step_number>')
+api.add_resource(RecipeApi, '/recipes/<recipe_id>')
+api.add_resource(StepApi, '/recipes/<recipe_id>/<step_number>')
 api.add_resource(ReplacementCollectionApi, '/replacements/<scope>')
-api.add_resource(ReplacementApi, '/replacement')
+api.add_resource(ReplacementApi, '/replacements')

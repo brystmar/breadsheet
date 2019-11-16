@@ -4,7 +4,7 @@ from backend.functions import generate_new_id
 from backend.models import Recipe
 from datetime import datetime, timedelta
 from flask import request, send_from_directory, redirect, url_for
-from flask_restful import Resource
+from flask_restful import Resource, reqparse
 from pynamodb.exceptions import ScanError, TableDoesNotExist
 import json
 
@@ -25,7 +25,7 @@ class RecipeCollectionApi(Resource):
             output.append(recipe.to_dict())
 
         logger.debug(f"End of request: {request.method}")
-        return output
+        return {'message': 'Success', 'data': output}, 200
 
     def post(self):
         """Add a new recipe."""
@@ -34,35 +34,48 @@ class RecipeCollectionApi(Resource):
         logger.debug(f"Args provided (view): {request.view_args}.")
         print(self.__repr__())
 
-        now = datetime.utcnow()
+        # TODO: Replace with a different parsing package (ex: marshmallow) since RequestParser
+        #  will be deprecated: https://flask-restful.readthedocs.io/en/latest/reqparse.html
+        parser = reqparse.RequestParser(bundle_errors=True)
 
-        form = Recipe()
+        parser.add_argument('id')  # any id value provided will be ignored
+        parser.add_argument('name', required=True)
+        parser.add_argument('author')
+        parser.add_argument('source')
+        parser.add_argument('difficulty')
+        parser.add_argument('length', type=int)
+        parser.add_argument('date_added')  # any date_added value provided is ignored
+        parser.add_argument('start_time')
+        parser.add_argument('steps', type=list)
 
-        # Use the form data submitted to create an instance of the Recipe class
+        args = parser.parse_args()
+
+        # Initialize a recipe object
         new_recipe = Recipe(id=generate_new_id(),
-                            name=form.name.data,
-                            author=form.author.data,
-                            source=form.source.data,
-                            difficulty=form.difficulty.data,
-                            date_added=now,
-                            start_time=now,
-                            steps=[],
-                            length=0)
+                            name=args['name'],
+                            author=args['author'],
+                            source=args['source'],
+                            difficulty=args['difficulty'],
+                            length=args['length'],
+                            date_added=datetime.utcnow(),
+                            start_time=args['start_time'],
+                            steps=args['steps'] if args['steps'] else []
+                            )
+
+        new_recipe.update_length()
 
         # Write this new recipe to the db
         logger.info(f"Writing new recipe {new_recipe.__repr__()} to the database.")
         response = new_recipe.save()
 
         logger.debug("End of add_recipe()")
-        return response
+        return {'message': 'Success', 'data': response}, 201
 
 
 class RecipeApi(Resource):
-    def get(self, recipe_id):
+    def get(self, recipe_id) -> json:
         """Return a single recipe."""
         logger.debug(f"Request: {request}.")
-        logger.debug(f"Args provided: {request.args}.")
-        logger.debug(f"Args provided (view): {request.view_args}.")
         print(self.__repr__())
 
         # Retrieve the recipe from the database
@@ -72,85 +85,15 @@ class RecipeApi(Resource):
         recipe.update_length()
 
         logger.debug(f"End of GET /recipe/{recipe_id}")
-        return recipe.to_dict()
+        return {'message': 'Success', 'data': recipe.to_dict()}, 200
 
+    def put(self, args) -> json:
+        """Update a recipe."""
+        logger.debug(f"Request: {request}.")
+        logger.debug(f"Args provided: {request.args}.")
+        logger.debug(f"Args provided (view): {request.view_args}.")
+        print(self.__repr__())
 
-@breadapp.route('/get_single_recipe_verbose')
-def get_single_recipe_verbose(recipe_id) -> json:
-    """Given an id, return the requested recipe as a serialized JSON string."""
-    # Input validation
-    if not isinstance(recipe_id, str):
-        return {
-            'Status': '400',
-            'Details': {
-                'ErrorType': TypeError,
-                'Message': 'RecipeId must be a string.'
-            }
-        }
-    
-    elif recipe_id == "":
-        return {
-            'Status': '400',
-            'Details': {
-                'ErrorType': ValueError,
-                'Message': 'RecipeId cannot be an empty string.'
-            }
-        }
+        # Null handling?
 
-    try:
-        output = Recipe.get(recipe_id)
-        return {
-            'Status': '200',
-            'Details': {
-                'Data': output.dumps(),
-                'Message': 'Success!'
-            }
-        }
-
-    except Recipe.DoesNotExist as e:
-        return {
-            'Status': '404',
-            'Details': {
-                'Error': str(e),
-                'ErrorType': Recipe.DoesNotExist,
-                'Message': 'Invalid recipe id.'
-            }
-        }
-
-
-def get_all_recipes_verbose() -> json:
-    """Returns a list of JSON objects, representing every recipe in the database."""
-
-    try:
-        recipes = Recipe.scan()
-        output = []
-        for r in recipes:
-            output.append(r.dumps())
-
-        return {
-            'Status': '200',
-            'Details': {
-                'Data': output,
-                'Message': 'Success!'
-            }
-        }
-
-    except ScanError as e:
-        return {
-            'Status': '400',
-            'Details': {
-                'Error': str(e),
-                'ErrorType': ScanError,
-                'Message': 'Scan error on the Recipe table.'
-            }
-        }
-
-    except TableDoesNotExist as e:
-        return {
-            'Status': '404',
-            'Details': {
-                'Error': str(e),
-                'ErrorType': TableDoesNotExist,
-                'Message': 'Recipe table does not exist.'
-            }
-        }
+        return {'message': 'Success'}, 201

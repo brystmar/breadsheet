@@ -7,25 +7,23 @@ from flask_restful import Resource
 class StepApi(Resource):
     def get(self, recipe_id, step_number):
         logger.debug(f"Request: {request}.")
-        logger.debug(f"Args provided: {request.args}.")
-        logger.debug(f"Args provided (view): {request.view_args}.")
         print(self.__repr__())
 
         # Convert (and validate) step_number to int
         try:
             step_number = int(step_number)
         except ValueError as e:
-            return e.__str__(), 404
+            return {'message': 'Step must be an integer.', 'data': e.__str__()}, 404
 
         recipe = Recipe.get(recipe_id)
 
         try:
             output = recipe.steps[step_number - 1].to_dict()
             logger.debug(f"Recipe found -- End of request: {request.method}")
-            return output
+            return {'message': 'Success', 'data': output}, 200
         except IndexError as e:
             logger.debug(f"Index out of range for step #{step_number}")
-            return e.__str__(), 404
+            return {'message': f'Step number {step_number} not found.', 'data': e.__str__()}, 404
 
     def put(self, recipe_id, step_number):
         logger.debug(f"Request: {request}.")

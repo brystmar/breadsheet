@@ -2,7 +2,8 @@ from main import logger
 from config import Config, local
 from datetime import datetime, timedelta
 from pynamodb.models import Model
-from pynamodb.attributes import UnicodeAttribute, UTCDateTimeAttribute, NumberAttribute, MapAttribute, ListAttribute
+from pynamodb.attributes import UnicodeAttribute, UTCDateTimeAttribute, NumberAttribute,\
+    MapAttribute, ListAttribute
 import json
 
 
@@ -39,7 +40,8 @@ class Step(MapAttribute):
         """Converts output from the to_dict() method to a JSON-serialized string."""
         return json.dumps(self.to_dict(), ensure_ascii=True)
 
-    def __init__(self, number=number, text=text, then_wait=then_wait, note=note, when=when, **attrs):
+    def __init__(self, number=number, text=text, then_wait=then_wait,
+                 note=note, when=when, **attrs):
         super().__init__(**attrs)
 
         self.number = number
@@ -107,7 +109,8 @@ class Recipe(Model):
 
         for step in self.steps:
             if isinstance(step.then_wait, timedelta):
-                length += int(step.then_wait.total_seconds())  # wrapping w/int() because total_seconds() returns float
+                # Wrapping w/int() because total_seconds() [a timedelta method] returns float
+                length += int(step.then_wait.total_seconds())
             else:
                 length += step.then_wait
 
@@ -123,10 +126,10 @@ class Recipe(Model):
 
     def to_dict(self) -> dict:
         """Converts this recipe (including any steps) to a python dictionary."""
-        steps = []
+        steps_dict = []
         if self.steps:
             for step in self.steps:
-                steps.append(step.to_dict())
+                steps_dict.append(step.to_dict())
 
         output = {
             "id":           self.id.__str__(),
@@ -137,7 +140,7 @@ class Recipe(Model):
             "length":       self.length.__int__(),
             "date_added":   self.date_added.__str__(),
             "start_time":   self.start_time.__str__(),
-            "steps":        steps
+            "steps":        steps_dict
         }
 
         return output
@@ -146,8 +149,9 @@ class Recipe(Model):
         """Converts output from the to_dict() method to a JSON-serialized string."""
         return json.dumps(self.to_dict(), ensure_ascii=True)
 
-    def __init__(self, id=id, name=name, author=author, source=source, difficulty=difficulty, length=length,
-                 steps=steps, date_added=date_added, start_time=start_time, **attrs):
+    def __init__(self, id=id, name=name, author=author, source=source, difficulty=difficulty,
+                 length=length, steps=steps, date_added=date_added, start_time=start_time,
+                 **attrs):
         """Update the UI fields when initialized, as necessary."""
         super().__init__(**attrs)
 
@@ -167,7 +171,8 @@ class Recipe(Model):
         """
         Outputs to a JSON-serializable format, since pynamodb doesn't natively support this
         See: https://github.com/pynamodb/PynamoDB/issues/152
-        Decided to use a low-fi homemade to_dict() method instead, keeping this here for future reference.
+        Decided to use a low-fi homemade to_dict() method instead, keeping this here for future
+        reference.
         """
 
         for name, attr in self.get_attributes().items():
@@ -186,7 +191,8 @@ class Recipe(Model):
                 yield name, attr.serialize(getattr(self, name))
 
     def __repr__(self) -> str:
-        return f'<Recipe | id: {self.id}, name: {self.name}, length: {self.length}, steps: {len(self.steps)}>'
+        return f'<Recipe | id: {self.id}, name: {self.name}, length: {self.length},' \
+               f'steps: {len(self.steps)}>'
 
 
 class Replacement(Model):
