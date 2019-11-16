@@ -165,7 +165,7 @@ class Recipe(Model):
         self.steps = steps or []
 
         self.date_added = date_added or datetime.utcnow()
-        self.start_time = self.date_added
+        self.start_time = self.start_time if self.start_time >= self.date_added else self.date_added
 
     def __iter__(self):
         """

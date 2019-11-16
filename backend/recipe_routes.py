@@ -30,8 +30,6 @@ class RecipeCollectionApi(Resource):
     def post(self):
         """Add a new recipe."""
         logger.debug(f"Request: {request}.")
-        logger.debug(f"Args provided: {request.args}.")
-        logger.debug(f"Args provided (view): {request.view_args}.")
         print(self.__repr__())
 
         # TODO: Replace with a different parsing package (ex: marshmallow) since RequestParser
@@ -42,7 +40,7 @@ class RecipeCollectionApi(Resource):
         parser.add_argument('name', required=True)
         parser.add_argument('author')
         parser.add_argument('source')
-        parser.add_argument('difficulty')
+        parser.add_argument('difficulty', required=True)
         parser.add_argument('length', type=int)
         parser.add_argument('date_added')  # any date_added value provided is ignored
         parser.add_argument('start_time')
@@ -59,17 +57,17 @@ class RecipeCollectionApi(Resource):
                             length=args['length'],
                             date_added=datetime.utcnow(),
                             start_time=args['start_time'],
-                            steps=args['steps'] if args['steps'] else []
+                            steps=args['steps'] or []
                             )
 
         new_recipe.update_length()
 
         # Write this new recipe to the db
         logger.info(f"Writing new recipe {new_recipe.__repr__()} to the database.")
-        response = new_recipe.save()
+        new_recipe.save()
 
         logger.debug("End of add_recipe()")
-        return {'message': 'Success', 'data': response}, 201
+        return {'message': 'Success', 'data': new_recipe.to_dict()}, 201
 
 
 class RecipeApi(Resource):
@@ -90,8 +88,6 @@ class RecipeApi(Resource):
     def put(self, args) -> json:
         """Update a recipe."""
         logger.debug(f"Request: {request}.")
-        logger.debug(f"Args provided: {request.args}.")
-        logger.debug(f"Args provided (view): {request.view_args}.")
         print(self.__repr__())
 
         # Null handling?
