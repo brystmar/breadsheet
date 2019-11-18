@@ -64,28 +64,49 @@ class RecipeApi(Resource):
         """Update a recipe."""
         logger.debug(f"Request: {request}.")
 
-        existing_recipe = Recipe.get(recipe_id)
+        recipe = Recipe.get(recipe_id)
         parser = reqparse.RequestParser(bundle_errors=True)
         args = parse_recipe_args(parser)
 
         # TODO: Only update items actually sent as args, and allow nulls!
         # Update & save the recipe object
-        existing_recipe.name = args['name'] or existing_recipe.name
-        existing_recipe.author = args['author'] or existing_recipe.author
-        existing_recipe.source = args['source'] or existing_recipe.source
-        existing_recipe.difficulty = args['difficulty'] or existing_recipe.difficulty
-        existing_recipe.steps = args['steps'] or existing_recipe.steps
-        existing_recipe.date_added = args['date_added'] or existing_recipe.date_added
-        existing_recipe.start_time = args['start_time'] or existing_recipe.start_time
-        existing_recipe.update_length()
+        recipe.name = args['name'] or recipe.name
+        recipe.author = args['author'] or recipe.author
+        recipe.source = args['source'] or recipe.source
+        recipe.difficulty = args['difficulty'] or recipe.difficulty
+        recipe.steps = args['steps'] or recipe.steps
+        recipe.date_added = args['date_added'] or recipe.date_added
+        recipe.start_time = args['start_time'] or recipe.start_time
+        recipe.update_length()
 
         try:
-            existing_recipe.save()
-            logger.debug(f"Recipe updated: {existing_recipe.__repr__()})")
-            return {'message': 'Success', 'data': existing_recipe.to_dict()}, 200
+            recipe.save()
+            logger.debug(f"Recipe updated: {recipe.__repr__()})")
+            return {'message': 'Success', 'data': recipe.to_dict()}, 200
         except Recipe.DoesNotExist as e:
-            logger.debug(f"Recipe {existing_recipe.__repr__()} not found.)")
-            return {'message': 'Not Found', 'data': f'Recipe {existing_recipe} not found.\n{e}.'}, 404
+            logger.debug(f"Recipe {recipe_id} not found.)")
+            return {'message': 'Not Found', 'data': f'Recipe {recipe_id} not found.\n{e}.'}, 404
+
+    def delete(self, recipe_id) -> json:
+        """Delete the selected recipe."""
+        # Retrieve the recipe from the database
+        try:
+            recipe = Recipe.get(recipe_id)
+            logger.debug(f"Recipe retrieved: {recipe.__repr__()})")
+
+        except Recipe.DoesNotExist as e:
+            logger.debug(f"Recipe {recipe_id} not found.)")
+            return {'message': 'Not Found', 'data': f'Recipe {recipe_id} not found.\n{e}.'}, 404
+
+        try:
+            footprint = f"{{id: {recipe.id}, name: {recipe.name}}}"
+            recipe.delete()
+            logger.debug(f"Recipe {footprint} deleted successfully.)")
+            return {'message': 'Success', 'data': f'Recipe {footprint} deleted successfully.'}, 200
+        except BaseException as e:
+            error_msg = f"Error trying to delete recipe {recipe_id}: {e}.)"
+            logger.debug(error_msg)
+            return {'message': 'Error', 'data': error_msg}, 500
 
 
 def parse_recipe_args(parser):
