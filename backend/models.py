@@ -157,38 +157,61 @@ class Recipe(Model):
 
         self.id = id
         self.name = name
-        self.author = author
-        self.source = source
+        self.author = self._null_handler(author)
+        self.source = self._null_handler(source)
         self.difficulty = difficulty
 
-        self.length = length or 0
-        self.steps = steps or []
+        self.length = self._null_handler(length)
+        self.steps = self._null_handler(steps)
 
-        self.date_added = date_added or datetime.utcnow()
-        self.start_time = self.start_time if self.start_time >= self.date_added else self.date_added
+        self.date_added = self._null_handler(date_added)
+        self.start_time = self._null_handler(start_time)
 
-    def __iter__(self):
+        # Don't rely on the provided value for recipe length
+        self.update_length()
+
+    def _null_handler(self, attr):
         """
-        Outputs to a JSON-serializable format, since pynamodb doesn't natively support this
-        See: https://github.com/pynamodb/PynamoDB/issues/152
-        Decided to use a low-fi homemade to_dict() method instead, keeping this here for future
-        reference.
+        Nulls in the ORM should be represented as a NoneType object instead of:
+          <pynamodb.attributes.UnicodeAttribute object at 0x7f9e104d4c18>
         """
+        if isinstance(attr, UnicodeAttribute):
+            if attr.null:
+                return None
+        elif isinstance(attr, NumberAttribute):
+            if attr.null:
+                return 0
+        elif isinstance(attr, ListAttribute):
+            if attr.null:
+                return []
+        elif isinstance(attr, UTCDateTimeAttribute):
+            if attr.null:
+                return datetime.utcnow()
 
-        for name, attr in self.get_attributes().items():
-            if isinstance(attr, ListAttribute):
-                yield name, [list_attr.as_dict() for list_attr in getattr(self, name)]
-            elif isinstance(attr, MapAttribute):
-                if getattr(self, name):
-                    yield name, getattr(self, name).as_dict()
-            elif isinstance(attr, UTCDateTimeAttribute):
-                if getattr(self, name):
-                    yield name, attr.serialize(getattr(self, name))
-            elif isinstance(attr, NumberAttribute):
-                # if numeric, return value as-is
-                yield name, getattr(self, name)
-            else:
-                yield name, attr.serialize(getattr(self, name))
+        return attr
+
+    # def __iter__(self):
+    #     """
+    #     Outputs to a JSON-serializable format, since pynamodb doesn't natively support this.
+    #      See: https://github.com/pynamodb/PynamoDB/issues/152
+    #      Decided to use a low-fi homemade to_dict() method instead; keeping this here
+    #      for future reference.
+    #     """
+    #
+    #     for name, attr in self.get_attributes().items():
+    #         if isinstance(attr, ListAttribute):
+    #             yield name, [list_attr.as_dict() for list_attr in getattr(self, name)]
+    #         elif isinstance(attr, MapAttribute):
+    #             if getattr(self, name):
+    #                 yield name, getattr(self, name).as_dict()
+    #         elif isinstance(attr, UTCDateTimeAttribute):
+    #             if getattr(self, name):
+    #                 yield name, attr.serialize(getattr(self, name))
+    #         elif isinstance(attr, NumberAttribute):
+    #             # if numeric, return value as-is
+    #             yield name, getattr(self, name)
+    #         else:
+    #             yield name, attr.serialize(getattr(self, name))
 
     def __repr__(self) -> str:
         return f'<Recipe | id: {self.id}, name: {self.name}, length: {self.length},' \
