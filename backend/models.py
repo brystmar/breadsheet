@@ -46,7 +46,7 @@ class Step(MapAttribute):
 
         self.number = number
         self.text = text
-        self.then_wait = then_wait
+        self.then_wait = then_wait or 0
         self.note = note
         self.when = when
 
@@ -214,7 +214,7 @@ class Recipe(Model):
     #             yield name, attr.serialize(getattr(self, name))
 
     def __repr__(self) -> str:
-        return f'<Recipe | id: {self.id}, name: {self.name}, length: {self.length},' \
+        return f'<Recipe | id: {self.id}, name: {self.name}, length: {self.length}, ' \
                f'steps: {len(self.steps)}>'
 
 
