@@ -197,9 +197,16 @@ class StepApi(Resource):
                        'data':    f'Step {step_number} not found.'
                    }, 404
 
-        # Update the list of steps and recipe length.  Ensure steps are saved in order.
-        recipe.steps = sorted(new_steps, key=lambda s: s.number)
-        recipe.update_length()
+        try:
+            # Update the list of steps and recipe length.  Ensure steps are saved in order.
+            recipe.steps = sorted(new_steps, key=lambda s: s.number)
+            recipe.update_length()
+        except BaseException as e:
+            logger.debug(f'Error updating the list of steps: {e}')
+            return {
+                       'message': 'Error',
+                       'data':    f'Error updating the list of steps: {e}'
+                   }, 500
 
         try:
             recipe.save()
