@@ -7,7 +7,7 @@ from pynamodb.attributes import ListAttribute
 
 def generate_new_id() -> str:
     """Primary key (id) is a 17-digit epoch timestamp.  Ex: 1560043140.168794"""
-    # For sanity, ensure all ids are the same length.  Timestamps occasionally end in 0, which the system truncates.
+    # For my sanity, ensure all ids are the same length.  Timestamps occasionally end in 0, which the system truncates.
     new_id = ""
     while len(new_id) != 17:
         new_id = str(datetime.utcnow().timestamp())

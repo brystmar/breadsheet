@@ -3,7 +3,7 @@ from global_logger import logger, local
 from backend import create_app
 from config import Config
 from flask import redirect, request, send_from_directory
-from flask_restful import Resource, Api
+from flask_restful import Api
 from os import path
 
 breadapp = create_app()
@@ -24,29 +24,27 @@ def handle_before_request():
             return redirect(Config.domain_url, code=301)
 
 
-@breadapp.route('/favicon')
-def favicon():
-    logger.info("Favicon was requested!! :D")
-    return send_from_directory(path.join(breadapp.root_path, 'static'), 'favicon.ico',
-                               mimetype='image/vnd.microsoft.icon')
-
-
 if __name__ == '__main__' and local:
     breadapp.run(host='localhost', port=5000, debug=True)
     logger.info("Running locally via __main__: http://localhost:5000")
     print("Running locally via __main__: http://localhost:5000")
 
 # Import the API routes
-# from backend import recipe_routes, replacement_routes
 from backend import core_routes
 from backend.recipe_routes import RecipeCollectionApi, RecipeApi
 from backend.replacement_routes import ReplacementCollectionApi
 from backend.step_routes import StepApi
 
-# Define the endpoints
+# Define the functional endpoints
 api.add_resource(RecipeCollectionApi, '/recipes')
 api.add_resource(RecipeApi, '/recipes/<recipe_id>')
 api.add_resource(StepApi, '/recipes/<recipe_id>/<step_number>')
 api.add_resource(ReplacementCollectionApi,
                  '/replacements/<scope>',
                  '/replacements/<scope>/<old_value>')
+
+# Define the core endpoints
+api.add_resource(DocumentationApi,
+                 '/',
+                 '/api')
+api.add_resource(ReadmeApi, '/readme')

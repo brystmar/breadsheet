@@ -2,7 +2,7 @@ from main import logger
 from backend.models import Replacement
 from flask import request
 from flask_restful import Resource, reqparse
-from pynamodb.exceptions import ScanError, DoesNotExist, GetError, QueryError, PutError
+from pynamodb.exceptions import ScanError, DoesNotExist, GetError, QueryError, PutError, PynamoDBException
 import json
 
 
@@ -88,7 +88,7 @@ class ReplacementCollectionApi(Resource):
         if not exists:
             try:
                 rep_to_update = Replacement(scope=scope, old=old_value, new=args['new'])
-            except BaseException as e:
+            except PynamoDBException as e:
                 error_msg = f"Error creating a new Replacement entity w/scope: {scope}, " \
                             f"old: {old_value}, new: {args['new']}.\n{e}."
                 logger.debug(error_msg)

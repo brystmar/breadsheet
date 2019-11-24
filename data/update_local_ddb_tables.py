@@ -1,6 +1,10 @@
 """Replaces all data in local DynamoDB tables with data from the cloud database."""
 import boto3
-from config import Config
+from os import environ
+
+aws_region = environ.get('AWS_REGION')
+aws_access_key = environ.get('AWS_ACCESS_KEY_ID')
+aws_secret_access_key = environ.get('AWS_SECRET_ACCESS_KEY')
 
 
 def purge_all_table_data(table, hash_name=None, range_name=None):
@@ -44,16 +48,16 @@ def display_all_table_data(table):
 
 # Local connection
 db_local = boto3.resource('dynamodb',
-                          region_name=Config.aws_region,
-                          aws_access_key_id=Config.aws_access_key,
-                          aws_secret_access_key=Config.aws_secret_access_key,
+                          region_name=aws_region,
+                          aws_access_key_id=aws_access_key,
+                          aws_secret_access_key=aws_secret_access_key,
                           endpoint_url='http://localhost:8008')
 
 # Cloud connection
 db_cloud = boto3.resource('dynamodb',
-                          region_name=Config.aws_region,
-                          aws_access_key_id=Config.aws_access_key,
-                          aws_secret_access_key=Config.aws_secret_access_key)
+                          region_name=aws_region,
+                          aws_access_key_id=aws_access_key,
+                          aws_secret_access_key=aws_secret_access_key)
 
 # Define local tables
 recipe_table_local = db_local.Table('Recipe')
