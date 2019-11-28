@@ -4,7 +4,9 @@ from config import Config
 db_local = boto3.resource('dynamodb', region_name=Config.aws_region, aws_access_key_id=Config.aws_access_key,
                           aws_secret_access_key=Config.aws_secret_access_key, endpoint_url='http://localhost:8008')
 
-table = db_local.create_table(
+db_local.Table('Recipe').delete()
+
+recipe_table = db_local.create_table(
     TableName='Recipe',
     KeySchema=[
         {
@@ -31,11 +33,13 @@ table = db_local.create_table(
 )
 
 # Wait until the table exists
-table.meta.client.get_waiter('table_exists').wait(TableName='Recipe')
+recipe_table.meta.client.get_waiter('table_exists').wait(TableName='Recipe')
 
-print("Recipe table", table)
+print("Recipe table", recipe_table)
 
-table2 = db_local.create_table(
+db_local.Table('Replacement').delete()
+
+replacement_table = db_local.create_table(
     TableName='Replacement',
     KeySchema=[
         {
@@ -70,6 +74,6 @@ table2 = db_local.create_table(
 )
 
 # Wait until the table exists
-table2.meta.client.get_waiter('table_exists').wait(TableName='Replacement')
+replacement_table.meta.client.get_waiter('table_exists').wait(TableName='Replacement')
 
-print("Replacement table", table2)
+print("Replacement table", replacement_table)
