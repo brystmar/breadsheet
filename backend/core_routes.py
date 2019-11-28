@@ -7,7 +7,7 @@ import markdown
 
 class DocumentationApi(Resource):
     def get(self):
-        """Returns the API documentation."""
+        """Returns the API documentation, formatted in html."""
         logger.debug(f"Request: {request}")
 
         try:
@@ -28,7 +28,7 @@ class DocumentationApi(Resource):
 
 class ReadmeApi(Resource):
     def get(self):
-        """Returns the README file for this project."""
+        """Returns the README file for this project, formatted in html."""
         logger.debug(f"Request: {request}")
 
         try:

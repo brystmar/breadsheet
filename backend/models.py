@@ -190,29 +190,6 @@ class Recipe(Model):
 
         return attr
 
-    # def __iter__(self):
-    #     """
-    #     Outputs to a JSON-serializable format, since pynamodb doesn't natively support this.
-    #      See: https://github.com/pynamodb/PynamoDB/issues/152
-    #      Decided to use a low-fi homemade to_dict() method instead; keeping this here
-    #      for future reference.
-    #     """
-    #
-    #     for name, attr in self.get_attributes().items():
-    #         if isinstance(attr, ListAttribute):
-    #             yield name, [list_attr.as_dict() for list_attr in getattr(self, name)]
-    #         elif isinstance(attr, MapAttribute):
-    #             if getattr(self, name):
-    #                 yield name, getattr(self, name).as_dict()
-    #         elif isinstance(attr, UTCDateTimeAttribute):
-    #             if getattr(self, name):
-    #                 yield name, attr.serialize(getattr(self, name))
-    #         elif isinstance(attr, NumberAttribute):
-    #             # if numeric, return value as-is
-    #             yield name, getattr(self, name)
-    #         else:
-    #             yield name, attr.serialize(getattr(self, name))
-
     def __repr__(self) -> str:
         return f'<Recipe | id: {self.id}, name: {self.name}, length: {self.length}, ' \
                f'steps: {len(self.steps)}>'

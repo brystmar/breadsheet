@@ -188,9 +188,8 @@ class TestRecipeModel:
         assert recipe.start_time == datetime(2019, 9, 14, 7, 25, 0)
 
     def test_recipe_update_length(self):
-        recipe = Recipe(id=f"test_{generate_new_id()}", length=0, steps=[])
-        # with pytest.raises(TypeError):
-        #     pass
+        recipe = Recipe(id="123456", name="routes_test", difficulty="Easy", steps=[])
+
         assert recipe.length == 0
         recipe.update_length(save=False)
         assert recipe.length == 0
