@@ -3,11 +3,12 @@ from main import logger
 from backend.models import Step, Recipe
 from flask import request
 from flask_restful import Resource, reqparse
+import json
 
 
 class StepApi(Resource):
 
-    def get(self, recipe_id, step_number):
+    def get(self, recipe_id, step_number) -> json:
         """Return a single step from a specified recipe."""
         logger.debug(f"Request: {request}, for recipe_id: {recipe_id}, step: {step_number}.")
 
@@ -57,7 +58,7 @@ class StepApi(Resource):
                        'data':    error_msg
                    }, 500
 
-    def put(self, recipe_id, step_number):
+    def put(self, recipe_id, step_number) -> json:
         """Add or update one step within a specified recipe."""
         logger.debug(f"Request: {request}, for recipe_id: {recipe_id}, step: {step_number}.")
 
@@ -148,7 +149,7 @@ class StepApi(Resource):
                        'data':    f'Error updating step {step_number}.\n{e}.'
                    }, 500
 
-    def delete(self, recipe_id, step_number):
+    def delete(self, recipe_id, step_number) -> json:
         logger.debug(f"Request: {request}.")
 
         # Retrieve the recipe from the database

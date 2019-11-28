@@ -2,11 +2,12 @@ from main import logger, breadapp
 from flask import request
 from flask_restful import Resource
 from os import path
+import json
 import markdown
 
 
 class DocumentationApi(Resource):
-    def get(self):
+    def get(self) -> json:
         """Returns the API documentation, formatted in html."""
         logger.debug(f"Request: {request}")
 
@@ -27,7 +28,7 @@ class DocumentationApi(Resource):
 
 
 class ReadmeApi(Resource):
-    def get(self):
+    def get(self) -> json:
         """Returns the README file for this project, formatted in html."""
         logger.debug(f"Request: {request}")
 

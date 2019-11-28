@@ -1,6 +1,6 @@
 """Collection of functions used across the breadsheet project."""
 from main import logger
-from backend.models import Recipe, Step, Replacement
+from backend.models import Recipe
 from datetime import datetime, timedelta
 from pynamodb.attributes import ListAttribute
 

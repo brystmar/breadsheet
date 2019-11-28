@@ -11,7 +11,7 @@ import json
 
 class RecipeCollectionApi(Resource):
 
-    def get(self):
+    def get(self) -> json:
         """Return a collection of all recipes."""
         logger.debug(f"Request: {request}.")
 
@@ -32,7 +32,7 @@ class RecipeCollectionApi(Resource):
             logger.debug(error_msg)
             return {'message': 'Error', 'data': error_msg}, 500
 
-    def post(self):
+    def post(self) -> json:
         """Add a new recipe."""
         logger.debug(f"Request: {request}.")
 

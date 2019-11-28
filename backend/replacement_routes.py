@@ -8,7 +8,7 @@ import json
 
 class ReplacementCollectionApi(Resource):
 
-    def get(self, scope='all'):
+    def get(self, scope='all') -> json:
         """Returns a collection of all replacements for Paprika-compliant markup."""
         logger.debug(f"Request: {request}")
 
@@ -55,7 +55,7 @@ class ReplacementCollectionApi(Resource):
                    'data':    output
                }, 200
 
-    def put(self, scope, old_value):
+    def put(self, scope, old_value) -> json:
         """Add or update a replacement record."""
         logger.debug(f"Request: {request}")
 

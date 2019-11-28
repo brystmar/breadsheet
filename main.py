@@ -34,6 +34,7 @@ from backend import core_routes
 from backend.recipe_routes import RecipeCollectionApi, RecipeApi
 from backend.replacement_routes import ReplacementCollectionApi
 from backend.step_routes import StepApi
+from backend.core_routes import DocumentationApi, ReadmeApi
 
 # Define the functional endpoints
 api.add_resource(RecipeCollectionApi, '/recipes')
@@ -44,7 +45,5 @@ api.add_resource(ReplacementCollectionApi,
                  '/replacements/<scope>/<old_value>')
 
 # Define the core endpoints
-api.add_resource(DocumentationApi,
-                 '/',
-                 '/api')
+api.add_resource(DocumentationApi, '/', '/api')
 api.add_resource(ReadmeApi, '/readme')

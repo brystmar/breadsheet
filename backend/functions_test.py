@@ -1,4 +1,4 @@
-from backend.functions import generate_new_id
+from backend.functions import generate_new_id, set_when, replace_text
 
 
 def test_generate_new_id():
@@ -10,3 +10,50 @@ def test_generate_new_id():
 
         # TODO: Ensure id is unique
 
+
+def test_set_when():
+    pass
+
+
+def test_replace_text():
+    # Arrange
+    text_input = "Let me show you something neat: 123456789 alpha\nfoobar"
+    rep_list = [
+        {
+            'scope': 'ingredients',
+            'old': 'a',
+            'new': 'b'
+        },
+        {
+            'scope': 'ingredients',
+            'old': '1',
+            'new': '2'
+        },
+        {
+            'scope': 'ingredients',
+            'old': 'me',
+            'new': 'you'
+        },
+        {
+            'scope': 'directions',
+            'old': 'alpha',
+            'new': 'bravo'
+        },
+        {
+            'scope': 'directions',
+            'old': '8',
+            'new': '9'
+        },
+        {
+            'scope': 'directions',
+            'old': 'foo',
+            'new': 'bar'
+        }
+    ]
+
+    expected_ingredients = "Let you show you something nebt: 223456789 blphb\nfoobbr"
+    expected_directions = "Let me show you something neat: 123456799 bravo\nbarbar"
+
+    # Action & assert
+    assert replace_text(text_input, rep_list, 'ingredients') == expected_ingredients
+    assert replace_text(text_input, rep_list, 'directions') == expected_directions
