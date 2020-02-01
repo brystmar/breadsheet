@@ -7,7 +7,7 @@ from pynamodb.attributes import ListAttribute
 
 def generate_new_id() -> str:
     """Primary key (id) is a 17-digit epoch timestamp.  Ex: 1560043140.168794"""
-    # For my sanity, ensure all ids are the same length.  Timestamps occasionally end in 0, which the system truncates.
+    # Ensure all ids are the same length.  Timestamps can end in 0, which the system truncates.
     new_id = ""
     while len(new_id) != 17:
         new_id = str(datetime.utcnow().timestamp())
@@ -15,7 +15,10 @@ def generate_new_id() -> str:
 
 
 def set_when(steps: ListAttribute(), when: datetime) -> Recipe.steps:
-    """Calculate when each step should begin, using a list of steps plus the benchmark time.  Return a list of steps."""
+    """
+    Calculate when each step should begin, using a list of steps plus the benchmark time.
+    Return a list of steps.
+    """
     logger.debug(f"Start of set_when(), with when={when}, {len(steps)} steps, all steps: {steps}")
     i = 0
     for step in steps:

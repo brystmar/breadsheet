@@ -1,8 +1,8 @@
+"""Define a global logging object 'logger' for use by all other scripts in this app."""
 import logging
 import sys
 from os import path, mkdir
 
-log_level = logging.DEBUG
 basedir = path.abspath(path.dirname(__file__))
 local = 'pycharm' in basedir.lower()
 
@@ -13,7 +13,9 @@ if local:
     log_dir = 'logs'
     if not path.exists(log_dir):
         mkdir(log_dir)
+
     log_file = f'{log_dir}/breadlog.log'
+    log_level = logging.DEBUG
 
     logging.basicConfig(filename=log_file,
                         level=log_level,
@@ -23,6 +25,8 @@ if local:
     logger = logging.getLogger(__name__)
 
 else:
+    log_level = logging.DEBUG
+
     logging.basicConfig(stream=sys.stdout,
                         level=log_level,
                         datefmt='%Y-%m-%d %H:%M:%S',

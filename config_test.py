@@ -1,4 +1,4 @@
-"""Unit tests for the Config class to ensure variables are properly loaded."""
+"""Unit tests for the Config class to ensure the environment variables are loaded."""
 from config import Config
 from env_tools import apply_env
 

@@ -4,7 +4,7 @@ includes:
   - env_variables.yaml
 
 error_handlers:
-  - file: app/templates/errors/default_error.html
+  - file: templates/default_error.html
 
   - error_code: over_quota
-    file: app/templates/errors/over_quota.html
+    file: templates/over_quota.html

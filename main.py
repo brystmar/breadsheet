@@ -2,9 +2,8 @@
 from global_logger import logger, local
 from backend import create_app
 from config import Config
-from flask import redirect, request, send_from_directory
+from flask import redirect, request
 from flask_restful import Api
-from os import path
 
 breadapp = create_app()
 logger.info("Created the Flask breadapp")
@@ -30,11 +29,10 @@ if __name__ == '__main__' and local:
     print("Running locally via __main__: http://localhost:5000")
 
 # Import the API routes
-from backend import core_routes
 from backend.recipe_routes import RecipeCollectionApi, RecipeApi
 from backend.replacement_routes import ReplacementCollectionApi
 from backend.step_routes import StepApi
-from backend.core_routes import DocumentationApi, ReadmeApi
+from backend.meta_routes import ReadmeApi
 
 # Define the functional endpoints
 api.add_resource(RecipeCollectionApi, '/recipes')
@@ -44,6 +42,5 @@ api.add_resource(ReplacementCollectionApi,
                  '/replacements/<scope>',
                  '/replacements/<scope>/<old_value>')
 
-# Define the core endpoints
-api.add_resource(DocumentationApi, '/', '/api')
+# Define the meta endpoints
 api.add_resource(ReadmeApi, '/readme')

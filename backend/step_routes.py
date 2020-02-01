@@ -30,7 +30,7 @@ class StepApi(Resource):
                        'data':    error_msg
                    }, 500
 
-        # Convert step_number to int
+        # Convert the provided step_number to int
         try:
             step_number = int(step_number)
         except ValueError:
