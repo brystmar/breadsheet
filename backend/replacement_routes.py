@@ -19,52 +19,38 @@ class ReplacementCollectionApi(Resource):
             elif scope in ('ingredients', 'directions'):
                 items = Replacement.query(scope)
             else:
-                return {
-                           'message': 'Not Found',
-                           'data':    f'Invalid scope: {scope}'
-                       }, 404
+                return {'message': 'Error', 'data': f'Invalid scope: {scope}'}, 404
+
         except ScanError as e:
-            error_msg = f"Error trying to scan the Replacement table for scope: {scope}.\n{e}."
-            logger.debug(error_msg)
-            return {
-                       'message': 'Error',
-                       'data':    error_msg
-                   }, 500
+            error_msg = f"Scope {scope} not found."
+            logger.debug(f"{error_msg}\n{e}")
+            return {'message': 'Error', 'data': error_msg}, 404
+
         except QueryError as e:
-            error_msg = f"Error trying to query the Replacement table for scope: {scope}.\n{e}."
-            logger.debug(error_msg)
-            return {
-                       'message': 'Error',
-                       'data':    error_msg
-                   }, 500
+            error_msg = f"Scope {scope} not found."
+            logger.debug(f"{error_msg}\n{e}")
+            return {'message': 'Error', 'data': error_msg}, 404
+
         except BaseException as e:
-            error_msg = f"Unknown error reading the Replacement table for scope: {scope}.\n{e}."
-            logger.debug(error_msg)
-            return {
-                       'message': 'Error',
-                       'data':    error_msg
-                   }, 500
+            error_msg = f"Error searching for scope {scope}."
+            logger.debug(f"{error_msg}\n{e}")
+            return {'message': 'Error', 'data': error_msg}, 404
 
         output = []
         for i in items:
             output.append(i.to_dict())
 
         logger.debug(f"End of ReplacementCollectionApi.get({scope})")
-        return {
-                   'message': 'Success',
-                   'data':    output
-               }, 200
+        return {'message': 'Success', 'data': output}, 200
 
     def put(self, scope, old_value) -> json:
         """Add or update a replacement record."""
         logger.debug(f"Request: {request}")
 
         if scope not in ('all', 'ingredients', 'directions'):
-            logger.debug(f"Invalid scope: {scope}.")
-            return {
-                       'message': 'Validation Error',
-                       'data':    f"Invalid scope: {scope}."
-                   }, 422
+            error_msg = f"Invalid scope: {scope}."
+            logger.debug(f"{error_msg}\n{e}")
+            return {'message': 'Validation Error', 'data': error_msg}, 422
 
         # Retrieve the record
         try:
@@ -89,13 +75,9 @@ class ReplacementCollectionApi(Resource):
             try:
                 rep_to_update = Replacement(scope=scope, old=old_value, new=args['new'])
             except PynamoDBException as e:
-                error_msg = f"Error creating a new Replacement entity w/scope: {scope}, " \
-                            f"old: {old_value}, new: {args['new']}.\n{e}."
-                logger.debug(error_msg)
-                return {
-                           'message': 'Error',
-                           'data':    error_msg
-                       }, 500
+                error_msg = f"Error adding scope: {scope}, old: {old_value}, new: {args['new']}."
+                logger.debug(f"{error_msg}\n{e}")
+                return {'message': 'Error', 'data': error_msg}, 500
         else:
             rep_to_update.scope = scope
             rep_to_update.old = old_value
@@ -105,20 +87,11 @@ class ReplacementCollectionApi(Resource):
             rep_to_update.save()
             logger.debug(f"End of ReplacementCollectionApi.put({scope}, {old_value})")
             if exists:
-                return {
-                           'message': 'Success',
-                           'data':    'Replacement record updated successfully.'
-                       }, 200
+                return {'message': 'Success', 'data': 'Replacement record updated.'}, 200
             else:
-                return {
-                           'message': 'Created',
-                           'data':    'Replacement record created successfully.'
-                       }, 201
+                return {'message': 'Created', 'data': 'Replacement record created.'}, 201
+
         except PutError as e:
-            error_msg = f"Error updating a Replacement entity w/scope: {scope}, " \
-                        f"old: {old_value}, new: {args['new']}.\n{e}."
-            logger.debug(error_msg)
-            return {
-                       'message': 'Error',
-                       'data':    error_msg
-                   }, 500
+            error_msg = f"Error updating scope: {scope}, old: {old_value}, new: {args['new']}."
+            logger.debug(f"{error_msg}\n{e}")
+            return {'message': 'Error', 'data': error_msg}, 500

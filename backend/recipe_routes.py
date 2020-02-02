@@ -28,8 +28,8 @@ class RecipeCollectionApi(Resource):
             logger.debug(f"End of RecipeCollectionApi.get()")
             return {'message': 'Success', 'data': output}, 200
         except BaseException as e:
-            error_msg = f"Error trying to retrieve or compile recipe list: {e}.)"
-            logger.debug(error_msg)
+            error_msg = f"Error trying to retrieve or compile recipe list.)"
+            logger.debug(f"{error_msg}\n{e}")
             return {'message': 'Error', 'data': error_msg}, 500
 
     def post(self) -> json:
@@ -57,8 +57,8 @@ class RecipeCollectionApi(Resource):
                                 steps=args['steps']
                                 )
         except PynamoDBException as e:
-            error_msg = f"Error trying to save new recipe. \nData: {args}. \nError: {e}.)"
-            logger.debug(error_msg)
+            error_msg = f"Error trying to save new recipe.)"
+            logger.debug(f"{error_msg}\nData: {args}.\nError: {e}.")
             return {'message': 'Error', 'data': error_msg}, 500
 
         try:
@@ -68,8 +68,8 @@ class RecipeCollectionApi(Resource):
             logger.debug("End of RecipeCollectionApi.post()")
             return {'message': 'Created', 'data': new_recipe.to_dict()}, 201
         except PynamoDBException as e:
-            error_msg = f"Error trying to save new recipe {new_recipe.__repr__()}: {e}.)"
-            logger.debug(error_msg)
+            error_msg = f"Error trying to save new recipe.)"
+            logger.debug(f"{error_msg}\n{new_recipe.__repr__()}: {e}.")
             return {'message': 'Error', 'data': error_msg}, 500
 
 
@@ -88,8 +88,8 @@ class RecipeApi(Resource):
             logger.debug(f"Recipe {recipe_id} not found.)")
             return {'message': 'Not Found', 'data': f'Recipe {recipe_id} not found.'}, 404
         except PynamoDBException as e:
-            error_msg = f"Error trying to retrieve recipe {recipe_id}: {e}.)"
-            logger.debug(error_msg)
+            error_msg = f"Error trying to retrieve recipe {recipe_id}.)"
+            logger.debug(f"{error_msg}\n{e}")
             return {'message': 'Error', 'data': error_msg}, 500
 
     def put(self, recipe_id) -> json:
@@ -101,8 +101,9 @@ class RecipeApi(Resource):
             recipe = Recipe.get(recipe_id)
             logger.debug(f"Recipe retrieved: {recipe.__repr__()})")
         except Recipe.DoesNotExist as e:
-            logger.debug(f"Recipe {recipe_id} not found.)")
-            return {'message': 'Not Found', 'data': f'Recipe {recipe_id} not found.'}, 404
+            error_msg = f"Recipe {recipe_id} not found.)"
+            logger.debug(f"{error_msg}\n{e}")
+            return {'message': 'Not Found', 'data': error_msg}, 404
 
         # Initialize the parser
         parser = reqparse.RequestParser(bundle_errors=True)
@@ -132,8 +133,8 @@ class RecipeApi(Resource):
             logger.debug(f"Recipe {recipe_id} not found.)")
             return {'message': 'Not Found', 'data': f'Recipe {recipe_id} not found.'}, 404
         except PynamoDBException as e:
-            error_msg = f"Error trying to save recipe {recipe_id}: {e}.)"
-            logger.debug(error_msg)
+            error_msg = f"Error trying to save recipe {recipe_id}.)"
+            logger.debug(f"{error_msg}\n{e}")
             return {'message': 'Error', 'data': error_msg}, 500
 
     def delete(self, recipe_id) -> json:
@@ -152,8 +153,8 @@ class RecipeApi(Resource):
             logger.debug(f"Recipe {footprint} deleted successfully.)")
             return {'message': 'Success', 'data': f'Recipe {footprint} deleted successfully.'}, 200
         except PynamoDBException as e:
-            error_msg = f"Error trying to delete recipe {recipe_id}: {e}.)"
-            logger.debug(error_msg)
+            error_msg = f"Error trying to delete recipe {recipe_id}.)"
+            logger.debug(f"{error_msg}\n{e}")
             return {'message': 'Error', 'data': error_msg}, 500
 
 

@@ -1,5 +1,4 @@
 from backend.meta_routes import ReadmeApi
-import pytest
 
 
 class TestReadmeApi:

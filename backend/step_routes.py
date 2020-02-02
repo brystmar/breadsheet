@@ -16,47 +16,41 @@ class StepApi(Resource):
         try:
             recipe = Recipe.get(recipe_id)
             logger.debug(f"Recipe retrieved: {recipe.__repr__()})")
-        except Recipe.DoesNotExist:
-            logger.debug(f"Recipe {recipe_id} not found.)")
-            return {
-                       'message': 'Not Found',
-                       'data':    f'Recipe {recipe_id} not found.'
-                   }, 404
+
+        except Recipe.DoesNotExist as e:
+            error_msg = f'Recipe {recipe_id} not found.'
+            logger.debug(f"{error_msg}\n{e}")
+            return {'message': 'Error', 'data': error_msg}, 404
+
         except BaseException as e:
-            error_msg = f"Error trying to retrieve recipe {recipe_id}: {e}.)"
-            logger.debug(error_msg)
-            return {
-                       'message': 'Error',
-                       'data':    error_msg
-                   }, 500
+            error_msg = f"Unable to retrieve recipe {recipe_id}.)"
+            logger.debug(f"{error_msg}\n{e}")
+            return {'message': 'Error', 'data': error_msg}, 500
 
         # Convert the provided step_number to int
         try:
             step_number = int(step_number)
-        except ValueError:
-            return {
-                       'message': 'Validation Error',
-                       'data':    f'Step must be an integer. Provided: {step_number}.'
-                   }, 422
+
+        except ValueError as e:
+            error_msg = f'Step must be an integer. Provided: {step_number}, {type(step_number)}.'
+            logger.debug(f"{error_msg}\n{e}")
+            return {'message': 'Validation Error', 'data': error_msg}, 422
 
         # Extract the requested step
         try:
             output = recipe.steps[step_number - 1].to_dict()
             logger.debug(f"Returning step {step_number}.")
             return {'message': 'Success', 'data': output}, 200
-        except IndexError:
-            logger.debug(f"Index out of range for step {step_number}.")
-            return {
-                       'message': 'Not Found',
-                       'data':    f'Step number {step_number} not found.'
-                   }, 404
+
+        except IndexError as e:
+            error_msg = f'Step {step_number} not found.'
+            logger.debug(f"{error_msg}\n{e}")
+            return {'message': 'Error', 'data': error_msg}, 404
+
         except BaseException as e:
-            error_msg = f"Error trying to return step {step_number}: {e}.)"
-            logger.debug(error_msg)
-            return {
-                       'message': 'Error',
-                       'data':    error_msg
-                   }, 500
+            error_msg = f"Unable to retrieve step {step_number}.)"
+            logger.debug(f"{error_msg}\n{e}")
+            return {'message': 'Error', 'data': error_msg}, 500
 
     def put(self, recipe_id, step_number) -> json:
         """Add or update one step within a specified recipe."""
@@ -67,28 +61,22 @@ class StepApi(Resource):
             recipe = Recipe.get(recipe_id)
             logger.debug(f"Recipe retrieved: {recipe.__repr__()})")
 
-        except Recipe.DoesNotExist:
-            logger.debug(f"Recipe {recipe_id} not found.)")
-            return {
-                       'message': 'Not Found',
-                       'data':    f'Recipe {recipe_id} not found.'
-                   }, 404
+        except Recipe.DoesNotExist as e:
+            error_msg = f"Recipe {recipe_id} not found.)"
+            logger.debug(f"{error_msg}\n{e}")
+            return {'message': 'Not Found', 'data': error_msg}, 404
         except BaseException as e:
-            error_msg = f"Error trying to retrieve recipe {recipe_id}: {e}.)"
-            logger.debug(error_msg)
-            return {
-                       'message': 'Error',
-                       'data':    error_msg
-                   }, 500
+            error_msg = f"Unable to retrieve recipe {recipe_id}.)"
+            logger.debug(f"{error_msg}\n{e}")
+            return {'message': 'Error', 'data': error_msg}, 500
 
         # Convert step_number to int
         try:
             step_number = int(step_number)
-        except ValueError:
-            return {
-                       'message': 'Validation Error',
-                       'data':    f'Step {step_number} must be an integer.'
-                   }, 422
+        except ValueError as e:
+            error_msg = f'Step must be an integer. Provided: {step_number}, {type(step_number)}.'
+            logger.debug(f"{error_msg}\n{e}")
+            return {'message': 'Validation Error', 'data': error_msg}, 422
 
         # Extract the requested step
         step_to_modify = Step()
@@ -139,15 +127,12 @@ class StepApi(Resource):
         try:
             recipe.save()
             logger.debug(f"Step {step_number} updated.")
-            return {
-                       'message': 'Success',
-                       'data':    f'Step {step_number} updated.'
-                   }, 200
+            return {'message': 'Success', 'data': f'Step {step_number} updated.'}, 200
+
         except BaseException as e:
-            return {
-                       'message': 'Error',
-                       'data':    f'Error updating step {step_number}.\n{e}.'
-                   }, 500
+            error_msg = f"Unable to update step {step_number}.)"
+            logger.debug(f"{error_msg}\n{e}")
+            return {'message': 'Error', 'data': error_msg}, 500
 
     def delete(self, recipe_id, step_number) -> json:
         logger.debug(f"Request: {request}.")
@@ -157,28 +142,23 @@ class StepApi(Resource):
             recipe = Recipe.get(recipe_id)
             logger.debug(f"Recipe retrieved: {recipe.__repr__()})")
 
-        except Recipe.DoesNotExist:
-            logger.debug(f"Recipe {recipe_id} not found.)")
-            return {
-                       'message': 'Not Found',
-                       'data':    f'Recipe {recipe_id} not found.'
-                   }, 404
+        except Recipe.DoesNotExist as e:
+            error_msg = f"Recipe {recipe_id} not found."
+            logger.debug(f"{error_msg}\n{e}")
+            return {'message': 'Error', 'data': error_msg}, 404
+
         except BaseException as e:
-            error_msg = f"Error trying to retrieve recipe {recipe_id}: {e}.)"
-            logger.debug(error_msg)
-            return {
-                       'message': 'Error',
-                       'data':    error_msg
-                   }, 500
+            error_msg = f"Unable to retrieve recipe {recipe_id}."
+            logger.debug(f"{error_msg}\n{e}")
+            return {'message': 'Error', 'data': error_msg}, 500
 
         # Convert step_number to int
         try:
             step_number = int(step_number)
         except ValueError as e:
-            return {
-                       'message': 'Validation Error',
-                       'data':    f'Step {step_number} must be an integer.'
-                   }, 422
+            error_msg = f'Step must be an integer. Provided: {step_number}, {type(step_number)}.'
+            logger.debug(f"{error_msg}\n{e}")
+            return {'message': 'Validation Error', 'data': error_msg}, 422
 
         # Create a new list of steps, skipping the step to delete
         found = False
@@ -192,34 +172,26 @@ class StepApi(Resource):
                 new_steps.append(step)
 
         if not found:
-            logger.debug(f"Step {step_number} not found.")
-            return {
-                       'message': 'Not Found',
-                       'data':    f'Step {step_number} not found.'
-                   }, 404
+            error_msg = f'Step {step_number} not found.'
+            logger.debug(f"{error_msg}")
+            return {'message': 'Error', 'data': f'Step {step_number} not found.'}, 404
 
+        # Update the list of steps and recipe length
         try:
-            # Update the list of steps and recipe length.  Ensure steps are saved in order.
+            # Ensure steps are saved in order
             recipe.steps = sorted(new_steps, key=lambda s: s.number)
             recipe.update_length()
+
         except BaseException as e:
-            logger.debug(f'Error updating the list of steps: {e}')
-            return {
-                       'message': 'Error',
-                       'data':    f'Error updating the list of steps: {e}'
-                   }, 500
+            error_msg = f'Error updating the list of steps: {recipe.steps}'
+            logger.debug(f"{error_msg}\n{e}")
+            return {'message': 'Error', 'data': error_msg}, 500
 
         try:
             recipe.save()
             logger.debug(f"Step {step_number} deleted.")
-            return {
-                       'message': 'Success',
-                       'data':    f'Step {step_number} deleted.'
-                   }, 200
+            return {'message': 'Success', 'data': f'Step {step_number} deleted.'}, 200
         except BaseException as e:
-            error_msg = f'Error saving {recipe.__repr__()} without step {step_number}.\n{e}.'
-            logger.debug(error_msg)
-            return {
-                       'message': 'Error',
-                       'data':    error_msg
-                   }, 500
+            error_msg = f'Error saving {recipe.__repr__()} without step {step_number}.'
+            logger.debug(f"{error_msg}\n{e}")
+            return {'message': 'Error', 'data': error_msg}, 500

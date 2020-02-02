@@ -21,7 +21,12 @@ class ReadmeApi(Resource):
                 output = markdown.markdown(content)
                 return {'message': 'Success', 'data': output}, 200
 
-        except BaseException as e:
-            error_msg = f"Error attempting to retrieve or compile the README file: {e}.)"
-            logger.debug(error_msg)
+        except FileNotFoundError as e:
+            error_msg = f"ERRORMSG: File not found."
+            logger.debug(f"{error_msg}\n{e}")
+            return {'message': 'Error', 'data': error_msg}, 404
+
+        except ValueError as e:
+            error_msg = f"ERRORMSG: Error attempting to compile the README file.)"
+            logger.debug(f"{error_msg}\n{e}")
             return {'message': 'Error', 'data': error_msg}, 500
