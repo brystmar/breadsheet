@@ -1,15 +1,35 @@
 """Define our app using the create_app function in backend/__init__.py"""
+# Global logger
 from global_logger import logger, local
-from backend import create_app
-from config import Config
+
+# External packages
 from flask import redirect, request
 from flask_restful import Api
+
+# App components
+from backend import create_app
+from config import Config
+from backend.recipe_routes import RecipeCollectionApi, RecipeApi
+from backend.replacement_routes import ReplacementCollectionApi
+from backend.step_routes import StepApi
+from backend.meta_routes import ReadmeApi
 
 breadapp = create_app()
 logger.info("Created the Flask breadapp")
 
 api = Api(breadapp)
-logger.info("Initialized the API")
+logger.info("API initialized")
+
+# Define the functional endpoints
+api.add_resource(RecipeCollectionApi, '/api/v1/recipes')
+api.add_resource(RecipeApi, '/api/v1/recipes/<recipe_id>')
+api.add_resource(StepApi, '/api/v1/recipes/<recipe_id>/<step_number>')
+api.add_resource(ReplacementCollectionApi,
+                 '/api/v1/replacements/<scope>',
+                 '/api/v1/replacements/<scope>/<old_value>')
+
+# Define the meta endpoints
+api.add_resource(ReadmeApi, '/api/v1/readme')
 
 
 @breadapp.before_request
@@ -27,20 +47,3 @@ if __name__ == '__main__' and local:
     breadapp.run(host='localhost', port=5000, debug=True)
     logger.info("Running locally via __main__: http://localhost:5000")
     print("Running locally via __main__: http://localhost:5000")
-
-# Import the API routes
-from backend.recipe_routes import RecipeCollectionApi, RecipeApi
-from backend.replacement_routes import ReplacementCollectionApi
-from backend.step_routes import StepApi
-from backend.meta_routes import ReadmeApi
-
-# Define the functional endpoints
-api.add_resource(RecipeCollectionApi, '/recipes')
-api.add_resource(RecipeApi, '/recipes/<recipe_id>')
-api.add_resource(StepApi, '/recipes/<recipe_id>/<step_number>')
-api.add_resource(ReplacementCollectionApi,
-                 '/replacements/<scope>',
-                 '/replacements/<scope>/<old_value>')
-
-# Define the meta endpoints
-api.add_resource(ReadmeApi, '/readme')
