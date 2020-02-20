@@ -1,5 +1,5 @@
 """Unit tests for the Config class to ensure the environment variables are loaded."""
-from config import Config
+from backend.config import Config
 from env_tools import apply_env
 
 

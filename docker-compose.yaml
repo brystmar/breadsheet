@@ -1,0 +1,15 @@
+version: "3.7"
+
+services:
+  breadsheet-backend:
+    build: ./breadsheet
+    volumes:
+      - ./breadsheet:/usr/src/app
+    ports:
+      - 5001:5001
+
+  breadsheet-db:
+    image: amazon/dynamodb-local:1.12.0
+    ports:
+      - 8008:8008
+    command: ["-jar", "DynamoDBLocal.jar", "-sharedDb", "-inMemory", "-port 8008"]

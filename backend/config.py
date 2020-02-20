@@ -1,5 +1,5 @@
 """Defines an object used to configure parameters for our Flask app."""
-from main import logger, local
+from backend.global_logger import logger, local
 from os import environ
 
 
@@ -25,6 +25,7 @@ class Config(object):
     aws_arn = environ.get('AWS_ARN')
 
     # App-related
+    bound_port = 8000
     domain_url = environ.get('DOMAIN_URL')
     SECRET_KEY = environ.get('SECRET_KEY') or '0mW7@LN0n32L6ntaj0d8jzsXiAW4mkPL7u5l'
 

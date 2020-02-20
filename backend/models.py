@@ -1,5 +1,5 @@
 from main import logger
-from config import Config, local
+from backend.config import Config, local
 from datetime import datetime, timedelta
 from pynamodb.models import Model
 from pynamodb.attributes import UnicodeAttribute, UTCDateTimeAttribute, NumberAttribute,\

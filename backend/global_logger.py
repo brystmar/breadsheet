@@ -8,9 +8,9 @@ local = 'pycharm' in basedir.lower()
 
 # initialize logging
 if local:
-    print("Running locally: http://localhost:5000")
+    print("Running locally: http://localhost:8000")
 
-    log_dir = 'logs'
+    log_dir = '../logs'
     if not path.exists(log_dir):
         mkdir(log_dir)
 
@@ -36,3 +36,4 @@ else:
 logger.info("\n=======================================\n\n")
 logger.info(f"Global logging initialized!  Level: {logger.getEffectiveLevel()}")
 logger.info(f"local = {local}")
+print(f"Name: {__name__}")

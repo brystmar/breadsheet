@@ -1,5 +1,5 @@
 """Initialization file that creates the app and applies our config object."""
-from config import Config
+from backend.config import Config
 from flask import Flask
 
 

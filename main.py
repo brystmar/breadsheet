@@ -1,14 +1,15 @@
 """Define our app using the create_app function in backend/__init__.py"""
 # Global logger
-from global_logger import logger, local
+from backend.global_logger import logger, local
 
 # External packages
 from flask import redirect, request
 from flask_restful import Api
+from gunicorn import http
 
 # App components
 from backend import create_app
-from config import Config
+from backend.config import Config
 from backend.recipe_routes import RecipeCollectionApi, RecipeApi
 from backend.replacement_routes import ReplacementCollectionApi
 from backend.step_routes import StepApi
@@ -44,6 +45,6 @@ def handle_before_request():
 
 
 if __name__ == '__main__' and local:
-    breadapp.run(host='localhost', port=5000, debug=True)
-    logger.info("Running locally via __main__: http://localhost:5000")
-    print("Running locally via __main__: http://localhost:5000")
+    breadapp.run(host='localhost', port=Config.bound_port, debug=True)
+    logger.info(f"Running locally via __main__: http://localhost:{Config.bound_port}")
+    print(f"Running locally via __main__: http://localhost:{Config.bound_port}")

@@ -1,4 +1,4 @@
-from global_logger import logger
+from backend.global_logger import logger
 from testfixtures import LogCapture
 import logging
 
