@@ -27,18 +27,18 @@
 </div>
 
 <script onload="sfToggle()">
-    // add an event listener for the selection box
+    // Event listener that drives the start/finish toggle
     document.getElementById("solve_for_start").addEventListener("change", sfToggle);
 
-    // add event listeners to the set_start_time & set_finish_time controls
+    // Event listeners for re-calculating the time in all input boxes
     document.getElementById("start_date").addEventListener("change", calcTime);
     document.getElementById("start_time").addEventListener("change", calcTime);
     document.getElementById("finish_date").addEventListener("change", calcTime);
     document.getElementById("finish_time").addEventListener("change", calcTime);
 
 
-
     function sfToggle() {
+        console.log("Starting sfToggle()");
         var start_finish_selection = document.getElementById("solve_for_start");
         var start_label = document.getElementById("solve_for_start_label");
         var start_datetime = document.getElementById("solve_for_start_datetime");
@@ -57,17 +57,27 @@
             finish_label.hidden = true;
             finish_datetime.hidden = true;
         }
+
+        console.log("Finished toggling the start/finish controls.  Now to re-calc...");
+
         // Re-calculate all timestamps
         calcTime();
+        console.log("Re-calc completed [from sfToggle()].");
     }
 
     function setNow(obj_prefix) {
+        console.log("Starting setNow(" + obj_prefix + ").");
         document.getElementById(obj_prefix + '_date').value = moment().format('YYYY-MM-DD');
         document.getElementById(obj_prefix + '_time').value = moment().format('HH:mm');
+        console.log("Finished setNow(" + obj_prefix + ").  Now to re-calc...");
+
+        // Re-calculate all timestamps
         calcTime();
+        console.log("Re-calc completed [from setNow()].");
     }
 
     function calcTime() {
+        console.log("Starting calcTime()");
         var solve_for_start = document.getElementById("solve_for_start");
         var sdate = document.getElementById("start_date");
         var stime = document.getElementById("start_time");
@@ -177,9 +187,11 @@
             }
         }
         // console.log("calcTime() done, sfs: " + solve_for_start.value);
+        console.log("Finished calcTime().");
     }
 
     function sec_to_hms(sec) {
+        console.log("Starting sec_to_hms(" + sec + ").");
         // accepts a number of seconds (int), returns a string for how many days, hrs, min, sec
         if (sec == 0) { return "--"; }
 
@@ -239,6 +251,8 @@
                 result = minutes;
             }
         }
+
+        console.log("Finished sec_to_hms(" + sec + "), result: " + result + ".");
 
         return result;
     }
