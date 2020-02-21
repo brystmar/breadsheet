@@ -13,7 +13,7 @@ class Config(object):
         logger.info("Applied .env variables using env_tools")
 
     else:
-        # When running in GCP, these are set by the env_variables.yaml file
+        # When running in GCP, these are set by env_variables.yaml
         pass
 
     # AWS credentials
@@ -25,7 +25,7 @@ class Config(object):
     aws_arn = environ.get('AWS_ARN')
 
     # App-related
-    bound_port = 8000
+    bound_port = 5001
     domain_url = environ.get('DOMAIN_URL')
     SECRET_KEY = environ.get('SECRET_KEY') or '0mW7@LN0n32L6ntaj0d8jzsXiAW4mkPL7u5l'
 

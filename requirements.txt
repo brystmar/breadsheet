@@ -12,7 +12,7 @@ chardet==3.0.4
 Click==7.0
 configparser==4.0.2
 dateparser==0.7.2
-docutils==0.16
+docutils==0.15.2
 dominate==2.4.0
 env-tools==2.2.0
 ez-setup==0.9
