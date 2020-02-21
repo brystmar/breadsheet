@@ -5,7 +5,6 @@ from backend.global_logger import logger, local
 # External packages
 from flask import redirect, request
 from flask_restful import Api
-from gunicorn import http
 
 # App components
 from backend import create_app

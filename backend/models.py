@@ -1,4 +1,4 @@
-from main import logger
+from backend.global_logger import logger
 from backend.config import Config, local
 from datetime import datetime, timedelta
 from pynamodb.models import Model

@@ -1,5 +1,5 @@
 """Defines recipe-related endpoints for the front end to consume."""
-from main import logger
+from backend.global_logger import logger
 from backend.functions import generate_new_id
 from backend.models import Recipe
 from flask import request

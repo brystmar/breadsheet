@@ -1,4 +1,4 @@
-from main import logger
+from backend.global_logger import logger
 from backend.models import Replacement
 from flask import request
 from flask_restful import Resource, reqparse
@@ -49,7 +49,7 @@ class ReplacementCollectionApi(Resource):
 
         if scope not in ('all', 'ingredients', 'directions'):
             error_msg = f"Invalid scope: {scope}."
-            logger.debug(f"{error_msg}\n{e}")
+            logger.debug(f"{error_msg}")
             return {'message': 'Validation Error', 'data': error_msg}, 422
 
         # Retrieve the record

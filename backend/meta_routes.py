@@ -1,4 +1,4 @@
-from main import logger
+from backend.global_logger import logger
 from flask import request
 from flask_restful import Resource
 from os import path

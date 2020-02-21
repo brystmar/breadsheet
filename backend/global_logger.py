@@ -4,7 +4,8 @@ import sys
 from os import path, mkdir
 
 basedir = path.abspath(path.dirname(__file__))
-local = 'pycharm' in basedir.lower()
+# local = 'pycharm' in basedir.lower()
+local = True
 
 # initialize logging
 if local:
@@ -36,4 +37,3 @@ else:
 logger.info("\n=======================================\n\n")
 logger.info(f"Global logging initialized!  Level: {logger.getEffectiveLevel()}")
 logger.info(f"local = {local}")
-print(f"Name: {__name__}")

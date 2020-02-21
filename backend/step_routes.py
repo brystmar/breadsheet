@@ -1,5 +1,5 @@
 """Defines step-related endpoints for the front end to consume."""
-from main import logger
+from backend.global_logger import logger
 from backend.models import Step, Recipe
 from flask import request
 from flask_restful import Resource, reqparse
