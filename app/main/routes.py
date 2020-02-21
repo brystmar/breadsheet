@@ -53,7 +53,7 @@ def add_recipe():
         new_recipe.save()
         logger.info(f"New recipe {new_recipe.name} saved to the database.")
 
-        logger.debug("Redirecting to the main recipe page.  End of add_recipe().")
+        logger.debug("Redirecting to the recipe page.  End of add_recipe().")
         return redirect(url_for("main.recipe") + f"?id={new_recipe.id}")
 
     logger.debug("End of add_recipe()")
@@ -87,8 +87,15 @@ def recipe():
     twforms = create_tw_forms(recipe_shown.steps)
     seform = create_start_finish_forms(recipe_shown)
 
-    if form.validate_on_submit():
+    if request.method == 'GET':
+        # When the page loads, set the next logical step number
+        form.number.data = len(recipe_shown.steps) + 1
+
+    elif form.is_submitted():
         logger.info("StepForm submitted.")
+
+        validation = form.validate()
+        logger.debug(f"StepForm validated: {validation}")
 
         # Create a new Step class for the submitted data
         new_step = Step(number=len(recipe_shown.steps) + 1,
@@ -102,14 +109,10 @@ def recipe():
 
         # Update the database
         recipe_shown.save()
-        logger.info(f"Recipe {recipe_shown.name} updated in the db to include step {new_step.number}.")
+        logger.info(f"Recipe {recipe_shown.name} updated to include step {new_step.number}.")
 
-        logger.debug("Redirecting to the main recipe page.  End of recipe().")
+        logger.debug(f"Refreshing the page. End of recipe(), request method: {request.method}.")
         return redirect(url_for("main.recipe") + f"?id={recipe_id}")
-
-    elif request.method == 'GET':
-        # When the page loads, pre-populate the add_step form with the next logical step number
-        form.number.data = len(recipe_shown.steps) + 1
 
     logger.debug("Rendering the recipe page.  End of recipe().")
     return render_template('recipe.html', title=recipe_shown.name, recipe=recipe_shown, steps=recipe_shown.steps,
