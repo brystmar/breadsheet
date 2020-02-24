@@ -4,6 +4,7 @@ from backend.global_logger import logger, local
 
 # External packages
 from flask import redirect, request
+from flask_cors import CORS
 from flask_restful import Api
 
 # App components
@@ -16,6 +17,10 @@ from backend.meta_routes import ReadmeApi
 
 breadapp = create_app()
 logger.info("Created the Flask breadapp")
+
+# Enable CORS for the app to ensure breadsheet-ui can call the API
+#   https://flask-cors.readthedocs.io/en/latest/
+CORS(breadapp, resources={r"/api/*": {"origins": Config.whitelisted_origins}})
 
 api = Api(breadapp)
 logger.info("API initialized")

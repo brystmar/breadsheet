@@ -7,7 +7,6 @@ import json
 
 
 class StepApi(Resource):
-
     def get(self, recipe_id, step_number) -> json:
         """Return a single step from a specified recipe."""
         logger.debug(f"Request: {request}, for recipe_id: {recipe_id}, step: {step_number}.")

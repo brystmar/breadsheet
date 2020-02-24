@@ -21,7 +21,8 @@ class ReadmeApi(Resource):
                 # Convert to HTML
                 output = markdown.markdown(content)
                 logger.debug("Converted the README file")
-                return {'message': 'Success', 'data': output}, 200
+                access_control_all = {'Access-Control-Allow-Origin': '*'}
+                return {'message': 'Success', 'data': output}, 200, access_control_all
 
         except FileNotFoundError as e:
             error_msg = f"File not found."

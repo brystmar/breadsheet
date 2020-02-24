@@ -9,9 +9,7 @@ local = True
 
 # initialize logging
 if local:
-    print("Running locally: http://localhost:5001")
-
-    log_dir = '../logs'
+    log_dir = './logs'
     if not path.exists(log_dir):
         mkdir(log_dir)
 

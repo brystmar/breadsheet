@@ -10,7 +10,6 @@ import json
 
 
 class RecipeCollectionApi(Resource):
-
     def get(self) -> json:
         """Return a collection of all recipes."""
         logger.debug(f"Request: {request}.")
@@ -41,7 +40,7 @@ class RecipeCollectionApi(Resource):
         # Initialize the parser
         parser = reqparse.RequestParser(bundle_errors=True)
 
-        # Parse the supplied arguments.  Input doesn't require a recipe_id
+        # Parse the supplied arguments.  Input doesn't require a recipe_id.
         args = parse_recipe_args(parser, False)
 
         try:
@@ -51,14 +50,18 @@ class RecipeCollectionApi(Resource):
                                 author=args['author'],
                                 source=args['source'],
                                 difficulty=args['difficulty'],
-                                length=args['length'],
+                                length=0,
                                 date_added=args['date_added'],
                                 start_time=args['start_time'],
-                                steps=args['steps']
+                                steps=[]
                                 )
         except PynamoDBException as e:
-            error_msg = f"Error trying to save new recipe.)"
+            error_msg = f"Error trying to create new recipe."
             logger.debug(f"{error_msg}\nData: {args}.\nError: {e}.")
+            return {'message': 'Error', 'data': error_msg}, 500
+        except BaseException as e:
+            error_msg = f"Other error in parsing args."
+            logger.debug(f"{error_msg}\n{e}.")
             return {'message': 'Error', 'data': error_msg}, 500
 
         try:
@@ -68,13 +71,12 @@ class RecipeCollectionApi(Resource):
             logger.debug("End of RecipeCollectionApi.post()")
             return {'message': 'Created', 'data': new_recipe.to_dict()}, 201
         except PynamoDBException as e:
-            error_msg = f"Error trying to save new recipe.)"
+            error_msg = f"Error trying to save new recipe."
             logger.debug(f"{error_msg}\n{new_recipe.__repr__()}: {e}.")
             return {'message': 'Error', 'data': error_msg}, 500
 
 
 class RecipeApi(Resource):
-
     def get(self, recipe_id) -> json:
         """Return a single recipe."""
         logger.debug(f"Request: {request}, for id: {recipe_id}.")
@@ -159,22 +161,36 @@ class RecipeApi(Resource):
 
 
 def parse_recipe_args(parser, id_required=True):
-    """Parse a JSON arguments for a recipe input."""
-    # Deconstruct the input
-    parser.add_argument('id', required=id_required, store_missing=False)
-    parser.add_argument('name', required=True)
-    parser.add_argument('author', store_missing=False)
-    parser.add_argument('source', store_missing=False)
-    parser.add_argument('difficulty', required=True)
-    parser.add_argument('length', type=int, store_missing=False)
-    parser.add_argument('date_added', store_missing=False)
-    parser.add_argument('start_time', store_missing=False)
-    parser.add_argument('steps', type=list, store_missing=False)
+    """Parse the JSON arguments for a recipe input."""
+    logger.debug(f"Entering parse_recipe_args() w/{parser}, id_req={id_required}")
 
-    args = parser.parse_args()
+    # TODO: Argument parsing is broken
 
-    args['date_added'] = parse_timestamp(args['date_added'])
-    args['start_time'] = parse_timestamp(args['start_time'])
+    try:
+        # Deconstruct the input
+        parser.add_argument('id', required=id_required, store_missing=False)
+        parser.add_argument('name', required=True)
+        parser.add_argument('author', store_missing=False)
+        parser.add_argument('source', store_missing=False)
+        parser.add_argument('difficulty', required=True)
+        parser.add_argument('length', type=int, store_missing=False)
+        parser.add_argument('date_added', store_missing=False)
+        parser.add_argument('start_time', store_missing=False)
+        parser.add_argument('steps', type=list, store_missing=False)
+        logger.debug("Added all args!")
+
+        args = parser.parse_args()
+        logger.debug("Parsed the args!")
+
+        args['date_added'] = parse_timestamp(args['date_added'])
+        args['start_time'] = parse_timestamp(args['start_time'])
+
+    except BaseException as e:
+        logger.debug(f"Error somewhere in the args: {e}")
+        logger.debug(f"Contents of parser: {parser.args.__str__()}")
+        return 0
+
+    logger.debug(f"Finished parse_recipe_args(): {args}")
 
     return args
 
