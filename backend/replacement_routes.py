@@ -64,24 +64,21 @@ class ReplacementCollectionApi(Resource):
             logger.debug(f"Requested record does not exist: hash_key={scope}, "
                          f"range_key={old_value}.  Must be a new entry.")
 
-        # Initialize the parser
-        parser = reqparse.RequestParser(bundle_errors=True)
-
-        # Specify the arguments provided
-        parser.add_argument('new')
-        args = parser.parse_args()
+        # Load the provided JSON
+        data = json.loads(request.data.decode())
+        logger.debug(f"Data submitted: {data}")
 
         if not exists:
             try:
-                rep_to_update = Replacement(scope=scope, old=old_value, new=args['new'])
+                rep_to_update = Replacement(scope=scope, old=old_value, new=data['new'])
             except PynamoDBException as e:
-                error_msg = f"Error adding scope: {scope}, old: {old_value}, new: {args['new']}."
+                error_msg = f"Error adding scope: {scope}, old: {old_value}, new: {data['new']}."
                 logger.debug(f"{error_msg}\n{e}")
                 return {'message': 'Error', 'data': error_msg}, 500
         else:
             rep_to_update.scope = scope
             rep_to_update.old = old_value
-            rep_to_update.new = args['new']
+            rep_to_update.new = data['new']
 
         try:
             rep_to_update.save()
@@ -92,6 +89,6 @@ class ReplacementCollectionApi(Resource):
                 return {'message': 'Created', 'data': 'Replacement record created.'}, 201
 
         except PutError as e:
-            error_msg = f"Error updating scope: {scope}, old: {old_value}, new: {args['new']}."
+            error_msg = f"Error updating scope: {scope}, old: {old_value}, new: {data['new']}."
             logger.debug(f"{error_msg}\n{e}")
             return {'message': 'Error', 'data': error_msg}, 500

@@ -2,7 +2,7 @@
 from backend.global_logger import logger
 from backend.models import Step, Recipe
 from flask import request
-from flask_restful import Resource, reqparse
+from flask_restful import Resource
 import json
 
 
@@ -96,24 +96,21 @@ class StepApi(Resource):
             # Append an empty step so it's properly updated below (index = 0)
             recipe.steps.append(step_to_modify)
 
-        # Initialize the parser
-        parser = reqparse.RequestParser(bundle_errors=True)
-
-        # Specify the arguments provided
-        parser.add_argument('number', required=True, type=int)  # In case this is provided
-        parser.add_argument('text', required=True, type=str)
-        parser.add_argument('then_wait', type=int, default=0, store_missing=False)
-        parser.add_argument('note', store_missing=False)
-        parser.add_argument('when', store_missing=False)
-
-        args = parser.parse_args()
+        # Load the provided JSON
+        data = json.loads(request.data.decode())
+        logger.debug(f"Data submitted: {data}")
 
         # Add/update data for this step
+        # Required fields
         step_to_modify.number = step_number
-        step_to_modify.text = args['text']
-        step_to_modify.then_wait = args['then_wait']
-        step_to_modify.note = args['note']
-        step_to_modify.when = args['when']
+        step_to_modify.text = data['text']
+        step_to_modify.then_wait = data['then_wait']
+
+        # Optional fields
+        if data['note']:
+            step_to_modify.note = data['note']
+        if data['when']:
+            step_to_modify.when = data['when']
 
         # Update the step on the recipe object
         recipe.steps[index] = step_to_modify
