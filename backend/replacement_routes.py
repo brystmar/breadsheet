@@ -1,12 +1,14 @@
 from backend.global_logger import logger
 from backend.models import Replacement
 from flask import request
-from flask_restful import Resource, reqparse
-from pynamodb.exceptions import ScanError, DoesNotExist, GetError, QueryError, PutError, PynamoDBException
+from flask_restful import Resource
+from pynamodb.exceptions import ScanError, DoesNotExist, GetError, QueryError,\
+    PutError, PynamoDBException
 import json
 
 
 class ReplacementCollectionApi(Resource):
+    """Endpoints: /api/v1/replacements/<scope>, /api/v1/replacements/<scope>/<old_value>"""
 
     def get(self, scope='all') -> json:
         """Returns a collection of all replacements for Paprika-compliant markup."""

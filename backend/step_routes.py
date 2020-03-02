@@ -7,6 +7,8 @@ import json
 
 
 class StepApi(Resource):
+    """Endpoint: /api/v1/recipes/<recipe_id>/<step_number>"""
+
     def get(self, recipe_id, step_number) -> json:
         """Return a single step from a specified recipe."""
         logger.debug(f"Request: {request}, for recipe_id: {recipe_id}, step: {step_number}.")
@@ -22,7 +24,7 @@ class StepApi(Resource):
             return {'message': 'Error', 'data': error_msg}, 404
 
         except BaseException as e:
-            error_msg = f"Unable to retrieve recipe {recipe_id}.)"
+            error_msg = f"Unable to retrieve recipe {recipe_id}."
             logger.debug(f"{error_msg}\n{e}")
             return {'message': 'Error', 'data': error_msg}, 500
 
@@ -47,7 +49,7 @@ class StepApi(Resource):
             return {'message': 'Error', 'data': error_msg}, 404
 
         except BaseException as e:
-            error_msg = f"Unable to retrieve step {step_number}.)"
+            error_msg = f"Unable to retrieve step {step_number}."
             logger.debug(f"{error_msg}\n{e}")
             return {'message': 'Error', 'data': error_msg}, 500
 
@@ -61,11 +63,11 @@ class StepApi(Resource):
             logger.debug(f"Recipe retrieved: {recipe.__repr__()})")
 
         except Recipe.DoesNotExist as e:
-            error_msg = f"Recipe {recipe_id} not found.)"
+            error_msg = f"Recipe {recipe_id} not found."
             logger.debug(f"{error_msg}\n{e}")
             return {'message': 'Not Found', 'data': error_msg}, 404
         except BaseException as e:
-            error_msg = f"Unable to retrieve recipe {recipe_id}.)"
+            error_msg = f"Unable to retrieve recipe {recipe_id}."
             logger.debug(f"{error_msg}\n{e}")
             return {'message': 'Error', 'data': error_msg}, 500
 
@@ -126,7 +128,7 @@ class StepApi(Resource):
             return {'message': 'Success', 'data': f'Step {step_number} updated.'}, 200
 
         except BaseException as e:
-            error_msg = f"Unable to update step {step_number}.)"
+            error_msg = f"Unable to update step {step_number}."
             logger.debug(f"{error_msg}\n{e}")
             return {'message': 'Error', 'data': error_msg}, 500
 

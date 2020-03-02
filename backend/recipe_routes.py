@@ -10,6 +10,8 @@ import json
 
 
 class RecipeCollectionApi(Resource):
+    """Endpoint: /api/v1/recipes"""
+
     def get(self) -> json:
         """Return a collection of all recipes."""
         logger.debug(f"Request: {request}.")
@@ -26,8 +28,8 @@ class RecipeCollectionApi(Resource):
 
             logger.debug(f"End of RecipeCollectionApi.get()")
             return {'message': 'Success', 'data': output}, 200
-        except BaseException as e:
-            error_msg = f"Error trying to retrieve or compile recipe list.)"
+        except PynamoDBException as e:
+            error_msg = f"Error trying to retrieve or compile recipe list."
             logger.debug(f"{error_msg}\n{e}")
             return {'message': 'Error', 'data': error_msg}, 500
 
@@ -35,17 +37,29 @@ class RecipeCollectionApi(Resource):
         """Add a new recipe based on the submitted JSON."""
         logger.debug(f"Request: {request}.")
 
-        # Load the provided JSON
-        data = json.loads(request.data.decode())
-        logger.debug(f"Data submitted: {data}")
+        # Ensure there's a body to accompany this request
+        if not request.data:
+            return {'message': 'Error', 'data': 'POST request must contain a body.'}, 400
 
+        # Load the provided JSON
         try:
-            # Create a new Recipe from the provided data
+            data = json.loads(request.data.decode())
+            logger.debug(f"Data submitted: {data}")
+
+        except json.JSONDecodeError as e:
+            error_msg = f"Error attempting to decode the provided JSON."
+            logger.debug(f"{error_msg},\n{request.data.__str__()},\n{e}")
+            return {'message': 'Error', 'data': error_msg + f"\n{request.data.__str__()}"}, 400
+        except BaseException as e:
+            error_msg = f"Unknown error attempting to decode JSON."
+            logger.debug(f"{error_msg}\n{e}")
+            return {'message': 'Error', 'data': error_msg}, 400
+
+        # Create a new Recipe from the provided data
+        try:
             now = datetime.utcnow()
             new_recipe = Recipe(id=generate_new_id(),
                                 name=data['name'],
-                                author=data['author'],
-                                source=data['source'],
                                 difficulty=data['difficulty'],
                                 length=0,
                                 date_added=now,
@@ -64,13 +78,26 @@ class RecipeCollectionApi(Resource):
             logger.debug(f"{error_msg}\n{e}.")
             return {'message': 'Error', 'data': error_msg}, 500
 
+        # Optional fields
         try:
-            # Write this new recipe to the db
+            if 'author' in data.keys():
+                new_recipe.author = data['author']
+            if 'source' in data.keys():
+                new_recipe.source = data['source']
+
+        except BaseException as e:
+            error_msg = f"Error adding optional fields to new recipe."
+            logger.debug(f"{error_msg}\n{e}.")
+            return {'message': 'Error', 'data': e.__str__()}, 500
+
+        # Write this new recipe to the db
+        try:
             new_recipe.save()
             logger.debug(f"Successfully saved new recipe {new_recipe.__repr__()}.")
 
             logger.debug("End of RecipeCollectionApi.post()")
             return {'message': 'Created', 'data': new_recipe.to_dict()}, 201
+
         except PynamoDBException as e:
             error_msg = f"Error trying to save new recipe."
             logger.debug(f"{error_msg}\n{new_recipe.__repr__()}: {e}.")
@@ -78,6 +105,8 @@ class RecipeCollectionApi(Resource):
 
 
 class RecipeApi(Resource):
+    """Endpoint: /api/v1/recipes/<recipe_id>"""
+
     def get(self, recipe_id) -> json:
         """Return a single recipe."""
         logger.debug(f"Request: {request}, for id: {recipe_id}.")
@@ -88,10 +117,10 @@ class RecipeApi(Resource):
             logger.debug(f"Recipe retrieved: {recipe.__repr__()})")
             return {'message': 'Success', 'data': recipe.to_dict()}, 200
         except Recipe.DoesNotExist:
-            logger.debug(f"Recipe {recipe_id} not found.)")
+            logger.debug(f"Recipe {recipe_id} not found.")
             return {'message': 'Not Found', 'data': f'Recipe {recipe_id} not found.'}, 404
         except PynamoDBException as e:
-            error_msg = f"Error trying to retrieve recipe {recipe_id}.)"
+            error_msg = f"Error trying to retrieve recipe {recipe_id}."
             logger.debug(f"{error_msg}\n{e}")
             return {'message': 'Error', 'data': error_msg}, 500
 
@@ -99,8 +128,23 @@ class RecipeApi(Resource):
         """Update an existing recipe using data from the request."""
         logger.debug(f"Request: {request}.")
 
-        data = json.loads(request.data.decode())
-        logger.debug(f"Data submitted: {data}")
+        # Ensure there's a body to accompany this request
+        if not request.data:
+            return {'message': 'Error', 'data': 'POST request must contain a body.'}, 400
+
+        # Load the provided JSON
+        try:
+            data = json.loads(request.data.decode())
+            logger.debug(f"Data submitted: {data}")
+
+        except json.JSONDecodeError as e:
+            error_msg = f"Error attempting to decode the provided JSON."
+            logger.debug(f"{error_msg},\n{request.data.__str__()},\n{e}")
+            return {'message': 'Error', 'data': error_msg + f"\n{request.data.__str__()}"}, 400
+        except BaseException as e:
+            error_msg = f"Unknown error attempting to decode JSON."
+            logger.debug(f"{error_msg}\n{e}")
+            return {'message': 'Error', 'data': error_msg}, 400
 
         # Retrieve the recipe from the database
         try:
@@ -108,7 +152,7 @@ class RecipeApi(Resource):
             original_recipe = recipe
             logger.debug(f"Recipe retrieved: {recipe.__repr__()})")
         except Recipe.DoesNotExist as e:
-            error_msg = f"Recipe {recipe_id} not found.)"
+            error_msg = f"Recipe {recipe_id} not found."
             logger.debug(f"{error_msg}\n{e}")
             return {'message': 'Not Found', 'data': error_msg}, 404
 
@@ -141,29 +185,33 @@ class RecipeApi(Resource):
             logger.debug(f"Recipe updated: {recipe.__repr__()})")
             return {'message': 'Success', 'data': recipe.to_dict()}, 200
         except Recipe.DoesNotExist:
-            logger.debug(f"Recipe {recipe_id} not found.)")
+            logger.debug(f"Recipe {recipe_id} not found.")
             return {'message': 'Not Found', 'data': f'Recipe {recipe_id} not found.'}, 404
         except PynamoDBException as e:
-            error_msg = f"Error trying to save recipe {recipe_id}.)"
+            error_msg = f"Error trying to save recipe {recipe_id}."
             logger.debug(f"{error_msg}\n{e}")
             return {'message': 'Error', 'data': error_msg}, 500
 
     def delete(self, recipe_id) -> json:
         """Delete the selected recipe."""
+        logger.debug(f"Request: {request}.")
+
         # Retrieve the recipe from the database
         try:
             recipe = Recipe.get(recipe_id)
             logger.debug(f"Recipe retrieved: {recipe.__repr__()})")
+            
         except Recipe.DoesNotExist:
-            logger.debug(f"Recipe {recipe_id} not found.)")
+            logger.debug(f"Recipe {recipe_id} not found.")
             return {'message': 'Not Found', 'data': f'Recipe {recipe_id} not found.'}, 404
 
         try:
-            footprint = f"{{id: {recipe.id}, name: {recipe.name}}}"
+            footprint = f"{recipe.__repr__()}"
             recipe.delete()
-            logger.debug(f"Recipe {footprint} deleted successfully.)")
-            return {'message': 'Success', 'data': f'Recipe {footprint} deleted successfully.'}, 200
+            logger.debug(f"{footprint} deleted successfully.")
+            return {'message': 'Success', 'data': f'{footprint} deleted successfully.'}, 200
+
         except PynamoDBException as e:
-            error_msg = f"Error trying to delete recipe {recipe_id}.)"
+            error_msg = f"Error trying to delete recipe {recipe_id}."
             logger.debug(f"{error_msg}\n{e}")
             return {'message': 'Error', 'data': error_msg}, 500
