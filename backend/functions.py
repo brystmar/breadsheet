@@ -1,6 +1,5 @@
 """Collection of functions used across the breadsheet project."""
 from backend.global_logger import logger
-from backend.models import Recipe
 from datetime import datetime, timedelta
 from pynamodb.attributes import ListAttribute
 
@@ -14,7 +13,7 @@ def generate_new_id() -> str:
     return new_id
 
 
-def set_when(steps: ListAttribute(), when: datetime) -> Recipe.steps:
+def set_when(steps: ListAttribute(), when: datetime) -> list:
     """
     Calculate when each step should begin, using a list of steps plus the benchmark time.
     Return a list of steps.
