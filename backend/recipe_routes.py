@@ -105,8 +105,7 @@ class RecipeCollectionApi(Resource):
 
 
 class RecipeApi(Resource):
-    """Endpoint: /api/v1/recipes/<recipe_id>"""
-
+    """Endpoint: /api/v1/recipe/<recipe_id>"""
     def get(self, recipe_id) -> json:
         """Return a single recipe."""
         logger.debug(f"Request: {request}, for id: {recipe_id}.")
@@ -132,7 +131,7 @@ class RecipeApi(Resource):
         if not request.data:
             return {'message': 'Error', 'data': 'POST request must contain a body.'}, 400
 
-        # Load the provided JSON
+        # Load & decode the provided JSON
         try:
             data = json.loads(request.data.decode())
             logger.debug(f"Data submitted: {data}")
@@ -146,20 +145,17 @@ class RecipeApi(Resource):
             logger.debug(f"{error_msg}\n{e}")
             return {'message': 'Error', 'data': error_msg}, 400
 
-        # Retrieve the recipe from the database
-        try:
-            recipe = Recipe.get(recipe_id)
-            original_recipe = recipe
-            logger.debug(f"Recipe retrieved: {recipe.__repr__()})")
-        except Recipe.DoesNotExist as e:
-            error_msg = f"Recipe {recipe_id} not found."
-            logger.debug(f"{error_msg}\n{e}")
-            return {'message': 'Not Found', 'data': error_msg}, 404
+        if str(recipe_id) != str(data['id']):
+            error_msg = f"/recipe_id provided to the endpoint ({recipe_id}) " \
+                        f"doesn't match the id from the body ({data['id']})."
+            logger.debug(f"{error_msg}")
+            return {'message': 'Error', 'data': error_msg}, 400
 
-        # Update the retrieved recipe with provided data
+        # Create a new Recipe instance using the provided data
         # Required fields
-        recipe.name = data['name']
-        recipe.difficulty = data['difficulty']
+        recipe = Recipe(id=data['id'],
+                        name=data['name'],
+                        difficulty=data['difficulty'])
 
         # Optional fields
         if data['author']:
@@ -169,18 +165,12 @@ class RecipeApi(Resource):
         if data['start_time']:
             recipe.start_time = data['start_time']
 
-        # If the steps list was changed, re-calculate the recipe length
+        # If there are steps, re-calculate the recipe length
         if data['steps']:
-            if recipe.steps != data['steps']:
-                recipe.steps = data['steps']
-                recipe.update_length()
+            recipe.update_length()
 
+        # Save to the database
         try:
-            # Only write to the db if there's been a change
-            if recipe == original_recipe:
-                logger.debug(f"Request did not modify {recipe.__repr__()}.")
-                return {'message': 'Success', 'data': recipe.to_dict()}, 200
-
             recipe.save()
             logger.debug(f"Recipe updated: {recipe.__repr__()})")
             return {'message': 'Success', 'data': recipe.to_dict()}, 200

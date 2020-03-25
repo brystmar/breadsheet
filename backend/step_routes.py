@@ -7,7 +7,7 @@ import json
 
 
 class StepApi(Resource):
-    """Endpoint: /api/v1/recipes/<recipe_id>/<step_number>"""
+    """Endpoint: /api/v1/recipe/<recipe_id>/<step_number>"""
 
     def get(self, recipe_id, step_number) -> json:
         """Return a single step from a specified recipe."""

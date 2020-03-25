@@ -2,13 +2,16 @@ from backend.global_logger import logger
 from backend.config import Config, local
 from datetime import datetime, timedelta
 from pynamodb.models import Model
-from pynamodb.attributes import UnicodeAttribute, UTCDateTimeAttribute, NumberAttribute,\
+from pynamodb.attributes import UnicodeAttribute, UTCDateTimeAttribute, NumberAttribute, \
     MapAttribute, ListAttribute
 import json
+import shortuuid
 
 
 class Step(MapAttribute):
     """Individual step under a Recipe class.  Recipe.steps is a list of Step classes."""
+    stepId = UnicodeAttribute()
+
     # Step number
     number = NumberAttribute()
 
@@ -26,15 +29,14 @@ class Step(MapAttribute):
     when = UnicodeAttribute(null=True)
 
     def to_dict(self) -> dict:
-        output = {
-            "number":       self.number.__int__(),
-            "text":         self.text.__str__(),
-            "then_wait":    self.then_wait.__int__(),
-            "note":         self.note.__str__(),
-            "when":         self.when.__str__()
+        return {
+            "id":        self.stepId.__str__(),
+            "number":    self.number.__int__(),
+            "text":      self.text.__str__(),
+            "then_wait": self.then_wait.__int__(),
+            "note":      self.note.__str__(),
+            "when":      self.when.__str__()
         }
-
-        return output
 
     def to_json(self) -> str:
         """Converts output from the to_dict() method to a JSON-serialized string."""
@@ -44,6 +46,7 @@ class Step(MapAttribute):
                  note=note, when=when, **attrs):
         super().__init__(**attrs)
 
+        self.stepId = shortuuid.uuid()
         self.number = number
         self.text = text
         self.then_wait = then_wait or 0
@@ -51,7 +54,7 @@ class Step(MapAttribute):
         self.when = when
 
     def __repr__(self) -> str:
-        return f'<Step #{self.number}, then_wait: {self.then_wait}>'
+        return f'<Step #{self.number}, id: {self.stepId}, then_wait: {self.then_wait}>'
 
 
 class Recipe(Model):
@@ -132,15 +135,15 @@ class Recipe(Model):
                 steps_dict.append(step.to_dict())
 
         output = {
-            "id":           self.id.__str__(),
-            "name":         self.name.__str__(),
-            "author":       self.author.__str__(),
-            "source":       self.source.__str__(),
-            "difficulty":   self.difficulty.__str__(),
-            "length":       self.length.__int__(),
-            "date_added":   self.date_added.__str__(),
-            "start_time":   self.start_time.__str__(),
-            "steps":        steps_dict
+            "id":         self.id.__str__(),
+            "name":       self.name.__str__(),
+            "author":     self.author.__str__(),
+            "source":     self.source.__str__(),
+            "difficulty": self.difficulty.__str__(),
+            "length":     self.length.__int__(),
+            "date_added": self.date_added.__str__(),
+            "start_time": self.start_time.__str__(),
+            "steps":      steps_dict
         }
 
         return output
@@ -208,9 +211,9 @@ class Replacement(Model):
 
     def to_dict(self) -> dict:
         output = {
-            "scope":    self.scope.__str__(),
-            "old":      self.old.__str__(),
-            "new":      self.new.__str__()
+            "scope": self.scope.__str__(),
+            "old":   self.old.__str__(),
+            "new":   self.new.__str__()
         }
 
         return output
