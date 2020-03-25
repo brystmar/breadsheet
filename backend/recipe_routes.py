@@ -1,12 +1,13 @@
 """Defines recipe-related endpoints for the front end to consume."""
 from backend.global_logger import logger
 from backend.functions import generate_new_id
-from backend.models import Recipe
+from backend.models import Recipe, Step
 from flask import request
 from flask_restful import Resource
 from pynamodb.exceptions import PynamoDBException
 from datetime import datetime
 import json
+import shortuuid
 
 
 class RecipeCollectionApi(Resource):
@@ -64,8 +65,7 @@ class RecipeCollectionApi(Resource):
                                 length=0,
                                 date_added=now,
                                 start_time=now,
-                                steps=[]
-                                )
+                                steps=[])
 
             logger.debug(f"Recipe object created: {new_recipe.__repr__()}.")
 
@@ -106,6 +106,7 @@ class RecipeCollectionApi(Resource):
 
 class RecipeApi(Resource):
     """Endpoint: /api/v1/recipe/<recipe_id>"""
+
     def get(self, recipe_id) -> json:
         """Return a single recipe."""
         logger.debug(f"Request: {request}, for id: {recipe_id}.")
@@ -155,7 +156,8 @@ class RecipeApi(Resource):
         # Required fields
         recipe = Recipe(id=data['id'],
                         name=data['name'],
-                        difficulty=data['difficulty'])
+                        difficulty=data['difficulty'],
+                        solve_for_start=data['solve_for_start'])
 
         # Optional fields
         if data['author']:
@@ -165,9 +167,34 @@ class RecipeApi(Resource):
         if data['start_time']:
             recipe.start_time = data['start_time']
 
-        # If there are steps, re-calculate the recipe length
-        if data['steps']:
-            recipe.update_length()
+        # If there are steps, create a Step for each, then calculate the recipe length
+        try:
+            if data['steps']:
+                recipe.steps = []
+                for step in data['steps']:
+                    if 'step_id' in step.keys():
+                        new_step = Step(step_id=step['step_id'],
+                                        number=step['number'],
+                                        text=step['text'],
+                                        then_wait=step['then_wait'],
+                                        note=step['note'])
+                    else:
+                        new_step = Step(step_id=shortuuid.uuid(),
+                                        number=step['number'],
+                                        text=step['text'],
+                                        then_wait=step['then_wait'],
+                                        note=step['note'])
+                    recipe.steps.append(new_step)
+                recipe.update_length()
+
+        except (KeyError, PynamoDBException) as e:
+            error_msg = f"Error iterating over steps: {data['steps']}."
+            logger.debug(f"{error_msg}\n{e}")
+            return {'message': 'Error', 'data': error_msg}, 400
+        except BaseException as e:
+            error_msg = f"Error iterating over steps: {data['steps']}."
+            logger.debug(f"{error_msg}\n{e}")
+            return {'message': 'Error', 'data': error_msg}, 400
 
         # Save to the database
         try:
@@ -190,7 +217,7 @@ class RecipeApi(Resource):
         try:
             recipe = Recipe.get(recipe_id)
             logger.debug(f"Recipe retrieved: {recipe.__repr__()})")
-            
+
         except Recipe.DoesNotExist:
             logger.debug(f"Recipe {recipe_id} not found.")
             return {'message': 'Not Found', 'data': f'Recipe {recipe_id} not found.'}, 404

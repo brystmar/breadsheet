@@ -1,16 +1,17 @@
 from backend.global_logger import logger
 from backend.config import Config, local
+from backend.functions import generate_new_id
 from datetime import datetime, timedelta
 from pynamodb.models import Model
 from pynamodb.attributes import UnicodeAttribute, UTCDateTimeAttribute, NumberAttribute, \
-    MapAttribute, ListAttribute
+    MapAttribute, ListAttribute, BooleanAttribute
 import json
 import shortuuid
 
 
 class Step(MapAttribute):
     """Individual step under a Recipe class.  Recipe.steps is a list of Step classes."""
-    stepId = UnicodeAttribute()
+    step_id = UnicodeAttribute()
 
     # Step number
     number = NumberAttribute()
@@ -30,7 +31,7 @@ class Step(MapAttribute):
 
     def to_dict(self) -> dict:
         return {
-            "id":        self.stepId.__str__(),
+            "id":        self.step_id.__str__(),
             "number":    self.number.__int__(),
             "text":      self.text.__str__(),
             "then_wait": self.then_wait.__int__(),
@@ -42,11 +43,11 @@ class Step(MapAttribute):
         """Converts output from the to_dict() method to a JSON-serialized string."""
         return json.dumps(self.to_dict(), ensure_ascii=True)
 
-    def __init__(self, number=number, text=text, then_wait=then_wait,
+    def __init__(self, step_id=step_id, number=number, text=text, then_wait=then_wait,
                  note=note, when=when, **attrs):
         super().__init__(**attrs)
 
-        self.stepId = shortuuid.uuid()
+        self.step_id = step_id or shortuuid.uuid()
         self.number = number
         self.text = text
         self.then_wait = then_wait or 0
@@ -54,7 +55,7 @@ class Step(MapAttribute):
         self.when = when
 
     def __repr__(self) -> str:
-        return f'<Step #{self.number}, id: {self.stepId}, then_wait: {self.then_wait}>'
+        return f'<Step #{self.number}, id: {self.step_id}, then_wait: {self.then_wait}>'
 
 
 class Recipe(Model):
@@ -77,6 +78,9 @@ class Recipe(Model):
 
     # Difficulty is one of: Beginner, Intermediate, Advanced
     difficulty = UnicodeAttribute()
+
+    # Determines how the UI calculates the timing for this recipe
+    solve_for_start = BooleanAttribute(default=True)
 
     # Length is measured in whole seconds
     length = NumberAttribute(default=0)
@@ -135,15 +139,16 @@ class Recipe(Model):
                 steps_dict.append(step.to_dict())
 
         output = {
-            "id":         self.id.__str__(),
-            "name":       self.name.__str__(),
-            "author":     self.author.__str__(),
-            "source":     self.source.__str__(),
-            "difficulty": self.difficulty.__str__(),
-            "length":     self.length.__int__(),
-            "date_added": self.date_added.__str__(),
-            "start_time": self.start_time.__str__(),
-            "steps":      steps_dict
+            "id":              self.id.__str__(),
+            "name":            self.name.__str__(),
+            "author":          self.author.__str__(),
+            "source":          self.source.__str__(),
+            "difficulty":      self.difficulty.__str__(),
+            "solve_for_start": self.solve_for_start.__str__(),
+            "length":          self.length.__int__(),
+            "date_added":      self.date_added.__str__(),
+            "start_time":      self.start_time.__str__(),
+            "steps":           steps_dict
         }
 
         return output
@@ -153,16 +158,17 @@ class Recipe(Model):
         return json.dumps(self.to_dict(), ensure_ascii=True)
 
     def __init__(self, id=id, name=name, author=author, source=source, difficulty=difficulty,
-                 length=length, steps=steps, date_added=date_added, start_time=start_time,
-                 **attrs):
+                 solve_for_start=solve_for_start, length=length, steps=steps,
+                 date_added=date_added, start_time=start_time, **attrs):
         """Update the UI fields when initialized, as necessary."""
         super().__init__(**attrs)
 
-        self.id = id
+        self.id = id or generate_new_id()
         self.name = name
         self.author = self._null_handler(author)
         self.source = self._null_handler(source)
         self.difficulty = difficulty
+        self.solve_for_start = solve_for_start or True
 
         self.length = self._null_handler(length)
         self.steps = self._null_handler(steps)

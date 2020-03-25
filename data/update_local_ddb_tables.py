@@ -68,9 +68,15 @@ recipe_table_cloud = db_cloud.Table('Recipe')
 replacement_table_cloud = db_cloud.Table('Replacement')
 
 # Clear local tables
+print("Clearing local Recipe table")
 purge_all_table_data(recipe_table_local, 'id')
+print("Clearing local Replacement table")
 purge_all_table_data(replacement_table_local, 'scope', 'old')
+print("Done clearing tables.\n")
 
 # Write data from cloud to local
+print("Writing to Recipe table")
 copy_all_table_data(recipe_table_cloud, recipe_table_local)
+print("Writing to Replacement table")
 copy_all_table_data(replacement_table_cloud, replacement_table_local)
+print("Done writing to tables.")
