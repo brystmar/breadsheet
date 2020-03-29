@@ -125,7 +125,10 @@ class RecipeApi(Resource):
             return {'message': 'Error', 'data': error_msg}, 500
 
     def put(self, recipe_id) -> json:
-        """Update an existing recipe using data from the request."""
+        """
+        Update an existing recipe using data from the request.
+        Returns a copy of the new recipe.
+        """
         logger.debug(f"Request: {request}.")
 
         # Ensure there's a body to accompany this request
@@ -153,19 +156,26 @@ class RecipeApi(Resource):
             return {'message': 'Error', 'data': error_msg}, 400
 
         # Create a new Recipe instance using the provided data
-        # Required fields
-        recipe = Recipe(id=data['id'],
-                        name=data['name'],
-                        difficulty=data['difficulty'],
-                        solve_for_start=data['solve_for_start'])
+        try:
+            # Required fields
+            recipe = Recipe(id=data['id'],
+                            name=data['name'],
+                            difficulty=data['difficulty'],
+                            solve_for_start=data['solve_for_start'],
+                            length=0,
+                            steps=data['steps'])
 
-        # Optional fields
-        if data['author']:
-            recipe.author = data['author']
-        if data['source']:
-            recipe.source = data['source']
-        if data['start_time']:
-            recipe.start_time = data['start_time']
+            # Optional fields
+            if data['author']:
+                recipe.author = data['author']
+            if data['source']:
+                recipe.source = data['source']
+            if data['start_time']:
+                recipe.start_time = data['start_time']
+        except PynamoDBException as e:
+            error_msg = f"Error in parsing data into the Recipe model."
+            logger.debug(f"{error_msg}\n{e}")
+            return {'message': 'Error', 'data': f'{error_msg}\n{e}'}, 500
 
         # If there are steps, create a Step for each, then calculate the recipe length
         try:

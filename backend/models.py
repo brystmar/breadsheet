@@ -106,7 +106,7 @@ class Recipe(Model):
 
     def update_length(self, save=True):
         """Update the recipe's length (in seconds) by summing the length of each step."""
-        logger.debug(f"Start of Recipe.update_length() for {self.name}")
+        logger.debug(f"Start of Recipe.update_length() for {self}")
         if not self.steps:  # if steps is an empty list
             self.length = 0
             return
@@ -115,11 +115,11 @@ class Recipe(Model):
         length = 0
 
         for step in self.steps:
-            if isinstance(step.then_wait, timedelta):
+            if isinstance(step['then_wait'], timedelta):
                 # Wrapping w/int() because total_seconds() [a timedelta method] returns float
-                length += int(step.then_wait.total_seconds())
+                length += int(step['then_wait'].total_seconds())
             else:
-                length += step.then_wait
+                length += step['then_wait']
 
         logger.debug(f"Calculated length: {length}, original length: {original_length}")
         self.length = length
@@ -195,7 +195,7 @@ class Recipe(Model):
                 return []
         elif isinstance(attr, UTCDateTimeAttribute):
             if attr.null:
-                return datetime.utcnow()
+                return datetime.now()
 
         return attr
 
