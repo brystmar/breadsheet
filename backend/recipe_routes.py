@@ -63,7 +63,7 @@ class RecipeCollectionApi(Resource):
         # Create a new Recipe from the provided data
         try:
             now = datetime.utcnow()
-            new_recipe = Recipe(id=generate_new_id(),
+            new_recipe = Recipe(id=None,
                                 name=data['name'],
                                 difficulty=data['difficulty'],
                                 length=0,
@@ -187,6 +187,7 @@ class RecipeApi(Resource):
 
         # If there are steps, create a Step for each, then calculate the recipe length
         try:
+            # TODO: Move this into Recipe.__init__
             if data['steps']:
                 logger.debug(f"Parsing step array into a list of {len(data['steps'])} Steps.")
                 recipe.steps = []

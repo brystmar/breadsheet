@@ -4,9 +4,8 @@ from backend.functions import generate_new_id
 from datetime import datetime, timedelta
 from pynamodb.models import Model
 from pynamodb.attributes import UnicodeAttribute, UTCDateTimeAttribute, NumberAttribute, \
-    MapAttribute, ListAttribute, BooleanAttribute, Attribute
+    MapAttribute, ListAttribute, BooleanAttribute
 import json
-import shortuuid
 
 
 class Step(MapAttribute):
@@ -69,8 +68,8 @@ class Step(MapAttribute):
         super().__init__(**attrs)
 
         # Null handling for step_id is a little different until the Prod db is updated
-        if isinstance(step_id, UnicodeAttribute):
-            step_id = shortuuid.uuid()
+        if isinstance(step_id, UnicodeAttribute) or step_id is None:
+            step_id = generate_new_id(short=True)
 
         self.step_id = step_id
         self.number = self._null_handler(number)
@@ -120,7 +119,9 @@ class Recipe(Model):
     steps = ListAttribute(of=Step)
 
     ## Datetime attributes ##
-    # Each is stored as a UTC timestamp, no time zone
+    # Each is stored as a UTC timestamp
+    # TODO: Change the db values to epoch
+    # TODO: Convert epoch to/from datetime in the Recipe model
     date_added = UTCDateTimeAttribute()
     start_time = UTCDateTimeAttribute()
 
@@ -189,7 +190,7 @@ class Recipe(Model):
         """Update the UI fields when initialized, as necessary."""
         super().__init__(**attrs)
 
-        self.id = id or generate_new_id()
+        self.id = id or generate_new_id(short=False)
         self.name = name
         self.author = self._null_handler(author)
         self.source = self._null_handler(source)
