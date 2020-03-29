@@ -21,6 +21,10 @@ class RecipeCollectionApi(Resource):
             # Grab all recipes from the db, then sort by id
             recipes = Recipe.scan()
             recipes = sorted(recipes, key=lambda r: r.id)
+            for recipe in recipes:
+                # TODO: Remove this once Prod data is updated!
+                recipe.save()
+                logger.debug("Saved all recipes.")
 
             # Convert each to a dictionary, compile into a list
             output = []
@@ -161,9 +165,11 @@ class RecipeApi(Resource):
             recipe = Recipe(id=data['id'],
                             name=data['name'],
                             difficulty=data['difficulty'],
-                            solve_for_start=data['solve_for_start'],
+                            author=data['author'],
+                            source=data['source'],
                             length=0,
-                            steps=data['steps'],
+                            solve_for_start=data['solve_for_start'],
+                            steps=[],
                             start_time=datetime.strptime(data['start_time'],
                                                          '%Y-%m-%d %H:%M:%S.%f%z'),
                             date_added=datetime.strptime(data['date_added'],
@@ -182,20 +188,23 @@ class RecipeApi(Resource):
         # If there are steps, create a Step for each, then calculate the recipe length
         try:
             if data['steps']:
+                logger.debug(f"Parsing step array into a list of {len(data['steps'])} Steps.")
                 recipe.steps = []
                 for step in data['steps']:
                     if 'step_id' in step.keys():
-                        new_step = Step(step_id=step['step_id'],
+                        new_step = Step(step_id=step['step_id'] or None,
                                         number=step['number'],
                                         text=step['text'],
                                         then_wait=step['then_wait'],
                                         note=step['note'])
                     else:
+                        logger.debug(f"Generating a shortuuid step_id for #{step['number']}.")
                         new_step = Step(step_id=shortuuid.uuid(),
                                         number=step['number'],
                                         text=step['text'],
                                         then_wait=step['then_wait'],
                                         note=step['note'])
+                    logger.debug(f"New Step created: {type(new_step)}, {new_step.to_dict()}")
                     recipe.steps.append(new_step)
                 recipe.update_length()
 
@@ -210,6 +219,7 @@ class RecipeApi(Resource):
 
         # Save to the database
         try:
+
             recipe.save()
             logger.debug(f"Recipe updated: {recipe.__repr__()})")
             return {'message': 'Success', 'data': recipe.to_dict()}, 200

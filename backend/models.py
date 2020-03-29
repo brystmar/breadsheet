@@ -4,7 +4,7 @@ from backend.functions import generate_new_id
 from datetime import datetime, timedelta
 from pynamodb.models import Model
 from pynamodb.attributes import UnicodeAttribute, UTCDateTimeAttribute, NumberAttribute, \
-    MapAttribute, ListAttribute, BooleanAttribute
+    MapAttribute, ListAttribute, BooleanAttribute, Attribute
 import json
 import shortuuid
 
@@ -26,33 +26,57 @@ class Step(MapAttribute):
     # Longer notes field
     note = UnicodeAttribute(null=True)
 
-    # When to begin this step?
-    when = UnicodeAttribute(null=True)
-
     def to_dict(self) -> dict:
         return {
-            "id":        self.step_id.__str__(),
-            "number":    self.number.__int__(),
+            "step_id":   self.step_id.__str__(),
+            "number":    int(self.number),
             "text":      self.text.__str__(),
-            "then_wait": self.then_wait.__int__(),
-            "note":      self.note.__str__(),
-            "when":      self.when.__str__()
+            "then_wait": int(self.then_wait),
+            "note":      self.note.__str__()
         }
 
     def to_json(self) -> str:
         """Converts output from the to_dict() method to a JSON-serialized string."""
         return json.dumps(self.to_dict(), ensure_ascii=True)
 
+    def _null_handler(self, attr):
+        """
+        Nulls in the ORM should be represented as a NoneType object instead of:
+          <pynamodb.attributes.UnicodeAttribute object at 0x7f9e104d4c18>
+        """
+        # logger.debug(f"Starting Step._null_handler w/{type(attr)}")
+        if isinstance(attr, UnicodeAttribute):
+            if attr.null:
+                return None
+        elif isinstance(attr, NumberAttribute):
+            if attr.null:
+                return 0
+        elif isinstance(attr, ListAttribute):
+            if attr.null:
+                return []
+        elif isinstance(attr, UTCDateTimeAttribute):
+            if attr.null:
+                return datetime.now()
+        elif isinstance(attr, BooleanAttribute):
+            if attr.null:
+                return True
+
+        # logger.debug("No matches, returning the attribute untouched.")
+        return attr
+
     def __init__(self, step_id=step_id, number=number, text=text, then_wait=then_wait,
-                 note=note, when=when, **attrs):
+                 note=note, **attrs):
         super().__init__(**attrs)
 
-        self.step_id = step_id or shortuuid.uuid()
-        self.number = number
-        self.text = text
-        self.then_wait = then_wait or 0
-        self.note = note
-        self.when = when
+        # Null handling for step_id is a little different until the Prod db is updated
+        if isinstance(step_id, UnicodeAttribute):
+            step_id = shortuuid.uuid()
+
+        self.step_id = step_id
+        self.number = self._null_handler(number)
+        self.text = self._null_handler(text)
+        self.then_wait = self._null_handler(then_wait)
+        self.note = self._null_handler(note)
 
     def __repr__(self) -> str:
         return f'<Step #{self.number}, id: {self.step_id}, then_wait: {self.then_wait}>'
@@ -126,6 +150,7 @@ class Recipe(Model):
 
         if length != original_length and save:
             # Update the database if the length changed
+            logger.debug(f"Attempting to save Recipe...")
             self.save()
             logger.info(f"Updated recipe {self.name} to reflect its new length: {self.length}.")
 
@@ -133,10 +158,10 @@ class Recipe(Model):
 
     def to_dict(self) -> dict:
         """Converts this recipe (including any steps) to a python dictionary."""
-        steps_dict = []
+        step_list = []
         if self.steps:
             for step in self.steps:
-                steps_dict.append(step.to_dict())
+                step_list.append(step.to_dict())
 
         output = {
             "id":              self.id.__str__(),
@@ -145,12 +170,13 @@ class Recipe(Model):
             "source":          self.source.__str__(),
             "difficulty":      self.difficulty.__str__(),
             "solve_for_start": self.solve_for_start.__str__(),
-            "length":          self.length.__int__(),
+            "length":          int(self.length),
             "date_added":      self.date_added.__str__(),
             "start_time":      self.start_time.__str__(),
-            "steps":           steps_dict
+            "steps":           step_list
         }
 
+        logger.debug("Finished to_dict()")
         return output
 
     def to_json(self) -> str:
@@ -184,6 +210,7 @@ class Recipe(Model):
         Nulls in the ORM should be represented as a NoneType object instead of:
           <pynamodb.attributes.UnicodeAttribute object at 0x7f9e104d4c18>
         """
+        # logger.debug(f"Starting Recipe._null_handler w/{type(attr)}")
         if isinstance(attr, UnicodeAttribute):
             if attr.null:
                 return None
@@ -196,7 +223,11 @@ class Recipe(Model):
         elif isinstance(attr, UTCDateTimeAttribute):
             if attr.null:
                 return datetime.now()
+        elif isinstance(attr, BooleanAttribute):
+            if attr.null:
+                return True
 
+        # logger.debug("No matches, returning the attribute untouched.")
         return attr
 
     def __repr__(self) -> str:
