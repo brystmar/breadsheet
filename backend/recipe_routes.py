@@ -163,15 +163,17 @@ class RecipeApi(Resource):
                             difficulty=data['difficulty'],
                             solve_for_start=data['solve_for_start'],
                             length=0,
-                            steps=data['steps'])
+                            steps=data['steps'],
+                            start_time=datetime.strptime(data['start_time'],
+                                                         '%Y-%m-%d %H:%M:%S.%f%z'),
+                            date_added=datetime.strptime(data['date_added'],
+                                                         '%Y-%m-%d %H:%M:%S.%f%z'))
 
             # Optional fields
             if data['author']:
                 recipe.author = data['author']
             if data['source']:
                 recipe.source = data['source']
-            if data['start_time']:
-                recipe.start_time = data['start_time']
         except PynamoDBException as e:
             error_msg = f"Error in parsing data into the Recipe model."
             logger.debug(f"{error_msg}\n{e}")
