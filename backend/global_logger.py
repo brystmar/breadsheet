@@ -1,4 +1,4 @@
-"""Define a global logging object 'logger' for use by all other scripts in this app."""
+"""Defines a global logging object 'logger' for use by all modules in this app."""
 import logging
 import sys
 from os import path, mkdir

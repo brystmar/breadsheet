@@ -10,10 +10,10 @@ class Config(object):
     if local:
         from env_tools import apply_env
         apply_env()
-        logger.info("Applied .env variables using env_tools")
+        logger.info("Local .env variables applied.")
 
     else:
-        # When running in GCP, these are set by env_variables.yaml
+        # When running in GCP, these are loaded from the env_variables.yaml file when the app loads
         pass
 
     # AWS credentials

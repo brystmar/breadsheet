@@ -1,6 +1,5 @@
 """Defines recipe-related endpoints for the front end to consume."""
 from backend.global_logger import logger
-from backend.functions import generate_new_id
 from backend.models import Recipe, Step
 from flask import request
 from flask_restful import Resource
@@ -15,7 +14,7 @@ class RecipeCollectionApi(Resource):
 
     def get(self) -> json:
         """Return a collection of all recipes."""
-        logger.debug(f"Request: {request}.")
+        logger.debug(f"GET request: {request}.")
 
         try:
             # Grab all recipes from the db, then sort by id
@@ -40,13 +39,13 @@ class RecipeCollectionApi(Resource):
 
     def post(self) -> json:
         """Add a new recipe based on the submitted JSON."""
-        logger.debug(f"Request: {request}.")
+        logger.debug(f"POST request: {request}.")
 
         # Ensure there's a body to accompany this request
         if not request.data:
             return {'message': 'Error', 'data': 'POST request must contain a body.'}, 400
 
-        # Load the provided JSON
+        # Parse the provided JSON
         try:
             data = json.loads(request.data.decode())
             logger.debug(f"Data submitted: {data}")
@@ -62,16 +61,8 @@ class RecipeCollectionApi(Resource):
 
         # Create a new Recipe from the provided data
         try:
-            now = datetime.utcnow()
-            new_recipe = Recipe(id=None,
-                                name=data['name'],
-                                difficulty=data['difficulty'],
-                                length=0,
-                                date_added=now,
-                                start_time=now,
-                                steps=[])
-
-            logger.debug(f"Recipe object created: {new_recipe.__repr__()}.")
+            new_recipe = Recipe(**data)
+            logger.debug(f"Recipe object created: {new_recipe}.")
 
         except PynamoDBException as e:
             error_msg = f"Error trying to create new recipe."
@@ -82,29 +73,17 @@ class RecipeCollectionApi(Resource):
             logger.debug(f"{error_msg}\n{e}.")
             return {'message': 'Error', 'data': error_msg}, 500
 
-        # Optional fields
-        try:
-            if 'author' in data.keys():
-                new_recipe.author = data['author']
-            if 'source' in data.keys():
-                new_recipe.source = data['source']
-
-        except BaseException as e:
-            error_msg = f"Error adding optional fields to new recipe."
-            logger.debug(f"{error_msg}\n{e}.")
-            return {'message': 'Error', 'data': e.__str__()}, 500
-
         # Write this new recipe to the db
         try:
             new_recipe.save()
-            logger.debug(f"Successfully saved new recipe {new_recipe.__repr__()}.")
+            logger.debug(f"Successfully saved new recipe {new_recipe}.")
 
             logger.debug("End of RecipeCollectionApi.post()")
             return {'message': 'Created', 'data': new_recipe.to_dict()}, 201
 
         except PynamoDBException as e:
             error_msg = f"Error trying to save new recipe."
-            logger.debug(f"{error_msg}\n{new_recipe.__repr__()}: {e}.")
+            logger.debug(f"{error_msg}\n{new_recipe}: {e}.")
             return {'message': 'Error', 'data': error_msg}, 500
 
 
@@ -118,7 +97,7 @@ class RecipeApi(Resource):
         # Retrieve the recipe from the database
         try:
             recipe = Recipe.get(recipe_id)
-            logger.debug(f"Recipe retrieved: {recipe.__repr__()})")
+            logger.debug(f"Recipe retrieved: {recipe})")
             return {'message': 'Success', 'data': recipe.to_dict()}, 200
         except Recipe.DoesNotExist:
             logger.debug(f"Recipe {recipe_id} not found.")
@@ -162,67 +141,19 @@ class RecipeApi(Resource):
         # Create a new Recipe instance using the provided data
         try:
             # Required fields
-            recipe = Recipe(id=data['id'],
-                            name=data['name'],
-                            difficulty=data['difficulty'],
-                            author=data['author'],
-                            source=data['source'],
-                            length=0,
-                            solve_for_start=data['solve_for_start'],
-                            steps=[],
-                            start_time=datetime.strptime(data['start_time'],
-                                                         '%Y-%m-%d %H:%M:%S.%f%z'),
-                            date_added=datetime.strptime(data['date_added'],
-                                                         '%Y-%m-%d %H:%M:%S.%f%z'))
+            recipe = Recipe(**data)
+            logger.debug(f"Recipe object created.")
 
-            # Optional fields
-            if data['author']:
-                recipe.author = data['author']
-            if data['source']:
-                recipe.source = data['source']
         except PynamoDBException as e:
             error_msg = f"Error in parsing data into the Recipe model."
             logger.debug(f"{error_msg}\n{e}")
             return {'message': 'Error', 'data': f'{error_msg}\n{e}'}, 500
 
-        # If there are steps, create a Step for each, then calculate the recipe length
-        try:
-            # TODO: Move this into Recipe.__init__
-            if data['steps']:
-                logger.debug(f"Parsing step array into a list of {len(data['steps'])} Steps.")
-                recipe.steps = []
-                for step in data['steps']:
-                    if 'step_id' in step.keys():
-                        new_step = Step(step_id=step['step_id'] or None,
-                                        number=step['number'],
-                                        text=step['text'],
-                                        then_wait=step['then_wait'],
-                                        note=step['note'])
-                    else:
-                        logger.debug(f"Generating a shortuuid step_id for #{step['number']}.")
-                        new_step = Step(step_id=shortuuid.uuid(),
-                                        number=step['number'],
-                                        text=step['text'],
-                                        then_wait=step['then_wait'],
-                                        note=step['note'])
-                    logger.debug(f"New Step created: {type(new_step)}, {new_step.to_dict()}")
-                    recipe.steps.append(new_step)
-                recipe.update_length()
-
-        except (KeyError, PynamoDBException) as e:
-            error_msg = f"Error iterating over steps: {data['steps']}."
-            logger.debug(f"{error_msg}\n{e}")
-            return {'message': 'Error', 'data': error_msg}, 400
-        except BaseException as e:
-            error_msg = f"Error iterating over steps: {data['steps']}."
-            logger.debug(f"{error_msg}\n{e}")
-            return {'message': 'Error', 'data': error_msg}, 400
-
         # Save to the database
         try:
-
+            logger.debug(f"Saving {recipe} to the db...")
             recipe.save()
-            logger.debug(f"Recipe updated: {recipe.__repr__()})")
+            logger.debug(f"Recipe updated: {recipe})")
             return {'message': 'Success', 'data': recipe.to_dict()}, 200
         except Recipe.DoesNotExist:
             logger.debug(f"Recipe {recipe_id} not found.")
@@ -239,14 +170,14 @@ class RecipeApi(Resource):
         # Retrieve the recipe from the database
         try:
             recipe = Recipe.get(recipe_id)
-            logger.debug(f"Recipe retrieved: {recipe.__repr__()})")
+            logger.debug(f"Recipe retrieved: {recipe})")
 
         except Recipe.DoesNotExist:
             logger.debug(f"Recipe {recipe_id} not found.")
             return {'message': 'Not Found', 'data': f'Recipe {recipe_id} not found.'}, 404
 
         try:
-            footprint = f"{recipe.__repr__()}"
+            footprint = f"{recipe}"
             recipe.delete()
             logger.debug(f"{footprint} deleted successfully.")
             return {'message': 'Success', 'data': f'{footprint} deleted successfully.'}, 200

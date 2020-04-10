@@ -12,7 +12,6 @@ from backend import create_app
 from backend.config import Config
 from backend.recipe_routes import RecipeCollectionApi, RecipeApi
 from backend.replacement_routes import ReplacementCollectionApi
-from backend.step_routes import StepApi
 from backend.meta_routes import ReadmeApi
 
 breadapp = create_app()
@@ -28,7 +27,6 @@ logger.info("API initialized")
 # Define the functional endpoints
 api.add_resource(RecipeCollectionApi, '/api/v1/recipes')
 api.add_resource(RecipeApi, '/api/v1/recipe/<recipe_id>')
-api.add_resource(StepApi, '/api/v1/recipe/<recipe_id>/<step_number>')
 api.add_resource(ReplacementCollectionApi,
                  '/api/v1/replacements/<scope>',
                  '/api/v1/replacements/<scope>/<old_value>')

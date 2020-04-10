@@ -59,7 +59,7 @@ class ReplacementCollectionApi(Resource):
             rep_to_update = Replacement.get(hash_key=scope, range_key=old_value)
             exists = True
             logger.debug(f"Found the requested Replacement record to update: "
-                         f"{rep_to_update.__repr__()}")
+                         f"{rep_to_update}")
         except (GetError, DoesNotExist):
             rep_to_update = Replacement()
             exists = False
@@ -72,7 +72,7 @@ class ReplacementCollectionApi(Resource):
 
         if not exists:
             try:
-                rep_to_update = Replacement(scope=scope, old=old_value, new=data['new'])
+                rep_to_update = Replacement(**data)
             except PynamoDBException as e:
                 error_msg = f"Error adding scope: {scope}, old: {old_value}, new: {data['new']}."
                 logger.debug(f"{error_msg}\n{e}")
@@ -94,3 +94,8 @@ class ReplacementCollectionApi(Resource):
             error_msg = f"Error updating scope: {scope}, old: {old_value}, new: {data['new']}."
             logger.debug(f"{error_msg}\n{e}")
             return {'message': 'Error', 'data': error_msg}, 500
+
+    def delete(self, scope, old_value):
+        """Removes the specified entry."""
+        # TODO: Write the DELETE method!
+        return {}
