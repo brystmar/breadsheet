@@ -41,9 +41,10 @@ class Step(MapAttribute):
         super().__init__(**kwargs)
 
         # Null handling for step_id is a little different until the Prod db is updated
+        # TODO: Remove once the Prod db is updated
         if 'step_id' not in kwargs.keys() or kwargs['step_id'] is None:
             self.step_id = generate_new_id(short=True)
-            logger.debug(f"Generated new step_id: {self.step_id}")
+            # logger.debug(f"Generated new step_id: {self.step_id}")
 
     def __repr__(self) -> str:
         return f'<Step #{self.number}, id: {self.step_id}, then_wait: {self.then_wait}>'
@@ -130,41 +131,31 @@ class Recipe(Model):
         logger.debug("End of Recipe.update_length()")
 
     def to_dict(self) -> dict:
-        """Converts this recipe (including any steps) to a python dictionary."""
+        """Convert this recipe (including any steps) to a python dictionary."""
         step_list = []
         if self.steps:
             for step in self.steps:
                 step_list.append(step.to_dict())
 
-        output = {
+        return {
             "id":              self.id.__str__(),
             "name":            self.name.__str__(),
             "author":          self.author.__str__() if self.author else None,
             "source":          self.source.__str__() if self.source else None,
             "difficulty":      self.difficulty.__str__(),
-            "solve_for_start": self.solve_for_start.__str__() if self.solve_for_start else True,
+            "solve_for_start": self.solve_for_start if self.solve_for_start else True,
             "length":          int(self.length),
             "date_added":      self.date_added.__str__(),
             "start_time":      self.start_time.__str__(),
             "steps":           step_list
         }
 
-        logger.debug("Finished to_dict()")
-        return output
-
     def to_json(self) -> str:
-        """Converts output from the to_dict() method to a JSON-serialized string."""
+        """Convert output from the to_dict() method to a JSON-serialized string."""
         return json.dumps(self.to_dict(), ensure_ascii=True)
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-
-        step_list = []
-        if kwargs['steps']:
-            for step in kwargs['steps']:
-                step_list.append(Step(**step))
-
-            self.steps = step_list
 
         # Don't rely on the provided value for recipe length
         self.update_length()
