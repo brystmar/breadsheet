@@ -52,7 +52,7 @@ class Step(MapAttribute):
 class Recipe(Model):
     class Meta:
         table_name = 'Recipe'
-        region = Config.aws_region
+        region = Config.AWS_REGION
         if local:  # Use the local DynamoDB instance when running locally
             host = 'http://localhost:8008'
 
@@ -177,7 +177,7 @@ class Recipe(Model):
 class Replacement(Model):
     class Meta:
         table_name = 'Replacement'
-        region = Config.aws_region
+        region = Config.AWS_REGION
         if local:  # Use the local DynamoDB instance when running locally
             host = 'http://localhost:8008'
 

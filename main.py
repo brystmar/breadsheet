@@ -19,7 +19,7 @@ logger.info("Created the Flask breadapp")
 
 # Enable CORS for the app to ensure breadsheet-ui can call the API
 #   https://flask-cors.readthedocs.io/en/latest/
-CORS(breadapp, resources={r"/api/*": {"origins": Config.whitelisted_origins}})
+CORS(breadapp, resources={r"/api/*": {"origins": Config.WHITELISTED_ORIGINS}})
 
 api = Api(breadapp)
 logger.info("API initialized")
@@ -42,11 +42,11 @@ def handle_before_request():
         logger.debug(f"AppEngine-Google not in {request.user_agent.string}")
         if 'breadsheet.appspot.com' in request.host.lower():
             logger.info(f"Requested Host & URL: {request.host} & {request.url}; "
-                        f"redirecting to: {Config.domain_url}")
-            return redirect(Config.domain_url, code=301)
+                        f"redirecting to: {Config.DOMAIN_URL}")
+            return redirect(Config.DOMAIN_URL, code=301)
 
 
 if __name__ == '__main__' and local:
-    breadapp.run(host='localhost', port=Config.bound_port, debug=True)
-    logger.info(f"Running locally via __main__: http://localhost:{Config.bound_port}")
-    print(f"Running locally via __main__: http://localhost:{Config.bound_port}")
+    breadapp.run(host='localhost', port=Config.BOUND_PORT, debug=True)
+    logger.info(f"Running locally via __main__: http://localhost:{Config.BOUND_PORT}")
+    print(f"Running locally via __main__: http://localhost:{Config.BOUND_PORT}")

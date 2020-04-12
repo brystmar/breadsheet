@@ -8,13 +8,13 @@ def test_config():
     apply_env()
 
     # AWS credentials
-    assert Config.aws_account_id is not None
-    assert Config.aws_access_key is not None
-    assert Config.aws_secret_access_key is not None
-    assert Config.aws_user is not None
-    assert Config.aws_region is not None
-    assert Config.aws_arn is not None
+    assert Config.AWS_ACCOUNT_ID is not None
+    assert Config.AWS_ACCESS_KEY is not None
+    assert Config.AWS_SECRET_ACCESS_KEY is not None
+    assert Config.AWS_USER is not None
+    assert Config.AWS_REGION is not None
+    assert Config.AWS_ARN is not None
 
     # App-related
     assert Config.SECRET_KEY is not None
-    assert Config.domain_url is not None
+    assert Config.DOMAIN_URL is not None

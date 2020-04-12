@@ -17,17 +17,17 @@ class Config(object):
         pass
 
     # AWS credentials
-    aws_account_id = environ.get('AWS_ACCOUNT_ID')
-    aws_access_key = environ.get('AWS_ACCESS_KEY_ID')
-    aws_secret_access_key = environ.get('AWS_SECRET_ACCESS_KEY')
-    aws_user = environ.get('AWS_USER')
-    aws_region = environ.get('AWS_REGION')
-    aws_arn = environ.get('AWS_ARN')
+    AWS_ACCOUNT_ID = environ.get('AWS_ACCOUNT_ID')
+    AWS_ACCESS_KEY = environ.get('AWS_ACCESS_KEY_ID')
+    AWS_SECRET_ACCESS_KEY = environ.get('AWS_SECRET_ACCESS_KEY')
+    AWS_USER = environ.get('AWS_USER')
+    AWS_REGION = environ.get('AWS_REGION')
+    AWS_ARN = environ.get('AWS_ARN')
 
     # App-related
-    bound_port = 5000
-    domain_url = environ.get('DOMAIN_URL')
-    whitelisted_origins = environ.get('WHITELISTED_ORIGINS')
+    BOUND_PORT = 5000
+    DOMAIN_URL = environ.get('DOMAIN_URL')
+    WHITELISTED_ORIGINS = environ.get('WHITELISTED_ORIGINS')
     SECRET_KEY = environ.get('SECRET_KEY') or '0mW7@LN0n32L6ntaj0d8jzsXiAW4mkPL7u5l'
 
     if SECRET_KEY != environ.get('SECRET_KEY'):

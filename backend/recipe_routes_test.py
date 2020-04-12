@@ -8,6 +8,7 @@ import json
 
 class TestRecipeCollectionApi:
     def test_get(self):
+        # TODO: Write unit tests for recipe routes
         pass
 
     def test_post(self):

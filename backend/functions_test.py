@@ -1,4 +1,5 @@
 from backend.functions import generate_new_id, set_when, replace_text
+from backend.models import Recipe, Step
 
 
 def test_generate_new_id():
@@ -9,11 +10,6 @@ def test_generate_new_id():
         assert len(test_id) == 17
 
         # TODO: Ensure id is unique
-
-
-def test_set_when():
-    # TODO: Write tests!
-    pass
 
 
 def test_replace_text():

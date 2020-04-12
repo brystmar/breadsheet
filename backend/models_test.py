@@ -108,7 +108,7 @@ class TestRecipeModel:
 
     def test_recipe_meta_defaults(self):
         assert self.test_recipe.Meta.table_name == 'Recipe'
-        assert self.test_recipe.Meta.region == Config.aws_region
+        assert self.test_recipe.Meta.region == Config.AWS_REGION
 
     def test_recipe_attribute_defaults(self):
         pass
@@ -206,19 +206,19 @@ class TestReplacementModel:
     def test_replacement_meta_defaults(self):
         rep_full = Replacement()
         assert rep_full.Meta.table_name == 'Replacement'
-        assert rep_full.Meta.region == Config.aws_region
+        assert rep_full.Meta.region == Config.AWS_REGION
 
         rep_full = Replacement(scope='ingredients')
         assert rep_full.Meta.table_name == 'Replacement'
-        assert rep_full.Meta.region == Config.aws_region
+        assert rep_full.Meta.region == Config.AWS_REGION
 
         rep_full = Replacement(scope='ingredients', old='ounce')
         assert rep_full.Meta.table_name == 'Replacement'
-        assert rep_full.Meta.region == Config.aws_region
+        assert rep_full.Meta.region == Config.AWS_REGION
 
         rep_full = Replacement(scope='ingredients', old='ounce', new='oz')
         assert rep_full.Meta.table_name == 'Replacement'
-        assert rep_full.Meta.region == Config.aws_region
+        assert rep_full.Meta.region == Config.AWS_REGION
 
     def test_replacement_null(self):
         rep_null = Replacement()
