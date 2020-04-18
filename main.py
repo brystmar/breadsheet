@@ -10,7 +10,7 @@ from flask_restful import Api
 # App components
 from backend import create_app
 from backend.config import Config
-from backend.recipe_routes import RecipeCollectionApi, RecipeApi
+from backend.recipe_routes import RecipeListApi, RecipeCollectionApi, RecipeApi
 from backend.replacement_routes import ReplacementCollectionApi
 from backend.meta_routes import ReadmeApi
 
@@ -25,6 +25,7 @@ api = Api(breadapp)
 logger.info("API initialized")
 
 # Define the functional endpoints
+api.add_resource(RecipeListApi, '/api/v1/recipe_list')
 api.add_resource(RecipeCollectionApi, '/api/v1/recipes')
 api.add_resource(RecipeApi, '/api/v1/recipe/<recipe_id>')
 api.add_resource(ReplacementCollectionApi,

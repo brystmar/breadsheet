@@ -1,12 +1,38 @@
 """Defines recipe-related endpoints for the front end to consume."""
 from backend.global_logger import logger
-from backend.models import Recipe, Step
+from backend.models import Recipe
 from flask import request
 from flask_restful import Resource
 from pynamodb.exceptions import PynamoDBException
-from datetime import datetime
 import json
 import shortuuid
+
+
+class RecipeListApi(Resource):
+    """Endpoint: /api/v1/recipe_list"""
+
+    def get(self) -> json:
+        """Return a skinny list of all recipes."""
+        logger.debug(f"GET request: {request}.")
+
+        try:
+            # Grab all recipes from the db, sort by id
+            recipes = Recipe.scan()
+            output = []
+
+            # Strip away unnecessary fields
+            for recipe in recipes:
+                output.append({"id": recipe.id, "name": recipe.name})
+                pass
+
+            output = sorted(output, key=lambda r: r['id'])
+
+            logger.debug(f"End of RecipeListApi.GET")
+            return {'message': 'Success', 'data': output}, 200
+        except PynamoDBException as e:
+            error_msg = f"Error attempting to retrieve or compile recipe list."
+            logger.debug(f"{error_msg}\n{e}")
+            return {'message': 'Error', 'data': error_msg}, 500
 
 
 class RecipeCollectionApi(Resource):
