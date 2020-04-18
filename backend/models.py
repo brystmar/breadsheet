@@ -137,6 +137,8 @@ class Recipe(Model):
             for step in self.steps:
                 step_list.append(step.to_dict())
 
+        logger.debug(f"to_dict start_time: {self.start_time}, type: {type(self.start_time)}")
+
         return {
             "id":              self.id.__str__(),
             "name":            self.name.__str__(),
@@ -145,8 +147,10 @@ class Recipe(Model):
             "difficulty":      self.difficulty.__str__(),
             "solve_for_start": self.solve_for_start if self.solve_for_start else True,
             "length":          int(self.length),
-            "date_added":      self.date_added.__str__(),
-            "start_time":      self.start_time.__str__(),
+            # "date_added":      self.date_added.__str__(),
+            # "start_time":      self.start_time.__str__(),
+            "date_added":      self.date_added.timestamp() * 1000,  # JS timestamps are in ms
+            "start_time":      self.start_time.timestamp() * 1000,
             "steps":           step_list
         }
 
