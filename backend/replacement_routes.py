@@ -95,7 +95,31 @@ class ReplacementCollectionApi(Resource):
             logger.debug(f"{error_msg}\n{e}")
             return {'message': 'Error', 'data': error_msg}, 500
 
-    def delete(self, scope, old_value):
+    def delete(self, scope, old_value) -> json:
         """Removes the specified entry."""
-        # TODO: Write the delete method for Replacement
-        return {}
+        logger.debug(f"Request: {request}")
+
+        if not scope or not old_value:
+            error_msg = f"Invalid request: must provide values for scope & old."
+            logger.debug(error_msg)
+            return {'message': 'Error', 'data': error_msg}, 400
+
+        try:
+            item = Replacement.get(hash_key=scope, range_key=old_value)
+        except PynamoDBException as e:
+            logger.debug(f"Error {e} retrieving Replacement w/scope: {scope}, old: {old_value}")
+            return {'message': 'Error',
+                    'data': f"Cannot find Replacement w/scope: {scope}, old: {old_value}"}, 404
+
+        try:
+            footprint = f"{item}"
+            logger.debug(f"Attempting to delete Replacement {footprint}")
+            item.delete()
+            logger.info(f"{footprint} deleted successfully.")
+            logger.debug(f"End of ReplacementCollectionApi.DELETE")
+            return {'message': 'Success', 'data': f'{footprint} deleted successfully.'}, 200
+
+        except PynamoDBException as e:
+            error_msg = f"Error attempting to delete recipe {item}."
+            logger.debug(f"{error_msg}\n{e}")
+            return {'message': 'Error', 'data': error_msg}, 500
