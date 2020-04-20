@@ -18,7 +18,7 @@ class ReplacementCollectionApi(Resource):
             # Determine what to return
             if scope == 'all':
                 items = Replacement.scan()
-            elif scope in ('ingredients', 'directions'):
+            elif scope in ['ingredients', 'directions']:
                 items = Replacement.query(scope)
             else:
                 return {'message': 'Error', 'data': f'Invalid scope: {scope}'}, 404
@@ -97,5 +97,5 @@ class ReplacementCollectionApi(Resource):
 
     def delete(self, scope, old_value):
         """Removes the specified entry."""
-        # TODO: Write the DELETE method!
+        # TODO: Write the delete method for Replacement
         return {}

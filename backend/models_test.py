@@ -1,7 +1,8 @@
 from backend.config import Config
 from backend.models import Recipe, Step, Replacement
-from backend.recipe_routes import generate_new_id
+from backend.functions import generate_new_id
 from datetime import datetime
+import pytest
 
 
 def step_creator(recipe_input: Recipe, steps_to_create, multiplier=1) -> Recipe:
@@ -15,7 +16,8 @@ def step_creator(recipe_input: Recipe, steps_to_create, multiplier=1) -> Recipe:
         step_number = 1
 
     while step_number <= steps_to_create:
-        new_step = Step(number=step_number, text=f"step_{step_number}",
+        new_step = Step(number=step_number,
+                        text=f"step_{step_number}",
                         then_wait=step_number * multiplier)
         recipe_input.steps.append(new_step)
         step_number += 1
@@ -46,20 +48,17 @@ class TestStepModel:
         assert step.then_wait == 86856
         assert step.note == 'Message in a bottle 0_o?'
 
-        step.when = 'build me a string;!^'
-        assert step.number == 2
-        assert step.text == 'Another step test!!@'
-        assert step.then_wait == 86856
-        assert step.note == 'Message in a bottle 0_o?'
-
     def test_step_constructor(self):
-        step = Step(number=3, text='step test!', then_wait=5573, note='another note :D', when='sometime...?')
+        step = Step(number=3,
+                    text='step test!',
+                    then_wait=5573,
+                    note='another note :D')
 
+        assert len(step.step_id) > 1
         assert step.number == 3
         assert step.text == 'step test!'
         assert step.then_wait == 5573
         assert step.note == 'another note :D'
-        assert step.when == 'at some point in time :O'
 
         # Update values one at a time
         step.number = 5
@@ -67,39 +66,44 @@ class TestStepModel:
         assert step.text == 'step test!'
         assert step.then_wait == 5573
         assert step.note == 'another note :D'
-        assert step.when == 'at some point in time :O'
 
         step.text = '$#( switch it up $*&'
         assert step.number == 5
         assert step.text == '$#( switch it up $*&'
         assert step.then_wait == 5573
         assert step.note == 'another note :D'
-        assert step.when == 'at some point in time :O'
 
         step.then_wait = 415395
         assert step.number == 5
         assert step.text == '$#( switch it up $*&'
         assert step.then_wait == 415395
         assert step.note == 'another note :D'
-        assert step.when == 'at some point in time :O'
 
         step.note = 'something else :,X'
         assert step.number == 5
         assert step.text == '$#( switch it up $*&'
         assert step.then_wait == 415395
         assert step.note == 'something else :,X'
-        assert step.when == 'at some point in time :O'
-
-        step.when = 'maybe in the future?'
-        assert step.number == 5
-        assert step.text == '$#( switch it up $*&'
-        assert step.then_wait == 415395
-        assert step.note == 'something else :,X'
-        assert step.when == 'maybe in the future?'
 
     def test_step_type_checks(self):
-        step = Step()
-        pass
+        step = Step(number=3,
+                    text='step test!',
+                    then_wait=5573,
+                    note='another note :D')
+
+        assert isinstance(step.step_id, str)
+        assert isinstance(step.number, int)
+        assert isinstance(step.text, str)
+        assert isinstance(step.then_wait, int)
+        assert isinstance(step.note, str)
+
+        step.text = None
+        assert step.text is None
+
+        step.then_wait = None
+        assert step.then_wait is None
+        # TODO: My class really should update then_wait to 0 instead of None
+        # https://stackoverflow.com/questions/6190468/how-to-trigger-function-on-value-change
 
 
 class TestRecipeModel:
@@ -111,15 +115,16 @@ class TestRecipeModel:
         assert self.test_recipe.Meta.region == Config.AWS_REGION
 
     def test_recipe_attribute_defaults(self):
-        pass
-        # TODO: Validate length == 0 when initialized.  Raises a TypeError that I can't wrap my head around.
-        #  self = length = {'N': '0'}
-        #  def __bool__(self):
-        #   Prevent users from accidentally comparing the condition object instead of the attribute instance
-        #   raise TypeError("unsupported operand type(s) for bool: {}".format(self.__class__.__name__))
-        #   TypeError: unsupported operand type(s) for bool: Comparison
-        #
-        # TODO: Validate length >= 0
+        # Validate that the default values were applied
+        assert self.test_recipe.length == 0
+        assert self.test_recipe.difficulty == "Beginner"
+        assert self.test_recipe.solve_for_start is True
+
+        # Since neither value was provided, date_added & start_time should be generated immediately
+        #  Difference between `now` and those values should be well under 1s
+        now = datetime.utcnow()
+        assert (now - self.test_recipe.date_added).total_seconds() < 1
+        assert (now - self.test_recipe.start_time).total_seconds() < 1
 
     def test_recipe_attributes(self):
         self.test_recipe.id = "Cowabunga 123.4!"
@@ -131,8 +136,9 @@ class TestRecipeModel:
         self.test_recipe.author = "The voice in my head"
         assert self.test_recipe.author == "The voice in my head"
 
-        self.test_recipe.source = "http://longdomain.com/food/chicken?fried=True&deliciousness_quotient=9"
-        assert self.test_recipe.source == "http://longdomain.com/food/chicken?fried=True&deliciousness_quotient=9"
+        long_string = "http://longdomain.com/food/chicken?fried=True&deliciousness_quotient=9"
+        self.test_recipe.source = long_string
+        assert self.test_recipe.source == long_string
 
         self.test_recipe.difficulty = "Advanced"
         assert self.test_recipe.difficulty == "Advanced"
@@ -169,25 +175,11 @@ class TestRecipeModel:
         self.test_recipe.finish_time = testing_finish_time
         assert self.test_recipe.finish_time == testing_finish_time
 
-        # TODO: Validate date_added == datetime.utcnow() when initialized.  Raises an AttributeError:
-        #  self = <pynamodb.attributes.UTCDateTimeAttribute object at 0x103a8c588>
-        #  value = datetime(2019, 9, 11)
-
-    def test_recipe_adjust_start_time(self):
-        start_time = datetime(2019, 9, 14, 10, 0, 0)
-        recipe = Recipe(id=f"test_{generate_new_id()}", length=0, start_time=start_time)
-        assert recipe.start_time == start_time
-
-        # Start 35 minutes later
-        recipe.adjust_start_time(seconds=35 * 60)
-        assert recipe.start_time == datetime(2019, 9, 14, 10, 35, 0)
-
-        # Start 3 hrs, 10 min sooner
-        recipe.adjust_start_time(seconds=-1 * (10800 + 600))
-        assert recipe.start_time == datetime(2019, 9, 14, 7, 25, 0)
-
     def test_recipe_update_length(self):
-        recipe = Recipe(id="123456", name="routes_test", difficulty="Easy", steps=[])
+        recipe = Recipe(id="123456",
+                        name="routes_test",
+                        difficulty="Easy",
+                        steps=[])
 
         assert recipe.length == 0
         recipe.update_length(save=False)
@@ -201,8 +193,6 @@ class TestRecipeModel:
 
 class TestReplacementModel:
     """Unit tests for the pynamodb-based Replacement model."""
-    rep_full = Replacement(scope='ingredients', old='ounce', new='oz')
-
     def test_replacement_meta_defaults(self):
         rep_full = Replacement()
         assert rep_full.Meta.table_name == 'Replacement'
@@ -223,13 +213,16 @@ class TestReplacementModel:
     def test_replacement_null(self):
         rep_null = Replacement()
 
+        assert rep_null.scope is None
         rep_null.scope = 'directions'
         assert rep_null.scope == 'directions'
 
+        assert rep_null.old is None
         rep_null.old = 'pounds'
         assert rep_null.scope == 'directions'
         assert rep_null.old == 'pounds'
 
+        assert rep_null.new is None
         rep_null.new = 'lbs'
         assert rep_null.scope == 'directions'
         assert rep_null.old == 'pounds'
@@ -243,12 +236,9 @@ class TestReplacementModel:
         assert rep_full.new == 'oz'
 
     def test_replacement_type_checks(self):
-        pass
-        # with pytest.raises(TypeError):
-        #     rep = Replacement(scope=object)
-        #
-        # with pytest.raises(TypeError):
-        #     rep = Replacement(scope='test', old=object)
-        #
-        # with pytest.raises(TypeError):
-        #     rep = Replacement(scope='test', old='old_test', new=object)
+        rep_full = Replacement(scope='ingredients', old='ounce', new='oz')
+
+        assert isinstance(rep_full, Replacement)
+        assert isinstance(rep_full.scope, str)
+        assert isinstance(rep_full.old, str)
+        assert isinstance(rep_full.new, str)

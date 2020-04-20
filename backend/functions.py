@@ -1,7 +1,6 @@
-"""Collection of functions used across the breadsheet project."""
+"""Common functions used across the breadsheet project."""
 from backend.global_logger import logger
-from datetime import datetime, timedelta
-from pynamodb.attributes import ListAttribute
+from datetime import datetime
 import shortuuid
 
 
@@ -20,7 +19,7 @@ def generate_new_id(short=False) -> str:
         return new_id
 
 
-def replace_text(text, rep_list, scope):
+def replace_text(text, rep_list, scope) -> str:
     """Execute replacements in the provided text."""
     logger.info(f"Starting replace_text(), with scope: {scope}, text: {text}")
 

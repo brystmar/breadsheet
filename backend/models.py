@@ -75,27 +75,18 @@ class Recipe(Model):
 
     # Length (`int`): measured in seconds
     length = NumberAttribute(default=0)
-    # TODO: Figure out class-based validation that works with NumberAttribute()
-    #  length = property(operator.attrgetter('_length'))
-    #  @length.setter
-    #  def length(self, l):
-    #     if l < 0:
-    #         raise ValueError("Length must be greater than zero.")
-    #     self._length = l
 
     # Steps (`list`): a list of dictionaries / "maps"
-    steps = ListAttribute(of=Step)
+    steps = ListAttribute(of=Step, null=True)
 
     ## Datetime attributes ##
-    # Each is stored as a UTC timestamp
-    # TODO: Change the db values to epoch
-    # TODO: Convert epoch to/from datetime in the Recipe model
+    # Stored as UTC timestamp in the db, operates as datetime here, exported as string or epoch
     date_added = UTCDateTimeAttribute(default=datetime.utcnow())
-    start_time = UTCDateTimeAttribute(default=date_added)
+    start_time = UTCDateTimeAttribute(default=datetime.utcnow())
 
     def update_length(self, save=True):
         """Update the recipe's length (in seconds) by summing the length of each step."""
-        logger.debug(f"Start of Recipe.update_length() for {self}")
+        # logger.debug(f"Start of Recipe.update_length() for {self}")
 
         # Null handling
         if not self.steps:
@@ -119,7 +110,7 @@ class Recipe(Model):
             else:
                 length += step['then_wait']
 
-        logger.debug(f"Calculated length: {length}, original length: {original_length}")
+        # logger.debug(f"Calculated length: {length}, original length: {original_length}")
         self.length = length
 
         if length != original_length and save:
@@ -128,18 +119,24 @@ class Recipe(Model):
             self.save()
             logger.info(f"Updated recipe {self.name} to reflect its new length: {self.length}.")
 
-        logger.debug("End of Recipe.update_length()")
+        # logger.debug("End of Recipe.update_length()")
 
-    def to_dict(self) -> dict:
+    def to_dict(self, dates_as_epoch=False) -> dict:
         """Convert this recipe (including any steps) to a python dictionary."""
         step_list = []
         if self.steps:
             for step in self.steps:
-                step_list.append(step.to_dict())
+                if isinstance(step, dict):
+                    logger.debug(f"Step: {step}, type: {type(step)}")
+                    step_list.append(step)
+                elif isinstance(step, Step):
+                    step_list.append(step.to_dict())
+                else:
+                    raise TypeError(f"Invalid type for provided step: {step} (type {type(step)})")
 
-        logger.debug(f"to_dict start_time: {self.start_time}, type: {type(self.start_time)}")
+        # logger.debug(f"to_dict start_time: {self.start_time}, type: {type(self.start_time)}")
 
-        return {
+        output = {
             "id":              self.id.__str__(),
             "name":            self.name.__str__(),
             "author":          self.author.__str__() if self.author else None,
@@ -147,26 +144,48 @@ class Recipe(Model):
             "difficulty":      self.difficulty.__str__(),
             "solve_for_start": self.solve_for_start if self.solve_for_start else True,
             "length":          int(self.length),
-            # "date_added":      self.date_added.__str__(),
-            # "start_time":      self.start_time.__str__(),
             "date_added":      self.date_added.timestamp() * 1000,  # JS timestamps are in ms
             "start_time":      self.start_time.timestamp() * 1000,
             "steps":           step_list
         }
 
-    def to_json(self) -> str:
+        if not dates_as_epoch:
+            output['date_added'] = self.date_added.isoformat()
+            output['start_time'] = self.start_time.isoformat()
+
+        return output
+
+    def to_json(self, dates_as_epoch=False) -> json:
         """Convert output from the to_dict() method to a JSON-serialized string."""
-        return json.dumps(self.to_dict(), ensure_ascii=True)
+        return json.dumps(self.to_dict(dates_as_epoch=dates_as_epoch), ensure_ascii=True)
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-        # Don't rely on the provided value for recipe length
-        self.update_length()
+        # Generate a unique id if the recipe doesn't have one yet
+        if 'id' not in kwargs:
+            self.id = generate_new_id(short=True)
+
+        # Convert any provided epoch dates/times to datetime
+        if 'date_added' in kwargs:
+            if not kwargs['date_added'] or kwargs['date_added'] in ("None", "Null", "NULL"):
+                kwargs['date_added'] = datetime.utcnow()
+            else:
+                if isinstance(self.date_added, (int, float)):
+                    # Convert from JS milliseconds to seconds
+                    self.date_added = datetime.utcfromtimestamp(kwargs['date_added'] / 1000)
+
+        if 'start_time' in kwargs:
+            if not kwargs['start_time'] or kwargs['start_time'] in ("None", "Null", "NULL"):
+                kwargs['start_time'] = datetime.utcnow()
+            else:
+                if isinstance(self.start_time, (int, float)):
+                    # Convert from JS milliseconds to seconds
+                    self.start_time = datetime.utcfromtimestamp(kwargs['start_time'] / 1000)
 
     def __repr__(self) -> str:
         return f'<Recipe | id: {self.id}, name: {self.name}, length: {self.length}, ' \
-               f'steps: {len(self.steps)}>'
+               f'steps: {len(self.steps) if self.steps else 0}>'
 
 
 class Replacement(Model):

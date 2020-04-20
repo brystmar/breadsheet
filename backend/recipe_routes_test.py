@@ -24,14 +24,3 @@ class TestRecipeApi:
 
     def test_delete(self):
         pass
-
-
-class TestRecipeFunctions:
-    def test_parse_timestamp(self):
-        dt_check = datetime(year=2019,
-                            month=11,
-                            day=11,
-                            hour=2,
-                            minute=15,
-                            second=0,
-                            tzinfo=timezone.utc)
