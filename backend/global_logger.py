@@ -4,8 +4,8 @@ from sys import stdout
 from os import path, mkdir
 
 basedir = path.abspath(path.dirname(__file__))
-# local = 'pycharm' in basedir.lower()
-local = True
+local = 'pycharm' in basedir.lower()
+# local = True
 
 # initialize logging
 if local:
