@@ -14,14 +14,14 @@ from backend.recipe_routes import RecipeListApi, RecipeCollectionApi, RecipeApi
 from backend.replacement_routes import ReplacementCollectionApi
 from backend.meta_routes import ReadmeApi
 
-breadapp = create_app()
-logger.info("Created the Flask breadapp")
+app = create_app()
+logger.info("Created the Flask app")
 
 # Enable CORS for the app to ensure breadsheet-ui can call the API
 #   https://flask-cors.readthedocs.io/en/latest/
-CORS(breadapp, resources={r"/api/*": {"origins": Config.WHITELISTED_ORIGINS}})
+CORS(app, resources={r"/api/*": {"origins": Config.WHITELISTED_ORIGINS}})
 
-api = Api(breadapp)
+api = Api(app)
 logger.info("API initialized")
 
 # Define the functional endpoints
@@ -36,7 +36,7 @@ api.add_resource(ReplacementCollectionApi,
 api.add_resource(ReadmeApi, '/api/v1/readme')
 
 
-@breadapp.before_request
+@app.before_request
 def handle_before_request():
     """Redirect breadsheet.appspot.com requests to breadsheet.com"""
     if 'AppEngine-Google' not in request.user_agent.string:
@@ -48,6 +48,6 @@ def handle_before_request():
 
 
 if __name__ == '__main__' and local:
-    breadapp.run(host='localhost', port=Config.BOUND_PORT, debug=True)
+    app.run(host='localhost', port=Config.BOUND_PORT, debug=True)
     logger.info(f"Running locally via __main__: http://localhost:{Config.BOUND_PORT}")
     print(f"Running locally via __main__: http://localhost:{Config.BOUND_PORT}")
