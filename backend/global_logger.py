@@ -1,6 +1,6 @@
 """Defines a global logging object 'logger' for use by all modules in this app."""
 import logging
-import sys
+from sys import stdout
 from os import path, mkdir
 
 basedir = path.abspath(path.dirname(__file__))
@@ -26,7 +26,7 @@ if local:
 else:
     log_level = logging.DEBUG
 
-    logging.basicConfig(stream=sys.stdout,
+    logging.basicConfig(stream=stdout,
                         level=log_level,
                         datefmt='%Y-%m-%d %H:%M:%S',
                         format='%(asctime)s | %(name)s | %(levelname)s | %(message)s')

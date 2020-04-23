@@ -1,7 +1,7 @@
 """Common functions used across the breadsheet project."""
 from backend.global_logger import logger
 from datetime import datetime
-import shortuuid
+from shortuuid import uuid
 
 
 def generate_new_id(short=False) -> str:
@@ -12,7 +12,7 @@ def generate_new_id(short=False) -> str:
     # Ensure all ids are the same length.  Timestamps can end in 0, which the system truncates.
     new_id = ""
     if short:
-        return shortuuid.uuid()
+        return uuid()
     else:
         while len(new_id) != 17:
             new_id = str(datetime.utcnow().timestamp())

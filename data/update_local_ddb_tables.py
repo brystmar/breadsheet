@@ -1,5 +1,5 @@
 """Replaces all data in local DynamoDB tables with data from the cloud database."""
-import boto3
+from boto3 import resource
 from os import environ
 
 aws_region = environ.get('AWS_REGION')
@@ -47,14 +47,14 @@ def display_all_table_data(table):
 
 
 # Local connection
-db_local = boto3.resource('dynamodb',
+db_local = resource('dynamodb',
                           region_name=aws_region,
                           aws_access_key_id=aws_access_key,
                           aws_secret_access_key=aws_secret_access_key,
                           endpoint_url='http://localhost:8008')
 
 # Cloud connection
-db_cloud = boto3.resource('dynamodb',
+db_cloud = resource('dynamodb',
                           region_name=aws_region,
                           aws_access_key_id=aws_access_key,
                           aws_secret_access_key=aws_secret_access_key)

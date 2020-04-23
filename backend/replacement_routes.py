@@ -8,7 +8,10 @@ import json
 
 
 class ReplacementCollectionApi(Resource):
-    """Endpoints: /api/v1/replacements/<scope>, /api/v1/replacements/<scope>/<old_value>"""
+    """
+    Endpoints:  /api/v1/replacements/<scope>,
+                /api/v1/replacements/<scope>/<old_value>
+    """
 
     def get(self, scope='all') -> json:
         """Returns a collection of all replacements for Paprika-compliant markup."""

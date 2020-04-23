@@ -39,17 +39,17 @@ class RecipeCollectionApi(Resource):
 
     def get(self) -> json:
         """Return a collection of all recipes."""
-        logger.debug(f"GET request: {request}.")
+        logger.debug(f"Request: {request}.")
 
         try:
             # Grab all recipes from the db, then sort by id
             recipes = Recipe.scan()
             recipes = sorted(recipes, key=lambda r: r.date_added)
-            # for recipe in recipes:
-            #     # TODO: Remove this once Prod data is updated!
-            #     logger.debug(f"Attempting to save recipe...")
-            #     recipe.save()
-            #     logger.debug("Saved all recipes.")
+            for recipe in recipes:
+                # TODO: Remove this once Prod data is updated!
+                logger.debug(f"Attempting to save recipe...")
+                recipe.save()
+                logger.debug("Saved all recipes.")
 
             # Convert each to a dictionary, compile into a list
             output = []
@@ -66,7 +66,7 @@ class RecipeCollectionApi(Resource):
 
     def post(self) -> json:
         """Add a new recipe based on the submitted JSON."""
-        logger.debug(f"POST request: {request}.")
+        logger.debug(f"Request: {request}.")
 
         # Ensure there's a body to accompany this request
         if not request.data:
