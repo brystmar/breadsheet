@@ -10,7 +10,7 @@ import json
 
 class Step(MapAttribute):
     """Individual step within a Recipe class.  Recipe.steps is a list of Step classes."""
-    step_id = UnicodeAttribute()
+    step_id = UnicodeAttribute(default=generate_new_id(short=True))
 
     # Step number
     number = NumberAttribute()
@@ -39,12 +39,6 @@ class Step(MapAttribute):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-
-        # Null handling for step_id is a little different until the Prod db is updated
-        # TODO: Remove once the Prod db is updated
-        if 'step_id' not in kwargs.keys() or kwargs['step_id'] is None:
-            self.step_id = generate_new_id(short=True)
-            # logger.debug(f"Generated new step_id: {self.step_id}")
 
     def __repr__(self) -> str:
         return f'<Step #{self.number}, id: {self.step_id}, then_wait: {self.then_wait}>'
@@ -122,7 +116,9 @@ class Recipe(Model):
         # logger.debug("End of Recipe.update_length()")
 
     def to_dict(self, dates_as_epoch=False) -> dict:
-        """Convert this recipe (including any steps) to a python dictionary."""
+        """
+        Convert this recipe (including any steps) to a python dictionary.
+        """
         step_list = []
         if self.steps:
             for step in self.steps:

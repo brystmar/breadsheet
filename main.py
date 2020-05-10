@@ -17,7 +17,7 @@ from backend.meta_routes import ReadmeApi
 app = create_app()
 logger.info("Created the Flask app")
 
-# Enable CORS for the app to ensure breadsheet-ui can call the API
+# Enable CORS for the app; ensure breadsheet-ui is whitelisted
 #   https://flask-cors.readthedocs.io/en/latest/
 CORS(app, resources={r"/api/*": {"origins": Config.WHITELISTED_ORIGINS}})
 

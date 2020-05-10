@@ -45,11 +45,6 @@ class RecipeCollectionApi(Resource):
             # Grab all recipes from the db, then sort by id
             recipes = Recipe.scan()
             recipes = sorted(recipes, key=lambda r: r.date_added)
-            for recipe in recipes:
-                # TODO: Remove this once Prod data is updated!
-                logger.debug(f"Attempting to save recipe...")
-                recipe.save()
-                logger.debug("Saved all recipes.")
 
             # Convert each to a dictionary, compile into a list
             output = []
