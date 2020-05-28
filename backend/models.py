@@ -9,7 +9,10 @@ import json
 
 
 class Step(MapAttribute):
-    """Individual step within a Recipe class.  Recipe.steps is a list of Step classes."""
+    """
+    Individual step within a Recipe class.
+    Recipe.steps is a list of Step classes.
+    """
     step_id = UnicodeAttribute(default=generate_new_id(short=True))
 
     # Step number
@@ -118,12 +121,13 @@ class Recipe(Model):
     def to_dict(self, dates_as_epoch=False) -> dict:
         """
         Convert this recipe (including any steps) to a python dictionary.
+        Returns dates in ISO format (default), or as a JavaScript-friendly epoch.
         """
         step_list = []
         if self.steps:
             for step in self.steps:
                 if isinstance(step, dict):
-                    logger.debug(f"Step: {step}, type: {type(step)}")
+                    # logger.debug(f"Step: {step}, type: {type(step)}")
                     step_list.append(step)
                 elif isinstance(step, Step):
                     step_list.append(step.to_dict())

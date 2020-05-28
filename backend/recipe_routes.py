@@ -165,14 +165,14 @@ class RecipeApi(Resource):
             return {'message': 'Error', 'data': error_msg}, 400
 
         # Create a new Recipe instance using the provided data
-        # try:
-        recipe = Recipe(**data)
-        logger.debug(f"Recipe object created.")
+        try:
+            recipe = Recipe(**data)
+            logger.debug(f"Recipe object created.")
 
-        # except PynamoDBException as e:
-        #     error_msg = f"Error parsing data into the Recipe model."
-        #     logger.debug(f"{error_msg}\n{e}")
-        #     return {'message': 'Error', 'data': f'{error_msg}\n{e}'}, 500
+        except PynamoDBException as e:
+            error_msg = f"Error parsing data into the Recipe model."
+            logger.debug(f"{error_msg}\n{e}")
+            return {'message': 'Error', 'data': f'{error_msg}\n{e}'}, 500
 
         # Save to the database
         try:

@@ -11,7 +11,7 @@ aws_secret_access_key = environ.get('AWS_SECRET_ACCESS_KEY')
 
 
 def create_recipe_table(provided_resource):
-    print(f"Creating Recipe table for {provided_resource}")
+    print(f"Creating Recipe table for {provided_resource} in {aws_region}")
     table = provided_resource.create_table(
         TableName="Recipe",
         KeySchema=[
