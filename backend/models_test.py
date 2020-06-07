@@ -6,6 +6,7 @@ import pytest
 
 
 def step_creator(recipe_input: Recipe, steps_to_create, multiplier=1) -> Recipe:
+    # Helper function to create multiple steps
     # Determine the next step number to use
     step_number = 1
     if recipe_input.steps:
@@ -27,6 +28,7 @@ def step_creator(recipe_input: Recipe, steps_to_create, multiplier=1) -> Recipe:
 
 class TestStepModel:
     """Unit tests for the pynamodb-based Step model."""
+
     def test_step_attributes(self):
         step = Step()
 
@@ -121,10 +123,10 @@ class TestRecipeModel:
         assert self.test_recipe.solve_for_start is True
 
         # Since neither value was provided, date_added & start_time should be generated immediately
-        #  Difference between `now` and those values should be well under 1s
+        # Difference between `now` and those values should be well under 1s
         now = datetime.utcnow()
-        assert (now - self.test_recipe.date_added).total_seconds() < 1
-        assert (now - self.test_recipe.start_time).total_seconds() < 1
+        assert abs((now - self.test_recipe.date_added)).total_seconds() < 1
+        assert abs((now - self.test_recipe.start_time)).total_seconds() < 1
 
     def test_recipe_attributes(self):
         self.test_recipe.id = "Cowabunga 123.4!"
@@ -177,8 +179,8 @@ class TestRecipeModel:
 
     def test_recipe_update_length(self):
         recipe = Recipe(id="123456",
-                        name="routes_test",
-                        difficulty="Easy",
+                        name="update_length_test",
+                        difficulty="Beginner",
                         steps=[])
 
         assert recipe.length == 0
@@ -190,9 +192,37 @@ class TestRecipeModel:
         recipe.update_length(save=False)
         assert recipe.length == 100 + 200 + 300 + 400
 
+    def test_recipe_update_last_modified(self):
+        now = datetime.utcnow()
+        original_date_added = datetime(year=2020, month=6, day=2,
+                                       hour=17, minute=41, second=36)
+        original_last_modified = datetime(year=2020, month=6, day=3,
+                                          hour=21, minute=4, second=19)
+        recipe = Recipe(id="123456",
+                        name="routes_test",
+                        difficulty="Beginner",
+                        steps=[],
+                        date_added=original_date_added,
+                        last_modified=original_last_modified)
+
+        # No changes yet
+        assert recipe.date_added == original_date_added
+        assert recipe.last_modified == original_last_modified
+
+        # Call the update method
+        recipe.update_last_modified()
+
+        # Difference between `now` and `recipe.last_modified` should be well under 1s
+        assert abs((now - recipe.last_modified)).total_seconds() < 1
+        assert recipe.last_modified != original_last_modified
+
+        # `date_added` should be the same
+        assert recipe.date_added == original_date_added
+
 
 class TestReplacementModel:
     """Unit tests for the pynamodb-based Replacement model."""
+
     def test_replacement_meta_defaults(self):
         rep_full = Replacement()
         assert rep_full.Meta.table_name == 'Replacement'

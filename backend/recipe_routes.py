@@ -7,33 +7,6 @@ from pynamodb.exceptions import PynamoDBException
 import json
 
 
-class RecipeListApi(Resource):
-    """Endpoint: /api/v1/recipe_list"""
-
-    def get(self) -> json:
-        """Return a skinny list of all recipes."""
-        logger.debug(f"GET request: {request}.")
-
-        try:
-            # Grab all recipes from the db, sort by id
-            recipes = Recipe.scan()
-            output = []
-
-            # Strip away unnecessary fields
-            for recipe in recipes:
-                output.append({"id": recipe.id, "name": recipe.name})
-                pass
-
-            output = sorted(output, key=lambda r: r['id'])
-
-            logger.debug(f"End of RecipeListApi.GET")
-            return {'message': 'Success', 'data': output}, 200
-        except PynamoDBException as e:
-            error_msg = f"Error attempting to retrieve or compile recipe list."
-            logger.debug(f"{error_msg}\n{e}")
-            return {'message': 'Error', 'data': error_msg}, 500
-
-
 class RecipeCollectionApi(Resource):
     """Endpoint: /api/v1/recipes"""
 
@@ -84,6 +57,7 @@ class RecipeCollectionApi(Resource):
         # Create a new Recipe from the provided data
         try:
             new_recipe = Recipe(**data)
+            new_recipe.last_modified = new_recipe.date_added
             new_recipe.update_length()
             logger.debug(f"Recipe object created: {new_recipe}.")
 
@@ -174,13 +148,21 @@ class RecipeApi(Resource):
             logger.debug(f"{error_msg}\n{e}")
             return {'message': 'Error', 'data': f'{error_msg}\n{e}'}, 500
 
+        # Update the last_modified timestamp
+        try:
+            recipe.update_last_modified()
+        except BaseException as e:
+            error_msg = f"Error attempting to update the last_modified timestamp."
+            logger.debug(f"{error_msg}\n{e}")
+            return {'message': 'Error', 'data': f'{error_msg}\n{e}'}, 500
+
         # Save to the database
         try:
             logger.debug(f"Attempting to save recipe...")
             recipe.save()
             logger.info(f"Recipe updated: {recipe})")
             logger.debug(f"End of RecipeApi.PUT")
-            return {'message': 'Success', 'data': recipe.to_dict(dates_as_epoch=False)}, 200
+            return {'message': 'Success', 'data': recipe.to_dict(dates_as_epoch=True)}, 200
         except Recipe.DoesNotExist:
             logger.debug(f"Recipe {recipe_id} not found.")
             return {'message': 'Not Found', 'data': f'Recipe {recipe_id} not found.'}, 404
@@ -195,7 +177,7 @@ class RecipeApi(Resource):
 
         # Retrieve the recipe from the database
         try:
-            recipe = Recipe().get(recipe_id)
+            recipe = Recipe.get(recipe_id)
             logger.debug(f"Recipe retrieved: {recipe})")
 
         except Recipe.DoesNotExist:

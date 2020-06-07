@@ -80,6 +80,10 @@ class Recipe(Model):
     # Stored as UTC timestamp in the db, operates as datetime here, exported as string or epoch
     date_added = UTCDateTimeAttribute(default=datetime.utcnow())
     start_time = UTCDateTimeAttribute(default=datetime.utcnow())
+    last_modified = UTCDateTimeAttribute(default=datetime.utcnow())
+
+    def update_last_modified(self):
+        self.last_modified = datetime.utcnow()
 
     def update_length(self, save=True):
         """Update the recipe's length (in seconds) by summing the length of each step."""
@@ -146,12 +150,14 @@ class Recipe(Model):
             "length":          int(self.length),
             "date_added":      self.date_added.timestamp() * 1000,  # JS timestamps are in ms
             "start_time":      self.start_time.timestamp() * 1000,
+            "last_modified":   self.last_modified.timestamp() * 1000,
             "steps":           step_list
         }
 
         if not dates_as_epoch:
             output['date_added'] = self.date_added.isoformat()
             output['start_time'] = self.start_time.isoformat()
+            output['last_modified'] = self.last_modified.isoformat()
 
         return output
 
@@ -168,7 +174,8 @@ class Recipe(Model):
 
         # Convert any provided epoch dates/times to datetime
         if 'date_added' in kwargs:
-            if not kwargs['date_added'] or kwargs['date_added'] in ("None", "Null", "NULL"):
+            if not kwargs['date_added'] or kwargs['date_added'].__str__().lower() in \
+                    ("none", "null", "nan"):
                 kwargs['date_added'] = datetime.utcnow()
             else:
                 if isinstance(self.date_added, (int, float)):
@@ -176,12 +183,22 @@ class Recipe(Model):
                     self.date_added = datetime.utcfromtimestamp(kwargs['date_added'] / 1000)
 
         if 'start_time' in kwargs:
-            if not kwargs['start_time'] or kwargs['start_time'] in ("None", "Null", "NULL"):
-                kwargs['start_time'] = datetime.utcnow()
+            if not kwargs['start_time'] or kwargs['start_time'].__str__().lower() in \
+                    ("none", "null", "nan"):
+                kwargs['start_time'] = self.date_added
             else:
                 if isinstance(self.start_time, (int, float)):
                     # Convert from JS milliseconds to seconds
                     self.start_time = datetime.utcfromtimestamp(kwargs['start_time'] / 1000)
+
+        if 'last_modified' in kwargs:
+            if not kwargs['last_modified'] or kwargs['last_modified'].__str__().lower() in \
+                    ("none", "null", "nan"):
+                kwargs['last_modified'] = self.date_added
+            else:
+                if isinstance(self.last_modified, (int, float)):
+                    # Convert from JS milliseconds to seconds
+                    self.last_modified = datetime.utcfromtimestamp(kwargs['last_modified'] / 1000)
 
     def __repr__(self) -> str:
         return f'<Recipe | id: {self.id}, name: {self.name}, length: {self.length}, ' \
