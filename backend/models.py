@@ -80,7 +80,7 @@ class Recipe(Model):
     # Stored as UTC timestamp in the db, operates as datetime here, exported as string or epoch
     date_added = UTCDateTimeAttribute(default=datetime.utcnow())
     start_time = UTCDateTimeAttribute(default=datetime.utcnow())
-    last_modified = UTCDateTimeAttribute(default=datetime.utcnow())
+    last_modified = UTCDateTimeAttribute(default=datetime.utcnow(), null=True)
 
     def update_last_modified(self):
         self.last_modified = datetime.utcnow()

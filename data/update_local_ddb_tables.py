@@ -177,8 +177,8 @@ copy_all_table_data(replacement_table_cloud_primary, replacement_table_local)
 print("Primary done\n")
 
 print("Writing to Secondary tables")
-copy_all_table_data(recipe_table_cloud_primary, recipe_table_cloud_secondary)
-copy_all_table_data(replacement_table_cloud_primary, replacement_table_cloud_secondary)
+# copy_all_table_data(recipe_table_cloud_primary, recipe_table_cloud_secondary)
+# copy_all_table_data(replacement_table_cloud_primary, replacement_table_cloud_secondary)
 print("Secondary done\n")
 
 print("Done writing to tables.")
