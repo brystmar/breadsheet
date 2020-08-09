@@ -63,6 +63,7 @@ class Recipe(Model):
     # Author & source (`str`), both optional
     author = UnicodeAttribute(null=True)
     source = UnicodeAttribute(null=True)
+    url = UnicodeAttribute(null=True)
 
     # Difficulty (`str`): Beginner, Intermediate, Advanced, or Expert
     difficulty = UnicodeAttribute(default="Beginner")
@@ -145,6 +146,7 @@ class Recipe(Model):
             "name":            self.name.__str__(),
             "author":          self.author.__str__() if self.author else None,
             "source":          self.source.__str__() if self.source else None,
+            "url":             self.url.__str__() if self.url else None,
             "difficulty":      self.difficulty.__str__(),
             "solve_for_start": self.solve_for_start if self.solve_for_start else True,
             "length":          int(self.length),

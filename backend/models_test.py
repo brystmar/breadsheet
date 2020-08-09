@@ -135,12 +135,16 @@ class TestRecipeModel:
         self.test_recipe.name = "My 7th(!) favorite recipe."
         assert self.test_recipe.name == "My 7th(!) favorite recipe."
 
-        self.test_recipe.author = "The voice in my head"
-        assert self.test_recipe.author == "The voice in my head"
+        self.test_recipe.author = "Voices in my head"
+        assert self.test_recipe.author == "Voices in my head"
 
-        long_string = "http://longdomain.com/food/chicken?fried=True&deliciousness_quotient=9"
+        long_string = "This is a very long string.  It has two sentences."
         self.test_recipe.source = long_string
         assert self.test_recipe.source == long_string
+
+        url = "http://longdomain.com/food/chicken?fried=True&deliciousness_quotient=9"
+        self.test_recipe.url = url
+        assert self.test_recipe.url == url
 
         self.test_recipe.difficulty = "Advanced"
         assert self.test_recipe.difficulty == "Advanced"
