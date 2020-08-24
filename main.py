@@ -1,4 +1,11 @@
 """Define our app using the create_app function in backend/__init__.py"""
+# App Engine logging
+try:
+    import googleclouddebugger
+    googleclouddebugger.enable()
+except ImportError:
+    pass
+
 # Global logger
 from backend.global_logger import logger, local
 
@@ -19,7 +26,8 @@ logger.info("Created the Flask app")
 
 # Enable CORS for the app; ensure breadsheet-ui is whitelisted
 #   https://flask-cors.readthedocs.io/en/latest/
-CORS(app, resources={r"/api/*": {"origins": Config.WHITELISTED_ORIGINS}})
+# CORS(app, resources={r"/api/*": {"origins": Config.WHITELISTED_ORIGINS}})
+CORS(app, resources=r'/api/*')
 
 api = Api(app)
 logger.info("API initialized")
