@@ -2,7 +2,7 @@
 # App Engine logging
 try:
     import googleclouddebugger
-    googleclouddebugger.enable()
+    googleclouddebugger.enable(breakpoint_enable_canary=False)
 except ImportError:
     pass
 
