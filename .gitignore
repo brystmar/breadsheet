@@ -21,6 +21,7 @@ breadvar*
 **/.pytest_cache
 **/.pytest_cache/**
 ui/
+.cert/
 
 # Created by https://www.gitignore.io/api/venv,macos,pycharm
 # Edit at https://www.gitignore.io/?templates=venv,macos,pycharm
@@ -148,3 +149,4 @@ pip-selfcheck.json
 
 # End of https://www.gitignore.io/api/venv,macos,pycharm
 /.aws/*
+/.cert/

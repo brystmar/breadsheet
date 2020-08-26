@@ -1,13 +1,15 @@
 """Define our app using the create_app function in backend/__init__.py"""
-# App Engine logging
+# Global logger
+from backend.global_logger import logger, local
+
+# GCP debugger & logging
 try:
     import googleclouddebugger
     googleclouddebugger.enable(breakpoint_enable_canary=False)
-except ImportError:
+    logger.info(f"Successfully initialized googleclouddebugger!")
+except ImportError as e:
+    logger.info(f"Error attempting to initialize googleclouddebugger: {e}")
     pass
-
-# Global logger
-from backend.global_logger import logger, local
 
 # External packages
 from flask import redirect, request
