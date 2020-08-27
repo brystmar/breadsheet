@@ -45,15 +45,15 @@ api.add_resource(ReplacementCollectionApi,
 api.add_resource(ReadmeApi, '/api/v1/readme')
 
 
-@app.before_request
-def handle_before_request():
-    """Redirect breadsheet.appspot.com requests to breadsheet.com"""
-    if 'AppEngine-Google' not in request.user_agent.string:
-        logger.debug(f"AppEngine-Google not in {request.user_agent.string}")
-        if 'breadsheet.appspot.com' in request.host.lower():
-            logger.info(f"Requested Host & URL: {request.host} & {request.url}; "
-                        f"redirecting to: {Config.DOMAIN_URL}")
-            return redirect(Config.DOMAIN_URL, code=301)
+# @app.before_request
+# def handle_before_request():
+#     """Redirect breadsheet.appspot.com requests to breadsheet.com"""
+#     if 'AppEngine-Google' not in request.user_agent.string:
+#         logger.debug(f"AppEngine-Google not in {request.user_agent.string}")
+#         if 'breadsheet.appspot.com' in request.host.lower():
+#             logger.info(f"Requested Host & URL: {request.host} & {request.url}; "
+#                         f"redirecting to: {Config.DOMAIN_URL}")
+#             return redirect(Config.DOMAIN_URL, code=301)
 
 
 if __name__ == '__main__' and local:
