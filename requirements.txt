@@ -21,7 +21,6 @@ Flask==1.1.2
 Flask-Cors==3.0.8
 Flask-Moment==0.10.0
 Flask-RESTful==0.3.8
-# Flask-SSLify==0.1.5
 Flask-WTF==0.14.3
 google-python-cloud-debugger
 grpcio==1.31.0

@@ -2,10 +2,10 @@ from backend.global_logger import logger
 from backend.config import Config, local
 from backend.functions import generate_new_id
 from datetime import datetime, timedelta
+from operator import attrgetter
 from pynamodb.models import Model
 from pynamodb.attributes import UnicodeAttribute, UTCDateTimeAttribute, NumberAttribute, \
     MapAttribute, ListAttribute, BooleanAttribute
-import json
 
 
 class Step(MapAttribute):
@@ -35,10 +35,6 @@ class Step(MapAttribute):
             "then_wait": int(self.then_wait),
             "note":      self.note.__str__() if self.note else None
         }
-
-    def to_json(self) -> str:
-        """Converts output from the to_dict() method to a JSON-serialized string."""
-        return json.dumps(self.to_dict(), ensure_ascii=True)
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -75,7 +71,7 @@ class Recipe(Model):
     length = NumberAttribute(default=0)
 
     # Steps (`list`): a list of dictionaries / "maps"
-    steps = ListAttribute(of=Step, null=True)
+    steps = ListAttribute(of=Step, default=[], null=True)
 
     ## Datetime attributes ##
     # Stored as UTC timestamp in the db, operates as datetime here, exported as string or epoch
@@ -115,11 +111,15 @@ class Recipe(Model):
         # logger.debug(f"Calculated length: {length}, original length: {original_length}")
         self.length = length
 
-        if length != original_length and save:
-            # Update the database if the length changed
-            logger.debug(f"Attempting to save Recipe...")
-            self.save()
-            logger.info(f"Updated recipe {self.name} to reflect its new length: {self.length}.")
+        if length != original_length:
+            # Always update last_modified
+            logger.debug(f"Updating last_modified (was {self.last_modified}).")
+            self.last_modified = datetime.utcnow()
+            if save:
+                # User specifies if they want changes to be saved to the db
+                logger.debug(f"Attempting to save {self.__repr__()}")
+                self.save()
+                logger.info(f"Updated recipe {self.name} to reflect its new length: {self.length}.")
 
         # logger.debug("End of Recipe.update_length()")
 
@@ -148,7 +148,7 @@ class Recipe(Model):
             "source":          self.source.__str__() if self.source else None,
             "url":             self.url.__str__() if self.url else None,
             "difficulty":      self.difficulty.__str__(),
-            "solve_for_start": self.solve_for_start if self.solve_for_start else True,
+            "solve_for_start": self.solve_for_start,
             "length":          int(self.length),
             "date_added":      self.date_added.timestamp() * 1000,  # JS timestamps are in ms
             "start_time":      self.start_time.timestamp() * 1000,
@@ -163,10 +163,6 @@ class Recipe(Model):
 
         return output
 
-    def to_json(self, dates_as_epoch=False) -> json:
-        """Convert output from the to_dict() method to a JSON-serialized string."""
-        return json.dumps(self.to_dict(dates_as_epoch=dates_as_epoch), ensure_ascii=True)
-
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
@@ -174,11 +170,17 @@ class Recipe(Model):
         if 'id' not in kwargs:
             self.id = generate_new_id(short=True)
 
+        # Validate URLs
+        if 'url' in kwargs:
+            if kwargs['url'] is None or kwargs['url'][:4] != 'http' or '://' not in kwargs['url']:
+                logger.debug(f"Invalid input for URL: {kwargs['url']}")
+                self.url = ""
+
         # Convert any provided epoch dates/times to datetime
         if 'date_added' in kwargs:
             if not kwargs['date_added'] or kwargs['date_added'].__str__().lower() in \
                     ("none", "null", "nan"):
-                kwargs['date_added'] = datetime.utcnow()
+                self.date_added = datetime.utcnow()
             else:
                 if isinstance(self.date_added, (int, float)):
                     # Convert from JS milliseconds to seconds
@@ -187,7 +189,7 @@ class Recipe(Model):
         if 'start_time' in kwargs:
             if not kwargs['start_time'] or kwargs['start_time'].__str__().lower() in \
                     ("none", "null", "nan"):
-                kwargs['start_time'] = self.date_added
+                self.start_time = self.date_added
             else:
                 if isinstance(self.start_time, (int, float)):
                     # Convert from JS milliseconds to seconds
@@ -196,11 +198,31 @@ class Recipe(Model):
         if 'last_modified' in kwargs:
             if not kwargs['last_modified'] or kwargs['last_modified'].__str__().lower() in \
                     ("none", "null", "nan"):
-                kwargs['last_modified'] = self.date_added
+                self.last_modified = self.date_added
             else:
                 if isinstance(self.last_modified, (int, float)):
                     # Convert from JS milliseconds to seconds
                     self.last_modified = datetime.utcfromtimestamp(kwargs['last_modified'] / 1000)
+
+    def __setattr__(self, name, value):
+        """Apply validation when values are changed."""
+        # URL format validation
+        if name.lower() == "url":
+            if value not in ("", None):
+                if value[:4] != "http" or "://" not in value:
+                    raise ValueError("Invalid URL format.")
+
+        # TODO: Troubleshoot this logic
+        # Update length when modifying steps
+        # if name.lower() == "steps":
+        #     super().__setattr__(name, value)
+        #     self.update_length(save=True)
+
+        # Calculate the length instead of accepting a new value for length
+        # if name.lower() == "length" and self.length != value:
+        #     self.update_length(save=True)
+
+        super().__setattr__(name, value)
 
     def __repr__(self) -> str:
         return f'<Recipe | id: {self.id}, name: {self.name}, length: {self.length}, ' \
@@ -224,10 +246,6 @@ class Replacement(Model):
             "old":   self.old.__str__(),
             "new":   self.new.__str__()
         }
-
-    def to_json(self) -> str:
-        """Converts output from the to_dict() method to a JSON-serialized string."""
-        return json.dumps(self.to_dict(), ensure_ascii=True)
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
