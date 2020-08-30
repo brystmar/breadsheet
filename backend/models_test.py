@@ -146,6 +146,20 @@ class TestStepModel:
         step.note = None
         assert step.note is None
 
+    def test_step_to_dict(self):
+        step = Step(step_id='third StepId Test003',
+                    number=66,
+                    text='another step test!',
+                    then_wait=27,
+                    note='yep, another note :D')
+
+        assert step.to_dict() == {
+            "step_id":   "third StepId Test003",
+            "number":    66,
+            "text":      "another step test!",
+            "then_wait": 27,
+            "note":      "yep, another note :D"
+        }
 
 class TestRecipeModel:
     """Unit tests for the pynamodb-based Recipe model."""
@@ -594,6 +608,16 @@ class TestReplacementModel:
         rep_full = Replacement(scope='ingredients', old='ounce', new='oz')
 
         assert isinstance(rep_full, Replacement)
+        assert isinstance(rep_full.__repr__(), str)
         assert isinstance(rep_full.scope, str)
         assert isinstance(rep_full.old, str)
         assert isinstance(rep_full.new, str)
+
+    def test_to_dict(self):
+        rep_full = Replacement(scope='ingredients', old='ounce', new='oz')
+
+        assert rep_full.to_dict() == {
+            "scope": "ingredients",
+            "old":   "ounce",
+            "new":   "oz"
+        }
