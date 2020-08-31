@@ -153,6 +153,7 @@ class TestStepModel:
                     then_wait=27,
                     note='yep, another note :D')
 
+        assert isinstance(step.to_dict(), dict)
         assert step.to_dict() == {
             "step_id":   "third StepId Test003",
             "number":    66,
@@ -160,6 +161,7 @@ class TestStepModel:
             "then_wait": 27,
             "note":      "yep, another note :D"
         }
+
 
 class TestRecipeModel:
     """Unit tests for the pynamodb-based Recipe model."""
@@ -342,7 +344,6 @@ class TestRecipeModel:
         assert recipe_with_steps.last_modified == now
         assert recipe_with_steps.steps == constructor_test.steps
 
-
     def test_recipe_update_length(self):
         now = datetime.utcnow()
         length_test = Recipe(id="123456",
@@ -470,6 +471,7 @@ class TestRecipeModel:
                             last_modified=now,
                             steps=[])
 
+        assert isinstance(dict_test1.to_dict(), dict)
         assert dict_test1.to_dict(dates_as_epoch=True) == {
             "id":              "112233",
             "name":            "dict_test1",
@@ -499,6 +501,8 @@ class TestRecipeModel:
                             last_modified=now,
                             steps=[])
 
+        # Default
+        assert dict_test2.to_dict() == dict_test2.to_dict(dates_as_epoch=False)
         assert dict_test2.to_dict(dates_as_epoch=False) == {
             "id":              "11223344",
             "name":            "dict_test2",
