@@ -2,7 +2,7 @@ from backend.global_logger import logger
 from backend.config import Config, local
 from backend.functions import generate_new_id
 from datetime import datetime, timedelta
-from operator import attrgetter
+# from operator import attrgetter
 from pynamodb.models import Model
 from pynamodb.attributes import UnicodeAttribute, UTCDateTimeAttribute, NumberAttribute, \
     MapAttribute, ListAttribute, BooleanAttribute
@@ -236,6 +236,8 @@ class Replacement(Model):
         if local:  # Use the local DynamoDB instance when running locally
             host = 'http://localhost:8008'
 
+    # TODO: Add an id attribute to simplify identifying each record
+    #  id = UnicodeAttribute()  <-- shouldn't this be the primary key?
     scope = UnicodeAttribute(hash_key=True)
     old = UnicodeAttribute(range_key=True)
     new = UnicodeAttribute()
@@ -249,6 +251,13 @@ class Replacement(Model):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+
+    def __getitem__(self, scope):
+        try:
+            return self.scope
+        except TypeError as e:
+            logger.error(f"Unsupported __getitem__ request: {e}")
+            raise e
 
     def __repr__(self) -> str:
         return f'<Replacement Text | scope: {self.scope}, old: {self.old}, new: {self.new}>'

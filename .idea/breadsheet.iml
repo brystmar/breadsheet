@@ -9,6 +9,7 @@
       <excludeFolder url="file://$MODULE_DIR$/logs" />
       <excludeFolder url="file://$MODULE_DIR$/venv" />
       <excludeFolder url="file://$MODULE_DIR$/venv38" />
+      <excludeFolder url="file://$MODULE_DIR$/backend/.pytest_cache" />
     </content>
     <orderEntry type="jdk" jdkName="Python 3.8 (breadsheet)" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />

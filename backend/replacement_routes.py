@@ -9,7 +9,8 @@ import json
 
 class ReplacementCollectionApi(Resource):
     """
-    Endpoints:  /api/v1/replacements/<scope>,
+    Endpoints:  /api/v1/replacements/all,
+                /api/v1/replacements/<scope>,
                 /api/v1/replacements/<scope>/<old_value>
     """
 
@@ -41,9 +42,19 @@ class ReplacementCollectionApi(Resource):
             logger.debug(f"{error_msg}\n{e}")
             return {'message': 'Error', 'data': error_msg}, 404
 
-        output = []
+        ingredients = []
+        directions = []
         for i in items:
-            output.append(i.to_dict())
+            if i['scope'] == 'ingredients':
+                ingredients.append(i.to_dict())
+            if i['scope'] == 'directions':
+                directions.append(i.to_dict())
+
+        output = {}
+        if ingredients:
+            output['ingredients'] = ingredients
+        if directions:
+            output['directions'] = directions
 
         logger.debug(f"End of ReplacementCollectionApi.get({scope})")
         return {'message': 'Success', 'data': output}, 200
