@@ -2,7 +2,6 @@ from backend.global_logger import logger
 from backend.config import Config, local
 from backend.functions import generate_new_id
 from datetime import datetime, timedelta
-# from operator import attrgetter
 from pynamodb.models import Model
 from pynamodb.attributes import UnicodeAttribute, UTCDateTimeAttribute, NumberAttribute, \
     MapAttribute, ListAttribute, BooleanAttribute
