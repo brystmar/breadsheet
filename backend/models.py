@@ -169,12 +169,6 @@ class Recipe(Model):
         if 'id' not in kwargs:
             self.id = generate_new_id(short=True)
 
-        # Validate URLs
-        if 'url' in kwargs:
-            if kwargs['url'] is None or kwargs['url'][:4] != 'http' or '://' not in kwargs['url']:
-                logger.debug(f"Invalid input for URL: {kwargs['url']}")
-                self.url = ""
-
         # Convert any provided epoch dates/times to datetime
         if 'date_added' in kwargs:
             if not kwargs['date_added'] or kwargs['date_added'].__str__().lower() in \
@@ -205,11 +199,6 @@ class Recipe(Model):
 
     def __setattr__(self, name, value):
         """Apply validation when values are changed."""
-        # URL format validation
-        if name.lower() == "url":
-            if value not in ("", None):
-                if value[:4] != "http" or "://" not in value:
-                    raise ValueError("Invalid URL format.")
 
         # TODO: Troubleshoot this logic
         # Update length when modifying steps
