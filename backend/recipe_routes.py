@@ -172,7 +172,7 @@ class RecipeApi(Resource):
             return {'message': 'Error', 'data': error_msg}, 500
 
     def delete(self, recipe_id) -> json:
-        """Delete the selected recipe."""
+        """Delete the specified recipe."""
         logger.debug(f"Request: {request}.")
 
         # Retrieve the recipe from the database
