@@ -45,7 +45,7 @@ jsonpickle==2.0.0
 jsonpointer==2.1
 jsonschema==3.2.0
 junit-xml==1.9
-Mako==1.1.4
+Mako==1.2.2
 Markdown==3.3.4
 MarkupSafe==1.1.1
 mirakuru==2.3.0
