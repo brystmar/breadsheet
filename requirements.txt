@@ -17,7 +17,7 @@ chardet==4.0.0
 click==7.1.2
 colorama==0.4.4
 configparser==5.0.2
-cryptography==3.4.7
+cryptography==39.0.1
 dateparser==1.0.0
 decorator==4.4.2
 docutils==0.17.1
