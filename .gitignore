@@ -32,6 +32,9 @@ ui/
 .AppleDouble
 .LSOverride
 
+# LLMs
+.claude/sessions/
+
 # Icon must end with two \r
 Icon
 
