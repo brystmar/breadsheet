@@ -1,5 +1,5 @@
 # https://yamlchecker.com/
-runtime: python38
+runtime: python313
 includes:
   - env_variables.yaml
 

@@ -13,6 +13,7 @@ breadsheet.py
 breadsheet-prod.json
 breadsheet-prod.json.old
 breadvar*
+.aws/
 .aws/*
 .boto
 .boto/*
@@ -22,6 +23,7 @@ breadvar*
 **/.pytest_cache/**
 ui/
 .cert/
+*.csv
 
 # Created by https://www.gitignore.io/api/venv,macos,pycharm
 # Edit at https://www.gitignore.io/?templates=venv,macos,pycharm
@@ -153,3 +155,4 @@ pip-selfcheck.json
 # End of https://www.gitignore.io/api/venv,macos,pycharm
 /.aws/*
 /.cert/
+/data/recipes_export.csv

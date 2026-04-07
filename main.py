@@ -57,6 +57,6 @@ def handle_before_request():
 
 
 if __name__ == '__main__' and local:
-    app.run(host='localhost', port=Config.BOUND_PORT, debug=True)
-    logger.info(f"Running locally via __main__: http://localhost:{Config.BOUND_PORT}")
-    print(f"Running locally via __main__: http://localhost:{Config.BOUND_PORT}")
+    app.run(host='127.0.0.1', port=Config.BOUND_PORT, debug=True)
+    logger.info(f"Running locally via __main__: http://127.0.0.1:{Config.BOUND_PORT}")
+    print(f"Running locally via __main__: http://127.0.0.1:{Config.BOUND_PORT}")

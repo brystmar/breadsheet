@@ -2,7 +2,7 @@
 from backend.global_logger import logger
 from pynamodb.attributes import Attribute, NumberAttribute
 from pynamodb.constants import NUMBER
-from datetime import datetime
+from datetime import datetime, timezone
 from numbers import Number
 
 
@@ -22,7 +22,7 @@ class HybridDateTime(NumberAttribute):
         # Convert the python value (datetime) to the format we want stored in the database: a number
         logger.debug(f"hdt.serialize({value})")
         if not value:
-            value = datetime.utcfromtimestamp(0)
+            value = datetime.fromtimestamp(0, timezone.utc)
         return datetime.timestamp(value)
 
     def deserialize(self, value) -> datetime:
@@ -31,4 +31,4 @@ class HybridDateTime(NumberAttribute):
         if not value:
             value = 0
         value = int(float(value))
-        return datetime.utcfromtimestamp(value)
+        return datetime.fromtimestamp(value, timezone.utc)

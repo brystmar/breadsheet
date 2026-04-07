@@ -13,7 +13,7 @@ schedule. Lives at breadsheet.com.
 ## Stack
 | Layer | Technology |
 |---|---|
-| Language | Python |
+| Language | Python 3.13 |
 | Framework | Flask + Flask-RESTful |
 | Database | DynamoDB (AWS) — **not Postgres** |
 | ORM | PynamoDB |
@@ -103,10 +103,14 @@ All routes use `/api/v1/` prefix.
 
 ## Config & Environment
 `backend/config.py` + `backend/global_logger.py`. The `local` boolean is `True` when
-running inside PyCharm (path detection). Used throughout to switch between local
+`APP_ENV=local` is set in the environment. Used throughout to switch between local
 DynamoDB (`localhost:8008`) and AWS.
 
+Set `APP_ENV=local` in `.env` for local development (already present). Do NOT set it
+in `env_variables.yaml` — GCP must not see this value.
+
 Key values:
+- `APP_ENV` — `local` for local dev; absent/unset for GCP
 - `AWS_REGION` — DynamoDB region
 - `BOUND_PORT` — local port (set in `.flaskenv`)
 - `DOMAIN_URL` — `breadsheet.com`
