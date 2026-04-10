@@ -8,8 +8,8 @@ class Config(object):
 
     # Apply the environment variables when running locally
     if local:
-        from env_tools import apply_env
-        apply_env()
+        from dotenv import load_dotenv
+        load_dotenv()
         logger.info("Local .env variables applied.")
 
     else:
@@ -23,15 +23,18 @@ class Config(object):
     AWS_USER = environ.get('AWS_USER')
     AWS_REGION = environ.get('AWS_REGION')
     AWS_ARN = environ.get('AWS_ARN')
+    logger.debug(f"Running in AWS Region: {AWS_REGION}")
 
     # App-related
-    BOUND_PORT = 5000
+    BOUND_PORT = environ.get('BOUND_PORT')
     DOMAIN_URL = environ.get('DOMAIN_URL')
     WHITELISTED_ORIGIN = environ.get('WHITELISTED_ORIGIN')
     WHITELISTED_ORIGINS = environ.get('WHITELISTED_ORIGINS')
     SECRET_KEY = environ.get('SECRET_KEY') or '0mW7@LN0n32L6ntaj0d8jzsXiAW4mkPL7u5l'
+    logger.debug(f"DOMAIN_URL: {DOMAIN_URL}")
+    logger.debug(f"SECRET_KEY: {SECRET_KEY}")
 
     if SECRET_KEY != environ.get('SECRET_KEY'):
-        logger.warning("Error loading SECRET_KEY!  Temporarily using a hard-coded key.")
+        logger.warning("Error loading SECRET_KEY! Temporarily using a hard-coded key.")
 
     logger.debug("End of the Config() class.")

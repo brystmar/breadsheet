@@ -3,13 +3,12 @@ from flask import request
 from flask_restful import Resource
 from markdown import markdown
 from os import path
-import json
 
 
 class ReadmeApi(Resource):
     """Endpoint: /api/v1/readme"""
 
-    def get(self) -> json:
+    def get(self) -> dict:
         """Returns the README file for this project, formatted in html."""
         logger.debug(f"Request: {request}")
 

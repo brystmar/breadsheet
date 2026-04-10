@@ -1,10 +1,11 @@
 """Defines a global logging object 'logger' for use by all modules in this app."""
 import logging
 from sys import stdout
-from os import path, mkdir
+from os import path, mkdir, environ
+from dotenv import load_dotenv
 
-basedir = path.abspath(path.dirname(__file__))
-local = 'pycharm' in basedir.lower()
+load_dotenv()  # load .env before checking APP_ENV; no-op if .env doesn't exist
+local = environ.get('APP_ENV', '').lower() == 'local'
 
 # initialize logging
 if local:
@@ -30,6 +31,3 @@ else:
                         datefmt='%Y-%m-%d %H:%M:%S',
                         format='%(asctime)s | %(name)s | %(levelname)s | %(message)s')
     logger = logging.getLogger(__name__)
-
-logger.info(f"Global logging initialized!  Level: {logger.getEffectiveLevel()}")
-logger.info(f"local = {local}\n=======================================")

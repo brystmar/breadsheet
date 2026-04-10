@@ -4,8 +4,6 @@ from flask import request
 from flask_restful import Resource
 from pynamodb.exceptions import ScanError, DoesNotExist, GetError, QueryError,\
     PutError, PynamoDBException
-import json
-
 
 class ReplacementCollectionApi(Resource):
     """
@@ -14,7 +12,7 @@ class ReplacementCollectionApi(Resource):
                 /api/v1/replacements/<scope>/<old_value>
     """
 
-    def get(self, scope='all') -> json:
+    def get(self, scope='all') -> dict:
         """Returns a collection of all replacements for Paprika-compliant markup."""
         logger.debug(f"Request: {request}")
 
@@ -59,7 +57,7 @@ class ReplacementCollectionApi(Resource):
         logger.debug(f"End of ReplacementCollectionApi.get({scope})")
         return {'message': 'Success', 'data': output}, 200
 
-    def put(self, scope, old_value) -> json:
+    def put(self, scope, old_value) -> dict:
         """Add or update a replacement record."""
         logger.debug(f"Request: {request}")
 
@@ -81,7 +79,7 @@ class ReplacementCollectionApi(Resource):
                          f"range_key={old_value}.  Must be a new entry.")
 
         # Load the provided JSON
-        data = json.loads(request.data.decode())
+        data = request.get_json(force=True)
         logger.debug(f"Data submitted: {data}")
 
         if not exists:
@@ -109,7 +107,7 @@ class ReplacementCollectionApi(Resource):
             logger.debug(f"{error_msg}\n{e}")
             return {'message': 'Error', 'data': error_msg}, 500
 
-    def delete(self, scope, old_value) -> json:
+    def delete(self, scope, old_value) -> dict:
         """Removes the specified entry."""
         logger.debug(f"Request: {request}")
 

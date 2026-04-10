@@ -1,6 +1,6 @@
 """Common functions used across the breadsheet project."""
 from backend.global_logger import logger
-from datetime import datetime
+from datetime import datetime, timezone
 from shortuuid import uuid
 
 
@@ -15,7 +15,7 @@ def generate_new_id(short=False) -> str:
         return uuid()
     else:
         while len(new_id) != 17:
-            new_id = str(datetime.utcnow().timestamp())
+            new_id = str(datetime.now(timezone.utc).timestamp())
         return new_id
 
 

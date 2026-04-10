@@ -10,8 +10,9 @@
       <excludeFolder url="file://$MODULE_DIR$/venv" />
       <excludeFolder url="file://$MODULE_DIR$/venv38" />
       <excludeFolder url="file://$MODULE_DIR$/backend/.pytest_cache" />
+      <excludeFolder url="file://$MODULE_DIR$/.venv" />
     </content>
-    <orderEntry type="jdk" jdkName="Python 3.8 (breadsheet)" jdkType="Python SDK" />
+    <orderEntry type="jdk" jdkName="Python 3.13 (breadsheet)" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="library" name="R User Library" level="project" />
     <orderEntry type="library" name="R Skeletons" level="application" />

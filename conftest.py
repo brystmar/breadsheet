@@ -1,6 +1,6 @@
 """Config file for extending pytest functionality to packages w/o native support."""
 from pytest import fixture
-from moto import mock_dynamodb
+from moto import mock_aws
 from os import environ
 
 
@@ -26,7 +26,7 @@ def mock_aws_credentials():
 @fixture(scope='class')
 def mock_recipe(mock_aws_credentials):
     """Fixture for mocking a local dynamodb instance w/test credentials."""
-    with mock_dynamodb():
+    with mock_aws():
         # TODO: Figure out how to set test-config params for the pynamodb models
         from backend.models import Recipe
 
@@ -49,7 +49,7 @@ def mock_recipe(mock_aws_credentials):
 @fixture(scope='class')
 def mock_replacement(mock_aws_credentials):
     """Fixture for mocking a local dynamodb instance w/test credentials."""
-    with mock_dynamodb():
+    with mock_aws():
         from backend.models import Replacement
 
         # Replacement.Meta.host = 'http://localhost:8009'
