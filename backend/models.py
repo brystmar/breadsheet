@@ -1,7 +1,7 @@
 from backend.global_logger import logger
-from backend.config import Config, local
+from backend.config import Config
 from backend.functions import generate_new_id
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pynamodb.models import Model
 from pynamodb.attributes import UnicodeAttribute, UTCDateTimeAttribute, NumberAttribute, \
     MapAttribute, ListAttribute, BooleanAttribute
@@ -46,8 +46,6 @@ class Recipe(Model):
     class Meta:
         table_name = 'Recipe'
         region = Config.AWS_REGION
-        if local:  # Use the local DynamoDB instance when running locally
-            host = 'http://localhost:8008'
 
     ## Primary attributes ##
     id = UnicodeAttribute(hash_key=True, default=generate_new_id(short=True))
@@ -70,16 +68,16 @@ class Recipe(Model):
     length = NumberAttribute(default=0)
 
     # Steps (`list`): a list of dictionaries / "maps"
-    steps = ListAttribute(of=Step, default=[], null=True)
+    steps = ListAttribute(of=Step, default=list, null=True)
 
     ## Datetime attributes ##
     # Stored as UTC timestamp in the db, operates as datetime here, exported as string or epoch
-    date_added = UTCDateTimeAttribute(default=datetime.utcnow())
-    start_time = UTCDateTimeAttribute(default=datetime.utcnow())
-    last_modified = UTCDateTimeAttribute(default=datetime.utcnow(), null=True)
+    date_added = UTCDateTimeAttribute(default=lambda: datetime.now(timezone.utc))
+    start_time = UTCDateTimeAttribute(default=lambda: datetime.now(timezone.utc))
+    last_modified = UTCDateTimeAttribute(default=lambda: datetime.now(timezone.utc), null=True)
 
     def update_last_modified(self):
-        self.last_modified = datetime.utcnow()
+        self.last_modified = datetime.now(timezone.utc)
 
     def update_length(self, save=True):
         """Update the recipe's length (in seconds) by summing the length of each step."""
@@ -113,7 +111,7 @@ class Recipe(Model):
         if length != original_length:
             # Always update last_modified
             logger.debug(f"Updating last_modified (was {self.last_modified}).")
-            self.last_modified = datetime.utcnow()
+            self.last_modified = datetime.now(timezone.utc)
             if save:
                 # User specifies if they want changes to be saved to the db
                 logger.debug(f"Attempting to save {self.__repr__()}")
@@ -173,11 +171,11 @@ class Recipe(Model):
         if 'date_added' in kwargs:
             if not kwargs['date_added'] or kwargs['date_added'].__str__().lower() in \
                     ("none", "null", "nan"):
-                self.date_added = datetime.utcnow()
+                self.date_added = datetime.now(timezone.utc)
             else:
                 if isinstance(self.date_added, (int, float)):
                     # Convert from JS milliseconds to seconds
-                    self.date_added = datetime.utcfromtimestamp(kwargs['date_added'] / 1000)
+                    self.date_added = datetime.fromtimestamp(kwargs['date_added'] / 1000, timezone.utc)
 
         if 'start_time' in kwargs:
             if not kwargs['start_time'] or kwargs['start_time'].__str__().lower() in \
@@ -186,7 +184,7 @@ class Recipe(Model):
             else:
                 if isinstance(self.start_time, (int, float)):
                     # Convert from JS milliseconds to seconds
-                    self.start_time = datetime.utcfromtimestamp(kwargs['start_time'] / 1000)
+                    self.start_time = datetime.fromtimestamp(kwargs['start_time'] / 1000, timezone.utc)
 
         if 'last_modified' in kwargs:
             if not kwargs['last_modified'] or kwargs['last_modified'].__str__().lower() in \
@@ -195,7 +193,7 @@ class Recipe(Model):
             else:
                 if isinstance(self.last_modified, (int, float)):
                     # Convert from JS milliseconds to seconds
-                    self.last_modified = datetime.utcfromtimestamp(kwargs['last_modified'] / 1000)
+                    self.last_modified = datetime.fromtimestamp(kwargs['last_modified'] / 1000, timezone.utc)
 
     def __setattr__(self, name, value):
         """Apply validation when values are changed."""
@@ -221,8 +219,6 @@ class Replacement(Model):
     class Meta:
         table_name = 'Replacement'
         region = Config.AWS_REGION
-        if local:  # Use the local DynamoDB instance when running locally
-            host = 'http://localhost:8008'
 
     # TODO: Add an id attribute to simplify identifying each record
     #  id = UnicodeAttribute()  <-- shouldn't this be the primary key?

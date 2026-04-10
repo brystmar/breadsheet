@@ -1,11 +1,11 @@
 """Unit tests for the Config class to ensure the environment variables are loaded."""
 from backend.config import Config
-from env_tools import apply_env
+from dotenv import load_dotenv
 
 
 def test_config():
     # Apply environment variables
-    apply_env()
+    load_dotenv()
 
     # AWS credentials
     assert Config.AWS_ACCOUNT_ID is not None

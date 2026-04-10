@@ -4,13 +4,12 @@ from backend.models import Recipe
 from flask import request
 from flask_restful import Resource
 from pynamodb.exceptions import PynamoDBException
-import json
 
 
 class RecipeCollectionApi(Resource):
     """Endpoint: /api/v1/recipes"""
 
-    def get(self) -> json:
+    def get(self) -> dict:
         """Return a collection of all recipes."""
         logger.debug(f"Request: {request}.")
 
@@ -32,27 +31,16 @@ class RecipeCollectionApi(Resource):
             logger.debug(f"{error_msg}\n{e}")
             return {'message': 'Error', 'data': error_msg}, 500
 
-    def post(self) -> json:
+    def post(self) -> dict:
         """Add a new recipe based on the submitted JSON."""
         logger.debug(f"Request: {request}.")
 
         # Ensure there's a body to accompany this request
-        if not request.data:
+        data = request.get_json(force=True)
+        if data is None:
             return {'message': 'Error', 'data': 'POST request must contain a body.'}, 400
 
-        # Parse the provided JSON
-        try:
-            data = json.loads(request.data.decode())
-            logger.debug(f"Data submitted: {data}")
-
-        except json.JSONDecodeError as e:
-            error_msg = f"Error attempting to decode the provided JSON."
-            logger.debug(f"{error_msg},\n{request.data.__str__()},\n{e}")
-            return {'message': 'Error', 'data': error_msg + f"\n{request.data.__str__()}"}, 400
-        except BaseException as e:
-            error_msg = f"Unknown error attempting to decode JSON."
-            logger.debug(f"{error_msg}\n{e}")
-            return {'message': 'Error', 'data': error_msg}, 400
+        logger.debug(f"Data submitted: {data}")
 
         # Create a new Recipe from the provided data
         try:
@@ -88,7 +76,7 @@ class RecipeCollectionApi(Resource):
 class RecipeApi(Resource):
     """Endpoint: /api/v1/recipe/<recipe_id>"""
 
-    def get(self, recipe_id) -> json:
+    def get(self, recipe_id) -> dict:
         """Return a single recipe."""
         logger.debug(f"Request: {request}, for id: {recipe_id}.")
 
@@ -106,7 +94,7 @@ class RecipeApi(Resource):
             logger.debug(f"{error_msg}\n{e}")
             return {'message': 'Error', 'data': error_msg}, 500
 
-    def put(self, recipe_id) -> json:
+    def put(self, recipe_id) -> dict:
         """
         Update an existing recipe using data from the request.
         Returns a copy of the new recipe.
@@ -114,22 +102,11 @@ class RecipeApi(Resource):
         logger.debug(f"Request: {request}.")
 
         # Ensure there's a body to accompany this request
-        if not request.data:
+        data = request.get_json(force=True)
+        if data is None:
             return {'message': 'Error', 'data': 'POST request must contain a body.'}, 400
 
-        # Load & decode the provided JSON
-        try:
-            data = json.loads(request.data.decode())
-            logger.debug(f"Data submitted: {data}")
-
-        except json.JSONDecodeError as e:
-            error_msg = f"Error attempting to decode the provided JSON."
-            logger.debug(f"{error_msg},\n{request.data.__str__()},\n{e}")
-            return {'message': 'Error', 'data': error_msg + f"\n{request.data.__str__()}"}, 400
-        except BaseException as e:
-            error_msg = f"Unknown error attempting to decode JSON."
-            logger.debug(f"{error_msg}\n{e}")
-            return {'message': 'Error', 'data': error_msg}, 400
+        logger.debug(f"Data submitted: {data}")
 
         # Ensure the /<recipe_id> provided to the endpoint matches the recipe_id in the body.
         if str(recipe_id) != str(data['id']):
@@ -171,7 +148,7 @@ class RecipeApi(Resource):
             logger.debug(f"{error_msg}\n{e}")
             return {'message': 'Error', 'data': error_msg}, 500
 
-    def delete(self, recipe_id) -> json:
+    def delete(self, recipe_id) -> dict:
         """Delete the specified recipe."""
         logger.debug(f"Request: {request}.")
 

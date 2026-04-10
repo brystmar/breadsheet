@@ -1,10 +1,11 @@
 """Replaces all data in local DynamoDB tables with data from the cloud database."""
 from boto3 import resource, client
 from os import environ
-from env_tools import apply_env
+from dotenv import load_dotenv
+
 
 # Environment variables
-apply_env()
+load_dotenv()
 aws_region = environ.get('AWS_REGION')
 aws_access_key = environ.get('AWS_ACCESS_KEY_ID')
 aws_secret_access_key = environ.get('AWS_SECRET_ACCESS_KEY')
