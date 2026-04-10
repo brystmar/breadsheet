@@ -63,6 +63,8 @@ Temporary Items
 
 # User-specific stuff
 .idea/**/workspace.xml
+.idea/workspace.xml
+.idea/breadsheet.iml
 .idea/**/tasks.xml
 .idea/**/usage.statistics.xml
 .idea/**/dictionaries
