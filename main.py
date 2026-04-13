@@ -2,15 +2,6 @@
 # Global logger
 from backend.global_logger import logger, local
 
-# GCP debugger & logging
-try:
-    import googleclouddebugger
-    googleclouddebugger.enable(breakpoint_enable_canary=False)
-    logger.info(f"Successfully initialized googleclouddebugger!")
-except ImportError as e:
-    logger.info(f"Error attempting to initialize googleclouddebugger: {e}")
-    pass
-
 # External packages
 from flask import redirect, request
 from flask_cors import CORS
@@ -26,9 +17,8 @@ from backend.meta_routes import ReadmeApi
 app = create_app()
 logger.info("Created the Flask app")
 
-# Enable CORS for the app; ensure breadsheet-ui is whitelisted
+# Enable CORS for the app, ensure breadsheet-ui is whitelisted
 #   https://flask-cors.readthedocs.io/en/latest/
-# CORS(app, resources={r"/api/*": {"origins": Config.WHITELISTED_ORIGINS}})
 CORS(app, resources=r'/api/*')
 
 api = Api(app)
@@ -43,6 +33,7 @@ api.add_resource(ReplacementCollectionApi,
 
 # Define the meta endpoints
 api.add_resource(ReadmeApi, '/api/v1/readme')
+logger.info("API endpoints initialized")
 
 
 @app.before_request
@@ -54,6 +45,7 @@ def handle_before_request():
             logger.info(f"Requested Host & URL: {request.host} & {request.url}; "
                         f"redirecting to: {Config.DOMAIN_URL}")
             return redirect(Config.DOMAIN_URL, code=301)
+    return None
 
 
 if __name__ == '__main__' and local:
