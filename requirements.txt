@@ -9,6 +9,6 @@ shortuuid==1.0.13
 Markdown==3.10.2
 
 # Testing
-pytest==9.0.2
+pytest==9.0.3
 moto[dynamodb]==5.1.22
 testfixtures==11.0.0
