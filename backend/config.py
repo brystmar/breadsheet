@@ -25,6 +25,9 @@ class Config(object):
     AWS_ARN = environ.get('AWS_ARN')
     logger.debug(f"Running in AWS Region: {AWS_REGION}")
 
+    # Neon Postgres (pooled connection string; locally this is the `dev` branch)
+    DATABASE_URL = environ.get('DATABASE_URL')
+
     # App-related
     BOUND_PORT = environ.get('BOUND_PORT')
     DOMAIN_URL = environ.get('DOMAIN_URL')
