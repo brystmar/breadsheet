@@ -8,25 +8,44 @@ schedule. Lives at breadsheet.com.
 
 ## Companion Repos
 - **This repo** (`brystmar/breadsheet`): Python/Flask backend
-- **Frontend** (`brystmar/breadsheet-ui`): React UI (early-stage, planned migration)
+- **Frontend** (`brystmar/breadsheet-ui`): React + Vite UI — frontend. It calls
+  this backend's `/api/v1` JSON endpoints. (The old Jinja2/WTForms UI was retired years ago.)
+- **Planned** (`brystmar/breadsheet-hass`): Home Assistant integration (Second Rise project)
 
 ## Stack
 | Layer | Technology |
 |---|---|
-| Language | Python 3.13 |
-| Framework | Flask + Flask-RESTful |
-| Database | DynamoDB (AWS) — **not Postgres** |
-| ORM | PynamoDB |
-| Current UI | WTForms + Jinja2 templates + Bootstrap (server-rendered) |
-| Planned UI | React (breadsheet-ui repo, in progress) |
-| Styling | SASS |
-| Cloud | Google App Engine (GCP) |
-| Local | Docker Compose |
-| Tests | pytest (co-located *_test.py files in backend/) |
+| Language | Python 3.14 (App Engine runtime `python314`) |
+| Framework | Flask 3.1 + Flask-RESTful (JSON API only, no server-rendered UI) |
+| Database | DynamoDB (AWS) — Postgres migration planned, see below |
+| ORM | PynamoDB 6.1 |
+| Frontend | React (breadsheet-ui repo) |
+| Cloud | Google App Engine standard (GCP) |
+| Local | Docker Compose (DynamoDB Local) |
+| Tests | pytest + moto (co-located *_test.py files in backend/) |
 | IDE | PyCharm Professional |
 
-> **Important:** This project uses DynamoDB + PynamoDB, not SQLAlchemy + Postgres.
-> There are no Alembic migrations. Do not suggest Postgres patterns here.
+> **Important:** Today this project uses DynamoDB + PynamoDB. There is no SQLAlchemy and
+> no Alembic yet. A move to Postgres (Neon) with SQLAlchemy + Alembic is planned as part of
+> Second Rise (see `docs/second-rise-feature.md`). Until that task begins, keep
+> new code on PynamoDB and don't add Postgres patterns.
+
+## Dependency Versions
+Pinned in `requirements.txt` (last upgraded Nov 2026):
+
+| Package | Version |
+|---|---|
+| Flask | 3.1.3 |
+| Flask-RESTful | 0.3.10 (unmaintained since 2023; candidate for removal with `/api/v2`) |
+| Flask-Cors | 6.0.5 |
+| pynamodb | 6.1.0 |
+| boto3 | 1.43.123 |
+| python-dotenv | 1.2.4 |
+| shortuuid | 1.0.13 |
+| Markdown | 3.11.2 |
+| pytest | 9.2.0 |
+| moto[dynamodb] | 5.2.5 |
+| testfixtures | 12.4.0 |
 
 ## Repo Structure
 ```
@@ -39,7 +58,7 @@ breadsheet/
 ├── backend/
 │   ├── __init__.py          # create_app() factory
 │   ├── config.py            # Config: AWS region, ports, domain, env detection
-│   ├── global_logger.py     # Logger + `local` bool (True when running in PyCharm)
+│   ├── global_logger.py     # Logger + `local` bool (True when APP_ENV=local)
 │   ├── functions.py         # Utilities incl. generate_new_id()
 │   ├── model_attributes.py  # Shared DynamoDB attribute definitions
 │   ├── models.py            # PynamoDB models: Recipe, Step (MapAttribute), Replacement
@@ -48,7 +67,7 @@ breadsheet/
 │   ├── meta_routes.py       # ReadmeApi
 │   └── *_test.py            # Co-located test files for each module
 ├── data/                    # Data fixtures / seed files
-├── templates/               # Jinja2 HTML templates (current server-rendered UI)
+├── templates/               # Static App Engine error pages only (referenced in app.yaml)
 └── etc/                     # Miscellaneous config/scripts
 ```
 
@@ -117,15 +136,17 @@ Key values:
 
 ## Running Locally
 ```bash
-# Requires local DynamoDB instance on port 8008
-python main.py
+# Requires local DynamoDB instance on port 8008 (docker compose up breadsheet-db)
+.venv/bin/python main.py
 ```
+The `.venv` is built on Python 3.14 to match App Engine.
 
 ## GCP Notes
-- `app.yaml` configures App Engine runtime
+- `app.yaml` sets `runtime: python314` (newest App Engine standard Python runtime;
+  end of support 2030-10-10). App Engine applies patch releases automatically.
+- Deploy with `./deploy.sh` (`gcloud app deploy`)
 - Legacy `breadsheet.appspot.com` requests 301-redirected to `breadsheet.com`
   in `handle_before_request()` in `main.py`
-- `googleclouddebugger` imported with graceful `ImportError` fallback for local dev
 
 ## Testing
 ```bash
@@ -141,8 +162,7 @@ Co-located `*_test.py` files alongside each module in `backend/`.
 - CORS enabled for all `/api/*` routes
 
 ## Current Status
-- Backend stable and deployed to GCP
-- Current UI is functional Jinja2/WTForms (server-rendered)
-- React frontend migration planned — breadsheet-ui repo exists with detailed style
-  guide, component development in early stages
-- Less actively developed than greeting-cards at present
+- Backend stable and deployed to GCP; React (breadsheet-ui) is the only frontend
+- Runtime and dependencies upgraded to current stable (Python 3.14, Nov 2026)
+- Next up: Second Rise (`docs/second-rise-feature.md`): Postgres on Neon
+  via SQLAlchemy + Alembic, no-login identity, bakes, `/api/v2`, Home Assistant integration
