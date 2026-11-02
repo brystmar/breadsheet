@@ -30,6 +30,18 @@ schedule. Lives at breadsheet.com.
 > Second Rise (see `docs/second-rise-feature.md`). Until that task begins, keep
 > new code on PynamoDB and don't add Postgres patterns.
 
+### Neon Postgres (set up, not yet used by the API)
+- Neon project `winter-sky-40837772` (`breadsheet`), region `aws-us-west-2`, Postgres 18.
+  Branches: `production` (default) and `dev` (local development).
+- The repo is linked via the git-ignored `.neon` file; `neon checkout <branch>` switches
+  branches and pulls that branch's `DATABASE_URL` (pooled) and `DATABASE_URL_UNPOOLED` into `.env`.
+- `backend/database.py` `get_connection()` opens a psycopg connection from `Config.DATABASE_URL`.
+- The pooled URL goes through PgBouncer in transaction mode, so session state (temp tables,
+  `SET`, advisory locks) can leak between requests. Keep it inside a single transaction.
+  Use `DATABASE_URL_UNPOOLED` for migrations.
+- `backend/database_test.py` runs a live round trip against the branch in `.env`; it is
+  skipped when `DATABASE_URL` is unset.
+
 ## Dependency Versions
 Pinned in `requirements.txt` (last upgraded Nov 2026):
 
@@ -43,6 +55,7 @@ Pinned in `requirements.txt` (last upgraded Nov 2026):
 | python-dotenv | 1.2.4 |
 | shortuuid | 1.0.13 |
 | Markdown | 3.11.2 |
+| psycopg[binary] | 3.3.6 |
 | pytest | 9.2.0 |
 | moto[dynamodb] | 5.2.5 |
 | testfixtures | 12.4.0 |

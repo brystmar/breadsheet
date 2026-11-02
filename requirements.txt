@@ -7,6 +7,7 @@ boto3==1.43.123
 python-dotenv==1.2.4
 shortuuid==1.0.13
 Markdown==3.11.2
+psycopg[binary]==3.3.6
 
 # Testing
 pytest==9.2.0

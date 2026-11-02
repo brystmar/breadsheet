@@ -161,3 +161,4 @@ pip-selfcheck.json
 /.aws/*
 /.cert/
 /data/recipes_export.csv
+.neon
