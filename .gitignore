@@ -63,6 +63,9 @@ Temporary Items
 # Covers JetBrains IDEs: IntelliJ, RubyMine, PhpStorm, AppCode, PyCharm, CLion, Android Studio and WebStorm
 # Reference: https://intellij-support.jetbrains.com/hc/en-us/articles/206544839
 
+# IDE settings are per-machine; nothing in .idea is needed to build or deploy
+.idea/
+
 # User-specific stuff
 .idea/**/workspace.xml
 .idea/workspace.xml
