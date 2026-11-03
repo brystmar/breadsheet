@@ -179,3 +179,6 @@ Co-located `*_test.py` files alongside each module in `backend/`.
 - Runtime and dependencies upgraded to current stable (Python 3.14, Nov 2026)
 - Next up: Second Rise (`brystmar/breadsheet-hass/docs/second-rise-feature.md`): Postgres on Neon
   via SQLAlchemy + Alembic, no-login identity, bakes, `/api/v2`, Home Assistant integration
+
+## Second Rise spec
+The source of truth is `../breadsheet-hass/docs/second-rise-feature.md`, in the sibling checkout. Read it before planning or executing any Second Rise work. Never copy it into this repo; if it needs changes, say so and stop.
