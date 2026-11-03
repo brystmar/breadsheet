@@ -27,7 +27,7 @@ schedule. Lives at breadsheet.com.
 
 > **Important:** Today this project uses DynamoDB + PynamoDB. There is no SQLAlchemy and
 > no Alembic yet. A move to Postgres (Neon) with SQLAlchemy + Alembic is planned as part of
-> Second Rise (see `docs/second-rise-feature.md`). Until that task begins, keep
+> Second Rise (see `brystmar/breadsheet-hass/docs/second-rise-feature.md`). Until that task begins, keep
 > new code on PynamoDB and don't add Postgres patterns.
 
 ### Neon Postgres (set up, not yet used by the API)
@@ -177,5 +177,5 @@ Co-located `*_test.py` files alongside each module in `backend/`.
 ## Current Status
 - Backend stable and deployed to GCP; React (breadsheet-ui) is the only frontend
 - Runtime and dependencies upgraded to current stable (Python 3.14, Nov 2026)
-- Next up: Second Rise (`docs/second-rise-feature.md`): Postgres on Neon
+- Next up: Second Rise (`brystmar/breadsheet-hass/docs/second-rise-feature.md`): Postgres on Neon
   via SQLAlchemy + Alembic, no-login identity, bakes, `/api/v2`, Home Assistant integration
