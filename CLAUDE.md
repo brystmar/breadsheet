@@ -30,6 +30,10 @@ schedule. Lives at breadsheet.com.
 > DynamoDB tables (`Recipe`, `Replacement` in `us-west-1`) stay as a fallback until v2 has run
 > cleanly for a while (spec item 6); no code in this repo reads them except the one-time
 > migration script (item 4). Local `.env` points at a copy in `us-east-2`; production is `us-west-1`.
+>
+> `etc/migrate_dynamodb.py` loads and verifies in one transaction, comparing the new v1 responses
+> with the live production API; it's a dry run unless given `--commit`. See its docstring for usage.
+> The Neon `dev` branch is loaded. Production gets loaded at the M1 cutover, right before traffic moves.
 
 ### Neon Postgres
 - Neon project `winter-sky-40837772` (`breadsheet`), region `aws-us-west-2`, Postgres 18.
@@ -74,6 +78,8 @@ breadsheet/
 ├── docker-compose.yaml      # Local Postgres for tests
 ├── conftest.py              # Pytest fixtures (app, test database, client)
 ├── migrations/              # Alembic (Flask-Migrate) env and versions
+├── etc/
+│   └── migrate_dynamodb.py  # One-time DynamoDB → Postgres load and verification (item 4)
 ├── backend/
 │   ├── __init__.py          # create_app() factory: db, migrations, CORS, endpoints
 │   ├── config.py            # Config: database URLs, ports, domain, env detection

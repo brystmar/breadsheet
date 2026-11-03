@@ -1,0 +1,4 @@
+# One-time DynamoDB to Postgres migration (etc/migrate_dynamodb.py); not installed on App Engine
+-r ../requirements.txt
+boto3==1.43.123
+certifi==2026.10.23
