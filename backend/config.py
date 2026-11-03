@@ -29,8 +29,13 @@ class Config(object):
     # App-related
     BOUND_PORT = environ.get('BOUND_PORT')
     DOMAIN_URL = environ.get('DOMAIN_URL')
-    WHITELISTED_ORIGIN = environ.get('WHITELISTED_ORIGIN')
-    WHITELISTED_ORIGINS = environ.get('WHITELISTED_ORIGINS')
+
+    # Credentialed CORS: only these origins may call /api/*, and wildcards are never allowed
+    CORS_ORIGINS = ['https://breadsheet.com', 'https://www.breadsheet.com']
+    if local:
+        # The Vite dev server (npm start)
+        CORS_ORIGINS += ['http://localhost:3000', 'http://127.0.0.1:3000']
+
     SECRET_KEY = environ.get('SECRET_KEY') or '0mW7@LN0n32L6ntaj0d8jzsXiAW4mkPL7u5l'
     logger.debug(f"DOMAIN_URL: {DOMAIN_URL}")
     logger.debug(f"SECRET_KEY: {SECRET_KEY}")

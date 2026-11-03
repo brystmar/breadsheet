@@ -226,7 +226,7 @@ docker compose up -d breadsheet-db   # local Postgres 18 on port 5433 (data in t
 - Datetimes stored as UTC; v1 `to_dict()` returns ISO strings by default, or epoch ms
   with `dates_as_epoch=True`
 - Ids are UUIDv7, assigned by the server; never accept client-supplied ids
-- CORS enabled for all `/api/*` routes
+- Credentialed CORS on `/api/*` for `Config.CORS_ORIGINS` only: `https://breadsheet.com` and `https://www.breadsheet.com`, plus the Vite dev server when `local`. Never use wildcard origins or set `Access-Control-Allow-Origin` by hand
 
 ## Current Status
 - Backend stable and deployed to GCP; React (breadsheet-ui) is the only frontend
