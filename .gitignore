@@ -162,3 +162,6 @@ pip-selfcheck.json
 /.cert/
 /data/recipes_export.csv
 .neon
+
+# DynamoDB export snapshots from etc/migrate_dynamodb.py
+exports/
