@@ -1,9 +1,15 @@
 from backend.global_logger import logger
+from backend.database import db
 from backend.models import Replacement
 from flask import request
 from flask_restful import Resource
-from pynamodb.exceptions import ScanError, DoesNotExist, GetError, QueryError,\
-    PutError, PynamoDBException
+from sqlalchemy import select
+from sqlalchemy.exc import SQLAlchemyError
+
+
+def get_replacement(scope, old_value) -> Replacement | None:
+    return db.session.scalar(select(Replacement).filter_by(scope=scope, old=old_value))
+
 
 class ReplacementCollectionApi(Resource):
     """
@@ -16,37 +22,23 @@ class ReplacementCollectionApi(Resource):
         """Returns a collection of all replacements for Paprika-compliant markup."""
         logger.debug(f"Request: {request}")
 
+        # Determine what to return; within a scope, replacements are sorted by `old` in byte order
+        query = select(Replacement).order_by(Replacement.scope, Replacement.old)
+        if scope in ['ingredients', 'directions']:
+            query = query.filter_by(scope=scope)
+        elif scope != 'all':
+            return {'message': 'Error', 'data': f'Invalid scope: {scope}'}, 404
+
         try:
-            # Determine what to return
-            if scope == 'all':
-                items = Replacement.scan()
-            elif scope in ['ingredients', 'directions']:
-                items = Replacement.query(scope)
-            else:
-                return {'message': 'Error', 'data': f'Invalid scope: {scope}'}, 404
+            items = db.session.scalars(query).all()
 
-        except ScanError as e:
-            error_msg = f"Scope {scope} not found."
-            logger.debug(f"{error_msg}\n{e}")
-            return {'message': 'Error', 'data': error_msg}, 404
-
-        except QueryError as e:
-            error_msg = f"Scope {scope} not found."
-            logger.debug(f"{error_msg}\n{e}")
-            return {'message': 'Error', 'data': error_msg}, 404
-
-        except BaseException as e:
+        except SQLAlchemyError as e:
             error_msg = f"Error searching for scope {scope}."
             logger.debug(f"{error_msg}\n{e}")
             return {'message': 'Error', 'data': error_msg}, 404
 
-        ingredients = []
-        directions = []
-        for i in items:
-            if i['scope'] == 'ingredients':
-                ingredients.append(i.to_dict())
-            if i['scope'] == 'directions':
-                directions.append(i.to_dict())
+        ingredients = [i.to_dict() for i in items if i.scope == 'ingredients']
+        directions = [i.to_dict() for i in items if i.scope == 'directions']
 
         output = {}
         if ingredients:
@@ -66,44 +58,40 @@ class ReplacementCollectionApi(Resource):
             logger.debug(f"{error_msg}")
             return {'message': 'Validation Error', 'data': error_msg}, 422
 
-        # Retrieve the record
-        try:
-            rep_to_update = Replacement.get(hash_key=scope, range_key=old_value)
-            exists = True
-            logger.debug(f"Found the requested Replacement record to update: "
-                         f"{rep_to_update}")
-        except (GetError, DoesNotExist):
-            rep_to_update = Replacement()
-            exists = False
-            logger.debug(f"Requested record does not exist: hash_key={scope}, "
-                         f"range_key={old_value}.  Must be a new entry.")
-
         # Load the provided JSON
         data = request.get_json(force=True)
         logger.debug(f"Data submitted: {data}")
 
-        if not exists:
-            try:
-                rep_to_update = Replacement(**data)
-            except PynamoDBException as e:
-                error_msg = f"Error adding scope: {scope}, old: {old_value}, new: {data['new']}."
-                logger.debug(f"{error_msg}\n{e}")
-                return {'message': 'Error', 'data': error_msg}, 500
-        else:
-            rep_to_update.scope = scope
-            rep_to_update.old = old_value
-            rep_to_update.new = data['new']
-
         try:
-            rep_to_update.save()
+            # Retrieve the record
+            rep_to_update = get_replacement(scope, old_value)
+            exists = rep_to_update is not None
+
+            if not exists:
+                # A new record takes its scope and old value from the body, as v1 always has
+                logger.debug(f"Requested record does not exist: scope={scope}, old={old_value}.  "
+                             f"Must be a new entry.")
+                try:
+                    rep_to_update = Replacement(scope=data['scope'], old=data['old'], new=data['new'])
+                except (KeyError, TypeError) as e:
+                    error_msg = f"Error adding scope: {scope}, old: {old_value}, new: {data.get('new')}."
+                    logger.debug(f"{error_msg}\n{e}")
+                    return {'message': 'Error', 'data': error_msg}, 500
+                db.session.add(rep_to_update)
+            else:
+                logger.debug(f"Found the requested Replacement record to update: {rep_to_update}")
+                rep_to_update.new = data['new']
+
+            db.session.commit()
             logger.debug(f"End of ReplacementCollectionApi.put({scope}, {old_value})")
             if exists:
                 return {'message': 'Success', 'data': 'Replacement record updated.'}, 200
             else:
                 return {'message': 'Created', 'data': 'Replacement record created.'}, 201
 
-        except PutError as e:
-            error_msg = f"Error updating scope: {scope}, old: {old_value}, new: {data['new']}."
+        except SQLAlchemyError as e:
+            db.session.rollback()
+            error_msg = f"Error updating scope: {scope}, old: {old_value}, new: {data.get('new')}."
             logger.debug(f"{error_msg}\n{e}")
             return {'message': 'Error', 'data': error_msg}, 500
 
@@ -117,21 +105,26 @@ class ReplacementCollectionApi(Resource):
             return {'message': 'Error', 'data': error_msg}, 400
 
         try:
-            item = Replacement.get(hash_key=scope, range_key=old_value)
-        except PynamoDBException as e:
+            item = get_replacement(scope, old_value)
+        except SQLAlchemyError as e:
             logger.debug(f"Error {e} retrieving Replacement w/scope: {scope}, old: {old_value}")
+            item = None
+
+        if item is None:
             return {'message': 'Error',
                     'data': f"Cannot find Replacement w/scope: {scope}, old: {old_value}"}, 404
 
         try:
             footprint = f"{item}"
             logger.debug(f"Attempting to delete Replacement {footprint}")
-            item.delete()
+            db.session.delete(item)
+            db.session.commit()
             logger.info(f"{footprint} deleted successfully.")
             logger.debug(f"End of ReplacementCollectionApi.DELETE")
             return {'message': 'Success', 'data': f'{footprint} deleted successfully.'}, 200
 
-        except PynamoDBException as e:
+        except SQLAlchemyError as e:
+            db.session.rollback()
             error_msg = f"Error attempting to delete recipe {item}."
             logger.debug(f"{error_msg}\n{e}")
             return {'message': 'Error', 'data': error_msg}, 500

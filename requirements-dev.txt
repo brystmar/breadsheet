@@ -1,0 +1,4 @@
+# Local development and testing only; App Engine installs requirements.txt alone
+-r requirements.txt
+pytest==9.2.0
+testfixtures==12.4.0

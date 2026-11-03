@@ -1,5 +1,6 @@
 """Defines an object used to configure parameters for our Flask app."""
 from backend.global_logger import logger, local
+from backend.database import ENGINE_OPTIONS, sqlalchemy_url
 from os import environ
 
 
@@ -16,17 +17,14 @@ class Config(object):
         # When running in GCP, these are loaded from the env_variables.yaml file when the app loads
         pass
 
-    # AWS credentials
-    AWS_ACCOUNT_ID = environ.get('AWS_ACCOUNT_ID')
-    AWS_ACCESS_KEY = environ.get('AWS_ACCESS_KEY_ID')
-    AWS_SECRET_ACCESS_KEY = environ.get('AWS_SECRET_ACCESS_KEY')
-    AWS_USER = environ.get('AWS_USER')
-    AWS_REGION = environ.get('AWS_REGION')
-    AWS_ARN = environ.get('AWS_ARN')
-    logger.debug(f"Running in AWS Region: {AWS_REGION}")
-
-    # Neon Postgres (pooled connection string; locally this is the `dev` branch)
+    # Neon Postgres; locally these point at the `dev` branch
+    # The app uses the pooled URL; Alembic migrations use the unpooled (direct) URL, since
+    #   PgBouncer's transaction mode can leak session state between connections
     DATABASE_URL = environ.get('DATABASE_URL')
+    DATABASE_URL_UNPOOLED = environ.get('DATABASE_URL_UNPOOLED')
+    SQLALCHEMY_DATABASE_URI = sqlalchemy_url(DATABASE_URL)
+    SQLALCHEMY_ENGINE_OPTIONS = ENGINE_OPTIONS
+    MIGRATIONS_DATABASE_URI = sqlalchemy_url(DATABASE_URL_UNPOOLED)
 
     # App-related
     BOUND_PORT = environ.get('BOUND_PORT')

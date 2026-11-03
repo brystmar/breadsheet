@@ -1,7 +1,23 @@
 """Config file for extending pytest functionality to packages w/o native support."""
-from pytest import fixture
-from moto import mock_aws
+from backend import create_app
+from backend.config import Config
+from backend.database import db
+from flask_migrate import downgrade, upgrade
 from os import environ
+from pytest import fixture, skip
+from sqlalchemy import create_engine, text
+from sqlalchemy.exc import OperationalError
+
+# Disposable local Postgres from docker-compose (`docker compose up -d breadsheet-db`); never Neon
+TEST_DATABASE_URL = environ.get('TEST_DATABASE_URL',
+                                'postgresql+psycopg://breadsheet:breadsheet@localhost:5433/breadsheet_test')
+
+
+class TestConfig(Config):
+    __test__ = False  # not a test class, despite the name
+    TESTING = True
+    SQLALCHEMY_DATABASE_URI = TEST_DATABASE_URL
+    MIGRATIONS_DATABASE_URI = TEST_DATABASE_URL
 
 
 @fixture(scope='function')
@@ -14,53 +30,36 @@ def mock_logs():
 
 
 @fixture(scope='session')
-def mock_aws_credentials():
-    """Mocked AWS Credentials for moto."""
-    environ['AWS_ACCESS_KEY_ID'] = 'testing'
-    environ['AWS_SECRET_ACCESS_KEY'] = 'testing'
-    environ['AWS_SECURITY_TOKEN'] = 'testing'
-    environ['AWS_SESSION_TOKEN'] = 'testing'
-    # environ['AWS_REGION'] = 'us-west-1'
+def app():
+    """The Flask app, configured for the test database. Creating it doesn't connect to the database."""
+    return create_app(TestConfig)
 
 
-@fixture(scope='class')
-def mock_recipe(mock_aws_credentials):
-    """Fixture for mocking a local dynamodb instance w/test credentials."""
-    with mock_aws():
-        # TODO: Figure out how to set test-config params for the pynamodb models
-        from backend.models import Recipe
+@fixture(scope='session')
+def database(app):
+    """Rebuilds the test database's schema from the Alembic migrations, so tests also cover them."""
+    engine = create_engine(TEST_DATABASE_URL)
+    try:
+        with engine.connect():
+            pass
+    except OperationalError:
+        skip("Test Postgres isn't running; start it with `docker compose up -d breadsheet-db`.")
+    finally:
+        engine.dispose()
 
-        # Recipe.Meta.host = 'http://localhost:8009'
-        Recipe.Meta.table_name = 'MockRecipe'
-        Recipe.Meta.aws_access_key_id = 'testing2'
-        Recipe.Meta.aws_secret_access_key = 'testing2'
-        Recipe.Meta.aws_session_token = 'testing2'
-        Recipe.Meta.aws_security_token = 'testing2'
+    with app.app_context():
+        downgrade(revision='base')
+        upgrade()
 
-        Recipe.create_table(read_capacity_units=5, write_capacity_units=5)
-        print(f"new recipe count ======> {Recipe.count()}")
-
-        yield Recipe
-
-        # Teardown
-        Recipe.delete_table()
+    yield db
 
 
-@fixture(scope='class')
-def mock_replacement(mock_aws_credentials):
-    """Fixture for mocking a local dynamodb instance w/test credentials."""
-    with mock_aws():
-        from backend.models import Replacement
+@fixture(scope='function')
+def client(app, database):
+    """A test client with empty tables."""
+    with app.app_context():
+        database.session.execute(text("TRUNCATE recipes, recipe_steps, replacements"))
+        database.session.commit()
 
-        # Replacement.Meta.host = 'http://localhost:8009'
-        Replacement.Meta.table_name = 'MockReplacement'
-        Replacement.Meta.aws_access_key_id = 'testing3'
-        Replacement.Meta.aws_secret_access_key = 'testing3'
-        Replacement.Meta.aws_session_token = 'testing3'
-        Replacement.Meta.aws_security_token = 'testing3'
-        Replacement.create_table(read_capacity_units=5, write_capacity_units=5)
-
-        yield Replacement
-
-        # Teardown
-        Replacement.delete_table()
+    with app.test_client() as test_client:
+        yield test_client

@@ -4,36 +4,13 @@ from backend.global_logger import logger, local
 
 # External packages
 from flask import redirect, request
-from flask_cors import CORS
-from flask_restful import Api
 
-# App components
+# App components (CORS, the database, and the API endpoints are set up in create_app)
 from backend import create_app
 from backend.config import Config
-from backend.recipe_routes import RecipeCollectionApi, RecipeApi
-from backend.replacement_routes import ReplacementCollectionApi
-from backend.meta_routes import ReadmeApi
 
 app = create_app()
 logger.info("Created the Flask app")
-
-# Enable CORS for the app, ensure breadsheet-ui is whitelisted
-#   https://flask-cors.readthedocs.io/en/latest/
-CORS(app, resources=r'/api/*')
-
-api = Api(app)
-logger.info("API initialized")
-
-# Define the functional endpoints
-api.add_resource(RecipeCollectionApi, '/api/v1/recipes')
-api.add_resource(RecipeApi, '/api/v1/recipe/<recipe_id>')
-api.add_resource(ReplacementCollectionApi,
-                 '/api/v1/replacements/<scope>',
-                 '/api/v1/replacements/<scope>/<old_value>')
-
-# Define the meta endpoints
-api.add_resource(ReadmeApi, '/api/v1/readme')
-logger.info("API endpoints initialized")
 
 
 @app.before_request

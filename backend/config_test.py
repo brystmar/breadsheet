@@ -1,20 +1,17 @@
 """Unit tests for the Config class to ensure the environment variables are loaded."""
 from backend.config import Config
-from dotenv import load_dotenv
+from backend.database import sqlalchemy_url
 
 
 def test_config():
-    # Apply environment variables
-    load_dotenv()
-
-    # AWS credentials
-    assert Config.AWS_ACCOUNT_ID is not None
-    assert Config.AWS_ACCESS_KEY is not None
-    assert Config.AWS_SECRET_ACCESS_KEY is not None
-    assert Config.AWS_USER is not None
-    assert Config.AWS_REGION is not None
-    assert Config.AWS_ARN is not None
-
     # App-related
     assert Config.SECRET_KEY is not None
     assert Config.DOMAIN_URL is not None
+
+
+def test_sqlalchemy_url():
+    # Neon provides postgresql:// URLs; SQLAlchemy needs the psycopg 3 driver named explicitly
+    assert sqlalchemy_url("postgresql://u:p@host/db?sslmode=require") == "postgresql+psycopg://u:p@host/db?sslmode=require"
+    assert sqlalchemy_url("postgres://u:p@host/db") == "postgresql+psycopg://u:p@host/db"
+    assert sqlalchemy_url("postgresql+psycopg://u:p@host/db") == "postgresql+psycopg://u:p@host/db"
+    assert sqlalchemy_url(None) is None
