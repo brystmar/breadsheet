@@ -31,7 +31,7 @@ Four releases, each shippable on its own. The `/api/v2` contract only grows: end
 
 **Schema by milestone.** Each milestone adds only its own tables and columns, through Alembic migrations.
 
-- **M1:** `recipes` (v1 columns), `recipe_steps` (with `wait_min` and `wait_max`), `replacements`.
+- **M1:** `recipes` (v1 columns plus `archived_at`, for curating defaults in item 5), `recipe_steps` (with `wait_min` and `wait_max`), `replacements`.
 - **M2:** `users`, `bakes`, `bake_steps`, `events`, and the ownership, slug, suffix, community, detail, and draft columns on `recipes` and `recipe_steps`.
 - **M3:** `connections` and `pairing_codes`.
 - **M4:** no new tables.
@@ -127,7 +127,7 @@ Eight Postgres tables replace every DynamoDB model (`Recipe`, `Step`, and `Repla
 | `users` | id, username (unique, case-insensitive), key\_hash, created\_at, last\_seen\_at | M2. Store only hashes. |
 | `connections` | id, user\_id, label, scopes, token\_hash, created\_at, last\_used\_at, revoked\_at | M3. One row per paired HA instance. Tokens don't expire; they're revoked. |
 | `pairing_codes` | code, user\_id, expires\_at, used\_at | M3. HA pairing. Short-lived, single use. |
-| `recipes` | id, public\_suffix (null for defaults), slug, owner\_id (null = default), source\_recipe\_id, name, author, source, url, difficulty, detail\_level (simple or detailed), is\_draft, published\_at (nullable), archived\_at, timestamps | M1 with v1 columns; the rest in M2. `source_recipe_id` records where a copy came from; no live link. `is_draft` marks agent imports awaiting review. `published_at` set means the recipe is in the community library. |
+| `recipes` | id, public\_suffix (null for defaults), slug, owner\_id (null = default), source\_recipe\_id, name, author, source, url, difficulty, detail\_level (simple or detailed), is\_draft, published\_at (nullable), archived\_at, timestamps | M1 with v1 columns and `archived_at`; the rest in M2. `source_recipe_id` records where a copy came from; no live link. `is_draft` marks agent imports awaiting review. `published_at` set means the recipe is in the community library. |
 | `recipe_steps` | id, recipe\_id, position, text, note, wait\_min, wait\_max, active\_seconds (nullable), needs\_presence (nullable) | M1, with the detail columns in M2. Existing steps migrate as simple: `wait_min = wait_max = then_wait`, detail fields null. |
 | `bakes` | id, public\_suffix, user\_id, recipe\_id, name\_snapshot, anchor\_type (start or finish), anchor\_time, time\_zone (IANA, e.g. `America/Los_Angeles`), alert\_mode (simple or fancy), status, created\_via (web, ha, or agent), idempotency\_key (nullable, unique per user), started\_at, completed\_at, projected\_end | M2. Status: not\_started, in\_progress, completed. Stored status may lag; reads treat any bake past `projected_end` as completed and write that back lazily. |
 | `bake_steps` | id, bake\_id, position, text\_snapshot, wait\_min, wait\_max, wait\_chosen, active\_seconds, needs\_presence, scheduled\_at, completed\_at | M2. Snapshot of the recipe at bake start, so later recipe edits never change a running bake. `completed_at` is the client-supplied time the step was done. |
