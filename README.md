@@ -9,7 +9,7 @@ Enter [breadsheet](http://breadsheet.com): a tool that calculates the start & fi
 
 
 # App Structure
-**Backend:** RESTful APIs built on Flask.  Data stored in DynamoDB.
+**Backend:** RESTful APIs built on Flask.  Data stored in Postgres (Neon).
 
 **Frontend (currently):** WTForms using Jinja2 templates and Bootstrap.
 

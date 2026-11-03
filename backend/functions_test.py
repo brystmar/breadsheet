@@ -1,27 +1,5 @@
-from backend.functions import generate_new_id, replace_text
+from backend.functions import replace_text
 from backend.models import Replacement
-
-
-class TestGenerateNewIds:
-    def test_generate_new_long_id(self):
-        # Run this 100 times to ensure it always returns a 17-character string
-        for i in range(50):
-            test_id = generate_new_id()
-            assert isinstance(test_id, str)
-            assert len(test_id) == 17
-
-            # Should have the same result as above
-            test_id = generate_new_id(short=False)
-            assert isinstance(test_id, str)
-            assert len(test_id) == 17
-
-    def test_generate_new_short_id(self):
-        for i in range(10):
-            short_id = generate_new_id(short=True)
-            assert isinstance(short_id, str)
-            assert len(short_id) == 22
-
-    # TODO: Validate that the id generated is unique
 
 
 class TestReplaceText:

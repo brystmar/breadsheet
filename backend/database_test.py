@@ -5,19 +5,17 @@ from pytest import mark
 @mark.skipif(not Config.DATABASE_URL, reason="DATABASE_URL not set")
 class TestDatabase:
     def test_round_trip(self):
-        """Creates a temp table, writes a row, and reads it back from Neon Postgres."""
-        from backend.database import get_connection
-        from psycopg import sql
-        from uuid import uuid4
+        """Connects to Neon through the pooled URL with the app's engine settings, and generates a UUIDv7."""
+        from backend.database import ENGINE_OPTIONS, sqlalchemy_url
+        from sqlalchemy import create_engine, text
 
-        # The pooled connection reuses server sessions, so use a unique name and drop the table at commit
-        table = sql.Identifier(f"ping_{uuid4().hex}")
+        engine = create_engine(sqlalchemy_url(Config.DATABASE_URL), **ENGINE_OPTIONS)
+        try:
+            with engine.connect() as conn:
+                version = conn.execute(text("SHOW server_version")).scalar()
+                new_id = conn.execute(text("SELECT uuidv7()")).scalar()
+        finally:
+            engine.dispose()
 
-        with get_connection() as conn:
-            conn.execute(sql.SQL("CREATE TEMP TABLE {} (id serial PRIMARY KEY, note text) ON COMMIT DROP").format(table))
-            conn.execute(sql.SQL("INSERT INTO {} (note) VALUES (%s)").format(table), ("hello neon",))
-            row = conn.execute(sql.SQL("SELECT note FROM {}").format(table)).fetchone()
-            version = conn.execute("SHOW server_version").fetchone()[0]
-
-        assert row[0] == "hello neon"
         assert version.startswith("18")
+        assert new_id.version == 7

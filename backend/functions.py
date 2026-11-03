@@ -1,22 +1,5 @@
 """Common functions used across the breadsheet project."""
 from backend.global_logger import logger
-from datetime import datetime, timezone
-from shortuuid import uuid
-
-
-def generate_new_id(short=False) -> str:
-    """
-    Recipe primary key (id) is a 17-digit epoch timestamp.  Ex: 1560043140.168794.  Will eventually change to short uuid.
-    Step primary key (step_id) is a 22-digit short uuid.
-    """
-    # Ensure all ids are the same length.  Timestamps can end in 0, which the system truncates.
-    new_id = ""
-    if short:
-        return uuid()
-    else:
-        while len(new_id) != 17:
-            new_id = str(datetime.now(timezone.utc).timestamp())
-        return new_id
 
 
 def replace_text(text, rep_list, scope) -> str:
