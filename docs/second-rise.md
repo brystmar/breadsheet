@@ -6,7 +6,7 @@ Nov 1, 2026 · updated Nov 3, 2026 · @Thomas
 
 Second Rise turns breadsheet from a standalone scheduler into a tool that tracks a live bake and alerts you when each step is due. Every bake picks its alerts when it starts: Simple, the bake's steps exported as calendar events in an ICS file, or Fancy, Home Assistant notifications with Live Activities. Users keep their own recipe collections and can publish recipes to a community library. Home Assistant users can also let an AI assistant (Claude, ChatGPT, or HA's own Assist) plan a bake around their calendar, start it, check off steps, and import recipes, through tools the breadsheet integration adds to Home Assistant. It stays a public web app at breadsheet.com; HA support is an opt-in custom integration anyone can install from the Home Assistant Marketplace.
 
-To get there, breadsheet gains lightweight no-login identity, personal and community recipes, bakes as a first-class object, optional step detail (wait ranges, hands-on time), and a move from DynamoDB to Postgres. The work ships in four milestones (see Milestones).
+To get there, breadsheet gains lightweight no-login identity, personal and community recipes, bakes as a first-class object, optional step detail (wait ranges, hands-on time), recipe categories and prerequisites, and a move from DynamoDB to Postgres. The work ships in four milestones (see Milestones).
 
 **Audience.** Thomas, friends, and the Home Assistant community. Success is a few dozen monthly active users, not tens of thousands. Designed for (relative) simplicity and low(er) maintenance over scale.
 
@@ -24,15 +24,15 @@ Four releases, each shippable on its own. The `/api/v2` contract only grows: end
 
 | Milestone | What ships | Done when |
 | --- | --- | --- |
-| M1: Database migration | Postgres on Neon, v1 reimplemented on it, `api.breadsheet.com`, backups | breadsheet.com runs on Postgres with v1 and convert-text behaving identically, and DynamoDB is kept as a fallback. Users see no change beyond the curated recipe list. |
+| M1: Database migration | Postgres on Neon, v1 reimplemented on it, `api.breadsheet.com`, backups | breadsheet.com runs on Postgres with v1 and convert-text behaving identically, and DynamoDB is kept as a fallback. Users see no change. |
 | M2: Collections, community, and Simple alerts | Key-based sign-in, personal collections, copying defaults, private recipes, community publishing and copying, bakes, plan and bake views, Simple alerts with ICS export, product events | A new user can sign up, build a collection, publish a recipe or copy a community one, start a bake, and download its steps as calendar events. |
 | M3: Home Assistant (Fancy alerts) | `breadsheet-hass`, pairing and connections, the Fancy option enabled at bake start, Live Activities | A user can pair HA, start a Fancy bake, and get phone notifications with a Done button. |
 | M4: AI agents | The Breadsheet LLM API in `breadsheet-hass`, exposed through HA's MCP Server and Assist; recipe import; schedule preview | Claude and ChatGPT, connected through a user's Home Assistant, can plan, start, and manage a bake, and import a recipe as a draft. |
 
 **Schema by milestone.** Each milestone adds only its own tables and columns, through Alembic migrations.
 
-- **M1:** `recipes` (v1 columns plus `archived_at`, for curating defaults in item 5), `recipe_steps` (with `wait_min` and `wait_max`), `replacements`.
-- **M2:** `users`, `bakes`, `bake_steps`, `events`, and the ownership, slug, suffix, community, detail, and draft columns on `recipes` and `recipe_steps`.
+- **M1:** `recipes` (v1 columns), `recipe_steps` (with `wait_min` and `wait_max`), `replacements`.
+- **M2:** `users`, `bakes`, `bake_steps`, `events`, `recipe_prerequisites`, and the ownership, slug, suffix, community, detail, draft, category, and archive columns on `recipes` and `recipe_steps`.
 - **M3:** `connections` and `pairing_codes`.
 - **M4:** no new tables.
 
@@ -77,7 +77,9 @@ Every question raised during scoping is settled; these are the answers the rest 
 | CORS | Credentialed CORS for `https://breadsheet.com` and `https://www.breadsheet.com` only (plus localhost in dev); no wildcard origins. |
 | HA panel auth | Integration passes a short-lived token in the panel URL; no reliance on cookies. |
 | Device token scopes | Device tokens carry scopes, and every endpoint checks them. Pairing issues all four scopes from M3 (`recipes:read`, `recipes:write`, `bakes:read`, `bakes:write`), so M4's agent tools need no re-pairing. |
-| Existing recipes | Migrated from DynamoDB; Thomas curates the defaults, the rest are archived, not deleted. |
+| Existing recipes | Migrated from DynamoDB; all 11 become defaults (curated Nov 2026). Archiving arrives in M2, for retiring a default later. |
+| Recipe categories | Every recipe has one category, deliberately generic: `bread` (the default) or `prep` (getting something ready to bake with, such as reviving or building a sourdough starter). Stored as text and validated by the API, so adding a category needs no migration. |
+| Prerequisites | A recipe can list `prep` recipes as prerequisites, any one of which gets you ready to start it (for example, an active starter at peak strength). Shown as a reminder with links before a bake starts; never enforced. Scheduling a prerequisite bake to end when the main bake begins is parked; in M4 an agent can plan both bakes. |
 | Backlog | GitHub Projects, one board across all three repos, with a Milestone field. |
 | URLs | Defaults use a pure slug (/recipes/country-sourdough). Personal recipes, published or not, append a 6-character lowercase suffix (/recipes/country-sourdough-k7qx2m); the suffix does the lookup, so renames redirect. Bakes use /bakes/\<suffix>. Old recipe URLs (breadsheet.com/\<id>, with any legacy id, timestamp or UUID) redirect to the homepage; no legacy ids are stored. These public URLs are user-facing only; the API keeps using internal ids. |
 | Link sharing | Anyone with a personal recipe's URL can view it read-only and copy it. Only the owner can edit. |
@@ -120,15 +122,16 @@ A user is a username plus a secret key; whoever holds the key is that user. Ther
 
 ## Data model
 
-Eight Postgres tables replace every DynamoDB model (`Recipe`, `Step`, and `Replacement`) and add identity and bakes, plus the `events` table from Usage metrics. Tables arrive by milestone (see Milestones). Times are stored in UTC; durations in seconds.
+Nine Postgres tables replace every DynamoDB model (`Recipe`, `Step`, and `Replacement`) and add identity, bakes, and recipe prerequisites, plus the `events` table from Usage metrics. Tables arrive by milestone (see Milestones). Times are stored in UTC; durations in seconds.
 
 | Table | Key columns | Notes |
 | --- | --- | --- |
 | `users` | id, username (unique, case-insensitive), key\_hash, created\_at, last\_seen\_at | M2. Store only hashes. |
 | `connections` | id, user\_id, label, scopes, token\_hash, created\_at, last\_used\_at, revoked\_at | M3. One row per paired HA instance. Tokens don't expire; they're revoked. |
 | `pairing_codes` | code, user\_id, expires\_at, used\_at | M3. HA pairing. Short-lived, single use. |
-| `recipes` | id, public\_suffix (null for defaults), slug, owner\_id (null = default), source\_recipe\_id, name, author, source, url, difficulty, detail\_level (simple or detailed), is\_draft, published\_at (nullable), archived\_at, timestamps | M1 with v1 columns and `archived_at`; the rest in M2. `source_recipe_id` records where a copy came from; no live link. `is_draft` marks agent imports awaiting review. `published_at` set means the recipe is in the community library. |
+| `recipes` | id, public\_suffix (null for defaults), slug, owner\_id (null = default), source\_recipe\_id, name, author, source, url, difficulty, category (bread or prep), detail\_level (simple or detailed), is\_draft, published\_at (nullable), archived\_at, timestamps | M1 with v1 columns; the rest in M2. `archived_at` set hides a recipe from every recipe list, v1 and v2, though it still opens by id or URL. `source_recipe_id` records where a copy came from; no live link. `is_draft` marks agent imports awaiting review. `published_at` set means the recipe is in the community library. |
 | `recipe_steps` | id, recipe\_id, position, text, note, wait\_min, wait\_max, active\_seconds (nullable), needs\_presence (nullable) | M1, with the detail columns in M2. Existing steps migrate as simple: `wait_min = wait_max = then_wait`, detail fields null. |
+| `recipe_prerequisites` | recipe\_id, prerequisite\_recipe\_id, position | M2. Alternatives: any one prerequisite satisfies the requirement, listed in `position` order. Every prerequisite must be a `prep` recipe, and `prep` recipes have no prerequisites of their own, so there are no chains or cycles. Deleting either recipe removes the link. |
 | `bakes` | id, public\_suffix, user\_id, recipe\_id, name\_snapshot, anchor\_type (start or finish), anchor\_time, time\_zone (IANA, e.g. `America/Los_Angeles`), alert\_mode (simple or fancy), status, created\_via (web, ha, or agent), idempotency\_key (nullable, unique per user), started\_at, completed\_at, projected\_end | M2. Status: not\_started, in\_progress, completed. Stored status may lag; reads treat any bake past `projected_end` as completed and write that back lazily. |
 | `bake_steps` | id, bake\_id, position, text\_snapshot, wait\_min, wait\_max, wait\_chosen, active\_seconds, needs\_presence, scheduled\_at, completed\_at | M2. Snapshot of the recipe at bake start, so later recipe edits never change a running bake. `completed_at` is the client-supplied time the step was done. |
 | `replacements` | id, scope, old, new | M1. Convert-text substitutions; unique on (scope, old), matching the DynamoDB hash and range keys. Migrated as is. |
@@ -146,7 +149,7 @@ Eight Postgres tables replace every DynamoDB model (`Recipe`, `Step`, and `Repla
 - A slug is generated from the recipe name (lowercase, hyphenated). Default slugs must be unique among defaults; a collision appends `-2`, `-3`, and so on. Default slugs never change once created.
 - A public suffix is 6 random characters from `a-z0-9`, checked against existing suffixes in the same table and regenerated on collision. Personal recipes and bakes each get one. Publishing a recipe doesn't change its URL.
 - Renaming a personal recipe regenerates its slug and keeps its suffix, so old links still resolve and redirect.
-- Copying a recipe creates a new slug from the name and a new suffix.
+- Copying a recipe creates a new slug from the name and a new suffix. The copy keeps the source's category and prerequisite links.
 
 **Projection rule.** A step's `scheduled_at` is the previous step's completion time (or that step's scheduled time if it isn't checked off yet) plus that previous step's `wait_chosen`. Checking off a step re-projects every later step.
 
@@ -187,14 +190,14 @@ All new functionality lives under `/api/v2` on `api.breadsheet.com`. Each milest
 | `POST /api/v2/session` | Exchange key for session cookie | Browser | M2 |
 | `GET /api/v2/session` | Who am I: the signed-in user, or 401 | Browser | M2 |
 | `DELETE /api/v2/session` | Sign out this browser (clears the cookie) | Browser | M2 |
-| `GET /api/v2/recipes?q=<text>` | Defaults plus the caller's personal recipes, optionally filtered by name; drafts only for their owner | All | M2 |
+| `GET /api/v2/recipes?q=<text>&category=<category>` | Defaults plus the caller's personal recipes, optionally filtered by name and category; drafts only for their owner | All | M2 |
 | `POST /api/v2/recipes` | Create a personal recipe from scratch | Browser | M2 |
 | `POST /api/v2/recipes/<id>/copy` | Copy a recipe (default, community, or shared personal) into a new personal recipe | Browser | M2 |
 | `GET /api/v2/recipes/<id>` | Read a recipe: defaults and community recipes for anyone, personal for anyone with the link, drafts for the owner only | All | M2 |
 | `PUT/DELETE /api/v2/recipes/<id>` | Edit or delete a personal recipe (owner only); saving with `is_draft: false` takes a draft live | Browser | M2 |
 | `POST /api/v2/recipes/<id>/publish` | Publish a personal recipe to the community library (owner only; must pass validation) | Browser | M2 |
 | `DELETE /api/v2/recipes/<id>/publish` | Unpublish a recipe (owner only) | Browser | M2 |
-| `GET /api/v2/community/recipes?q=<text>` | Browse the community library, optionally filtered by name | All | M2 |
+| `GET /api/v2/community/recipes?q=<text>&category=<category>` | Browse the community library, optionally filtered by name and category | All | M2 |
 | `GET /api/v2/recipes/by-slug/<slug>` | Resolve a default recipe URL; returns the recipe with its internal id | Browser | M2 |
 | `GET /api/v2/recipes/by-suffix/<suffix>` | Resolve a personal recipe URL (anyone with the link, read-only); returns the recipe with its internal id and current slug, so the UI can redirect renamed URLs | Browser | M2 |
 | `GET /api/v2/bakes?status=active` | Active (not started or in progress) bakes with full step schedule; `alert=fancy` limits to Fancy bakes | All | M2 (`alert` filter M3) |
@@ -295,7 +298,7 @@ Arrives in M4. `breadsheet-hass` registers a **Breadsheet** LLM API with Home As
 
 | Tool | What it does | Device token scope |
 | --- | --- | --- |
-| `search_recipes` | Find recipes by name, including the community library; returns ids, detail level, and total time | `recipes:read` |
+| `search_recipes` | Find recipes by name or category, including the community library; returns ids, category, detail level, total time, and prerequisites | `recipes:read` |
 | `get_recipe` | Full recipe with steps, waits, ranges, and hands-on time, with unknowns marked | `recipes:read` |
 | `import_recipe` | Turn a recipe the agent has parsed into a draft personal recipe; returns validation results and a review link | `recipes:write` |
 | `preview_schedule` | Projected timeline for a recipe, anchor, time zone, and chosen waits; nothing is saved | `recipes:read` |
@@ -316,15 +319,17 @@ Tool descriptions spell out the units (seconds), the time zone handling, the "un
 
 The current schedule table stays nearly untouched; new information goes into separate views so the mobile layout isn't crowded.
 
-- **My recipes (M2):** the signed-in user's collection: personal recipes, plus the defaults to browse and copy. Incognito shows the defaults only.
-- **Community library (M2):** browse and search published recipes, each showing its name, publisher's username, and detail level, with a "Make it mine" copy button. Visible to everyone, including incognito.
+- **My recipes (M2):** the signed-in user's collection: personal recipes, plus the defaults to browse and copy, filterable by category. Incognito shows the defaults only.
+- **Community library (M2):** browse and search published recipes, each showing its name, publisher's username, category, and detail level, with a "Make it mine" copy button and a category filter. Visible to everyone, including incognito.
 - **Recipe view (M2):** edit the template. Visited rarely, so it can carry more density. Defaults, community recipes, and other users' shared recipes show a "Make it mine" copy button instead of edit controls.
+  - A **category** picker (Bread or Prep), and for non-prep recipes a **prerequisites** picker listing the prep recipes the user can see. Prerequisites show as "Before you start", with a link to each.
   - A **Simple / Detailed** toggle per recipe. Simple (the default) shows one Then Wait per step, as today. Detailed reveals each step's wait range (min and max), hands-on time, and a "needs you home" checkbox.
   - A **Publish to community** control on the user's own recipes, with Unpublish once published. Publishing is blocked, with the validation messages shown, until the recipe passes validation.
   - A failed save keeps the user's unsaved changes in the form and says so; the user retries.
   - Imported drafts (M4) open here with a banner ("Imported by your assistant. Review and save.") and inline validation; Save takes the draft live.
 - **Plan view (M2):** today's screen. The Then Wait input stays as is, with the range as a small caption beneath it (for example "60–90"), turning amber when the chosen value is outside the range. Adds a Start bake button.
 - **Start bake (M2):** anchor and time zone confirmation, then the alert options as two radio buttons.
+  - A recipe with prerequisites shows a reminder first (for example, "You'll need an active starter at peak strength when this bake starts"), linking to each prerequisite so the user can plan it.
   - **Simple** is selected by default and deliberately plain-jane: default system font, thin gray border, no color, no icon. Beside it, the "Export calendar events as ICS" checkbox.
   - **Fancy** gets a little sparkle: a ✨ next to the title and a soft gradient border with a slow shimmer, a few twinkles on hover. In M2 it's disabled, shown dimmed and without animation, with a "Coming soon!" tooltip on hover, focus, or tap. In M3 it's enabled, and choosing it without a paired HA instance leads to the pairing flow. All animation stops under `prefers-reduced-motion`.
 - **Bake view (M2):** the mid-bake phone screen. Current step, next step with countdown, a large Done button, and the remaining timeline. No edit fields. An "Export again" button for the current schedule as ICS, and the alert mode with a way to change it. In-tab browser notifications while it's open. Keeps running from its last fetched schedule if breadsheet is unreachable; Done taps record `completed_at`, queue, and retry, showing "Saved, will sync" until confirmed.
@@ -341,7 +346,7 @@ The app stays on App Engine's free tier; the database moves from DynamoDB to a f
 2. Map `api.breadsheet.com` to the App Engine app (CNAME in Cloudflare, Google-managed certificate). Turn off Cloudflare's "Always Use HTTPS" for that hostname, or keep the record DNS-only, so certificate validation and renewal can reach App Engine. Point `VITE_BACKEND_URL` at it, switch CORS to the credentialed allow-list, and send `credentials: 'include'` on UI fetches.
 3. Replace PynamoDB with SQLAlchemy and Alembic for every model, replacements included, matching the greeting-cards stack. Create only the M1 tables (see Milestones); later milestones add theirs as Alembic migrations. Reimplement the v1 endpoints on Postgres with identical responses and cover them with tests before cutover. Remove PynamoDB, boto3, and moto from requirements.
 4. Write a one-time migration script: export DynamoDB recipes and replacements, load into Postgres, set `wait_min = wait_max = then_wait`.
-5. Thomas reviews migrated recipes and marks which become defaults; the rest get `archived_at`, not deleted. `GET /api/v1/recipes` omits archived recipes, so the homepage lists only the defaults; `GET /api/v1/recipe/<id>` still returns an archived recipe, so existing links keep working.
+5. Thomas reviews migrated recipes: all 11 become defaults and nothing is archived. "Aggressively-Fed Sourdough" was renamed "Revive a Refrigerated Sourdough Starter", the first `prep` recipe.
 6. Verify row counts and spot-check recipes against DynamoDB before cutting over. For replacements, confirm `/api/v1/replacements` responses and convert-text output are identical before and after. Keep the DynamoDB tables until v2 has run cleanly for a while, then delete them and remove the AWS credentials from config.
 7. Back up Postgres weekly: a scheduled GitHub Action runs `pg_dump` and uploads the dump to a private Cloud Storage bucket (inside the free tier), keeping the last 12. Not GitHub artifacts, since they're visible to anyone with access to the repo. Test a restore into a Neon branch once.
 8. Update `CLAUDE.md`: React is the only frontend (Jinja/WTForms long retired), Postgres replaces DynamoDB, the three-repo layout, the milestone plan, and the deploy and migration rules below.
@@ -401,7 +406,7 @@ Second Rise breaks into seven epics across four milestones, roughly in build ord
 | 2 | Create Neon project, dev branch, App Engine secret | breadsheet | Foundation | M1 |
 | 3 | Replace PynamoDB with SQLAlchemy + Alembic for all models (incl. replacements); initial schema with the M1 tables only; v1 endpoints on Postgres with identical responses; remove PynamoDB and boto3; document the expand-then-contract migration rule and the no-promote deploy process in CLAUDE.md | breadsheet | Foundation | M1 |
 | 4 | DynamoDB to Postgres migration script (recipes and replacements) with verification; convert-text behavior unchanged | breadsheet | Foundation | M1 |
-| 5 | Curate default recipes; archive the rest | breadsheet | Foundation | M1 |
+| 5 | Curate default recipes (all 11 kept; no code needed) | breadsheet | Foundation | M1 |
 | 5b | Weekly `pg_dump` backups to a private Cloud Storage bucket; one test restore | breadsheet | Foundation | M1 |
 | 6 | Users, key hashing, session cookie, key-link sign-in, sign-in and signup rate limits; set up shared memcache here, since the rate limits need it first | breadsheet | Identity | M2 |
 | 8 | Admin key for managing defaults and unpublishing community recipes | breadsheet | Identity | M2 |
@@ -409,13 +414,14 @@ Second Rise breaks into seven epics across four milestones, roughly in build ord
 | 11 | Recipe scopes, copy-to-personal, slugs and suffixes, URL lookup endpoints | breadsheet | Recipes and bakes | M2 |
 | 11b | Community recipes: publish and unpublish, community library endpoint, copy from community, admin unpublish | breadsheet | Recipes and bakes | M2 |
 | 12 | Recipe detail levels in the API: wait ranges, hands-on time, needs-presence, validation, the "unknown is not zero" defaults, drafts | breadsheet | Recipes and bakes | M2 |
+| 12b | Recipe categories (`bread`, `prep`) and prerequisites: `recipe_prerequisites` table and validation, category filters on recipe lists, prerequisites in recipe responses, archiving hides recipes from lists; set the migrated recipes' categories | breadsheet | Recipes and bakes | M2 |
 | 13 | Bakes: start, snapshot, projection, check-off with client-supplied `completed_at` (idempotent, first write wins), cancel, auto-complete computed on read, time zones, alert mode, idempotent start | breadsheet | Recipes and bakes | M2 |
 | 13c | ICS export built in the browser: at bake start (Simple checkbox) and "Export again" from the bake view; UTC times, stable UIDs, increasing SEQUENCE | breadsheet-ui | Recipes and bakes | M2 |
 | 14 | Freeze the M2 `/api/v2` contract (including error codes, `service_unavailable` with `Retry-After`, and check-off semantics) and document it; later milestones only add endpoints | breadsheet | Recipes and bakes | M2 |
 | 16 | Mock up plan, start bake, and bake views | breadsheet-ui | UI | M2 |
-| 17 | Recipe view with the Simple/Detailed toggle, range and hands-on editing, "Make it mine", publish/unpublish, the draft review banner, and unsaved changes kept on a failed save | breadsheet-ui | UI | M2 |
-| 17b | My recipes and community library screens: browse, search, copy | breadsheet-ui | UI | M2 |
-| 18 | Plan view range caption and Start bake | breadsheet-ui | UI | M2 |
+| 17 | Recipe view with the Simple/Detailed toggle, range and hands-on editing, category and prerequisite pickers, "Make it mine", publish/unpublish, the draft review banner, and unsaved changes kept on a failed save | breadsheet-ui | UI | M2 |
+| 17b | My recipes and community library screens: browse, search, filter by category, copy | breadsheet-ui | UI | M2 |
+| 18 | Plan view range caption and Start bake, with the prerequisite reminder | breadsheet-ui | UI | M2 |
 | 19 | Bake view and active bakes list; runs from the last fetched schedule during outages, with queued check-offs and a "Saved, will sync" state | breadsheet-ui | UI | M2 |
 | 20 | In-tab browser notifications | breadsheet-ui | UI | M2 |
 | 20b | Start bake alert options: plain Simple radio (default) with the ICS checkbox; sparkly Fancy radio, disabled with a "Coming soon!" tooltip | breadsheet-ui | UI | M2 |
@@ -450,5 +456,6 @@ Second Rise breaks into seven epics across four milestones, roughly in build ord
 - Server-side schedule fitting: `preview_schedule` accepts busy windows and picks the waits itself, instead of the agent trying options.
 - Offline recipe editing and sync.
 - Official HA core integration, if adoption warrants it.
+- Chained bakes: start a prerequisite bake (such as reviving a starter) scheduled so its last step lands at peak strength when the main bake begins. In M4, an agent can plan both bakes with `preview_schedule` instead.
 - Convert-text rewrite: a fuller Paprika 3 formatter to replace the find-and-replace version.
 - Deleting a recipe that has bakes: decide whether to block it, archive instead, or keep the bakes with `recipe_id` set to null. Bakes keep their own step snapshot either way. Needs an interim rule before item 13 ships.
