@@ -18,9 +18,9 @@ def create_app(config_class=Config):
     migrate.init_app(breadapp, db, directory=path.join(path.dirname(path.dirname(__file__)), 'migrations'))
     logger.debug("Database initialized")
 
-    # Enable CORS for the app, ensure breadsheet-ui is whitelisted
+    # Credentialed CORS for breadsheet-ui's origins only, so browsers can send cookies (M2's session)
     #   https://flask-cors.readthedocs.io/en/latest/
-    CORS(breadapp, resources=r'/api/*')
+    CORS(breadapp, resources={r'/api/*': {'origins': breadapp.config['CORS_ORIGINS']}}, supports_credentials=True)
 
     register_endpoints(Api(breadapp))
     logger.debug(f"App created: {breadapp.name}")
