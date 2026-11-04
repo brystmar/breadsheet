@@ -79,7 +79,8 @@ breadsheet/
 ├── conftest.py              # Pytest fixtures (app, test database, client)
 ├── migrations/              # Alembic (Flask-Migrate) env and versions
 ├── etc/
-│   └── migrate_dynamodb.py  # One-time DynamoDB → Postgres load and verification (item 4)
+│   ├── migrate_dynamodb.py  # One-time DynamoDB → Postgres load and verification (item 4)
+│   └── backup_postgres.sh   # Weekly pg_dump to the NAS (item 5b; see Backups)
 ├── backend/
 │   ├── __init__.py          # create_app() factory: db, migrations, CORS, endpoints
 │   ├── config.py            # Config: database URLs, ports, domain, env detection
@@ -209,6 +210,48 @@ No maintenance windows or maintenance mode.
 4. Move traffic: `gcloud app services set-traffic default --splits <version>=1`.
 5. Roll back by moving traffic to the previous version. Keep the last few versions deployed;
    delete older ones to stay within App Engine's version limit.
+
+## Backups
+Weekly `pg_dump` of the production branch to Thomas's TrueNAS NAS, keeping the newest 12
+(`etc/backup_postgres.sh`). The NAS only connects out to Neon. Neon's own point-in-time restore
+covers recent mistakes; these dumps cover anything older or a lost Neon project.
+
+**Read-only role.** Backups connect as `breadsheet_backup`, a member of `pg_read_all_data` only
+(it covers tables added later, too). Create it with SQL, in the Neon SQL Editor on the target
+branch, never on the console's Roles page, which adds roles to `neon_superuser`:
+```sql
+CREATE ROLE breadsheet_backup LOGIN PASSWORD '<strong random password>';
+GRANT pg_read_all_data TO breadsheet_backup;
+```
+
+**NAS setup** (TrueNAS SCALE; Docker must be available to root, which on SCALE means Apps has a
+pool assigned, under Apps → Configuration → Choose Pool):
+- Copy `etc/backup_postgres.sh` to a dataset on the NAS, e.g. `/mnt/<pool>/scripts/`, and `chmod 700` it.
+- Create the credentials file, readable only by root (`chmod 600`; the script refuses anything looser):
+  ```
+  PGHOST=<production direct host, without -pooler>
+  PGDATABASE=neondb
+  PGUSER=breadsheet_backup
+  PGPASSWORD=<password>
+  PGSSLMODE=require
+  ```
+- System → Advanced Settings → Cron Jobs → Add: run as `root`, weekly (Sundays 03:00), command
+  `/mnt/<pool>/scripts/backup_postgres.sh /mnt/<pool>/backups/breadsheet /mnt/<pool>/backups/breadsheet-backup.env`.
+  Hide standard output but not standard error, so failures reach TrueNAS's alert email.
+- The script dumps to a `.partial` file, checks it's a readable archive containing `recipes`, and
+  only then renames it and prunes, so failures never delete good backups. `PG_IMAGE` must stay at or
+  above the server's major version (Postgres 18).
+- Exit codes (TrueNAS's "Run Now" shows only the code): 2 bad arguments or credentials-file
+  permissions, 3 `pg_dump` failed (Docker, connection, or login), 4 unreadable dump, 5 no `recipes`
+  table (expected before the M1 cutover, while production is empty).
+
+**Restore** (into an empty database, e.g. on a new Neon branch or the local test Postgres):
+```bash
+docker run --rm -i postgres:18.6 pg_restore --no-owner --no-acl --exit-on-error \
+    --dbname="<target URL>" < breadsheet-<timestamp>.dump
+```
+Then check it with `.venv/bin/python -m etc.migrate_dynamodb --database-url "<target URL>" --verify-only`
+(while DynamoDB is still around), or by spot-checking `GET /api/v1/recipes` against the restored data.
 
 ## Testing
 ```bash
