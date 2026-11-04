@@ -348,7 +348,7 @@ The app stays on App Engine's free tier; the database moves from DynamoDB to a f
 4. Write a one-time migration script: export DynamoDB recipes and replacements, load into Postgres, set `wait_min = wait_max = then_wait`.
 5. Thomas reviews migrated recipes: all 11 become defaults and nothing is archived. "Aggressively-Fed Sourdough" was renamed "Revive a Refrigerated Sourdough Starter", the first `prep` recipe.
 6. Verify row counts and spot-check recipes against DynamoDB before cutting over. For replacements, confirm `/api/v1/replacements` responses and convert-text output are identical before and after. Keep the DynamoDB tables until v2 has run cleanly for a while, then delete them and remove the AWS credentials from config.
-7. Back up Postgres weekly: a scheduled GitHub Action runs `pg_dump` and uploads the dump to a private Cloud Storage bucket (inside the free tier), keeping the last 12. Not GitHub artifacts, since they're visible to anyone with access to the repo. Test a restore into a Neon branch once.
+7. Back up Postgres weekly to Thomas's NAS: a TrueNAS cron job runs `pg_dump` (in the `postgres` container matching the server's major version) against production's direct connection, as a read-only role, and keeps the last 12 dumps. The NAS only connects out to Neon; nothing reaches into the home network, and backups never pass through GitHub. The script lives in this repo. Test a restore into a Neon branch once.
 8. Update `CLAUDE.md`: React is the only frontend (Jinja/WTForms long retired), Postgres replaces DynamoDB, the three-repo layout, the milestone plan, and the deploy and migration rules below.
 
 Neon's free compute suspends when idle, so the adaptive polling and cached idle responses in the API section are what keep it free once HA arrives in M3.
@@ -407,7 +407,7 @@ Second Rise breaks into seven epics across four milestones, roughly in build ord
 | 3 | Replace PynamoDB with SQLAlchemy + Alembic for all models (incl. replacements); initial schema with the M1 tables only; v1 endpoints on Postgres with identical responses; remove PynamoDB and boto3; document the expand-then-contract migration rule and the no-promote deploy process in CLAUDE.md | breadsheet | Foundation | M1 |
 | 4 | DynamoDB to Postgres migration script (recipes and replacements) with verification; convert-text behavior unchanged | breadsheet | Foundation | M1 |
 | 5 | Curate default recipes (all 11 kept; no code needed) | breadsheet | Foundation | M1 |
-| 5b | Weekly `pg_dump` backups to a private Cloud Storage bucket; one test restore | breadsheet | Foundation | M1 |
+| 5b | Weekly `pg_dump` backups to the NAS (TrueNAS cron job, read-only Neon role, keep the last 12); one test restore | breadsheet | Foundation | M1 |
 | 6 | Users, key hashing, session cookie, key-link sign-in, sign-in and signup rate limits; set up shared memcache here, since the rate limits need it first | breadsheet | Identity | M2 |
 | 8 | Admin key for managing defaults and unpublishing community recipes | breadsheet | Identity | M2 |
 | 9 | Signup, save-your-key, link-device screens | breadsheet-ui | Identity | M2 |
