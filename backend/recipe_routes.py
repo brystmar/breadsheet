@@ -2,6 +2,7 @@
 import logging
 from backend.database import db
 from backend.models import Recipe, utc_now
+from backend.slugs import unique_default_slug
 from flask import request
 from flask_restful import Resource
 from sqlalchemy import select
@@ -12,11 +13,15 @@ logger = logging.getLogger(__name__)
 
 
 def get_recipe(recipe_id) -> Recipe | None:
-    """Returns the recipe with this id, or None. Ids that aren't UUIDs (e.g. legacy DynamoDB ids) don't exist."""
+    """
+    Returns the default recipe with this id, or None. v1 only ever sees default recipes: personal
+    recipes (breadsheet#29) don't exist here. Ids that aren't UUIDs (e.g. legacy DynamoDB ids) don't exist.
+    """
     try:
-        return db.session.get(Recipe, UUID(str(recipe_id)))
+        recipe = db.session.get(Recipe, UUID(str(recipe_id)))
     except ValueError:
         return None
+    return recipe if recipe is not None and recipe.is_default else None
 
 
 class RecipeCollectionApi(Resource):
@@ -27,7 +32,10 @@ class RecipeCollectionApi(Resource):
 
         try:
             # Grab all recipes from the db, sorted by date_added (the homepage order)
-            recipes = db.session.scalars(select(Recipe).order_by(Recipe.date_added, Recipe.id)).all()
+            # Default recipes only: personal recipes never appear in v1
+            recipes = db.session.scalars(select(Recipe)
+                                         .where(Recipe.owner_id.is_(None))
+                                         .order_by(Recipe.date_added, Recipe.id)).all()
 
             # Convert each to a dictionary, compile into a list
             output = [recipe.to_dict(dates_as_epoch=True) for recipe in recipes]
@@ -52,6 +60,9 @@ class RecipeCollectionApi(Resource):
             new_recipe = Recipe()
             new_recipe.update_from_v1(data)
             new_recipe.last_modified = new_recipe.date_added
+
+            # v1 creates default recipes; their slug is set once and never changes
+            new_recipe.slug = unique_default_slug(db.session, new_recipe.name)
 
         except (KeyError, TypeError, ValueError, AttributeError) as e:
             error_msg = f"Other error in parsing args."

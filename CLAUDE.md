@@ -93,6 +93,8 @@ breadsheet/
 │   ├── api_v2.py            # /api/v2 blueprint: error bodies, JSON-only writes, no-store, 503s
 │   ├── identity.py          # Keys, usernames, session cookie helpers, current_user()
 │   ├── identity_routes.py   # /api/v2/users and /api/v2/session
+│   ├── recipe_routes_v2.py  # /api/v2/recipes: scopes, copy, lookups (breadsheet#29)
+│   ├── slugs.py             # Recipe slugs and public suffixes for user-facing URLs
 │   ├── cache.py             # Shared memcache on App Engine, in-process dict locally
 │   ├── rate_limits.py       # Per-IP fixed-window limits (sign-in failures, signups)
 │   ├── recipe_routes.py     # RecipeCollectionApi, RecipeApi
@@ -105,7 +107,7 @@ breadsheet/
 ```
 
 ## Data Models (`backend/models.py`)
-M1 schema (breadsheet#22), plus `users` (M2, breadsheet#26). Every table has a UUIDv7 `id` primary key, assigned when the
+M1 schema (breadsheet#22), plus `users` (M2, breadsheet#26) and recipe scopes (M2, breadsheet#29). Every table has a UUIDv7 `id` primary key, assigned when the
 object is created (Python's `uuid.uuid7()`), with Postgres's `uuidv7()` as the server default.
 Times are `timestamptz` in UTC; durations are in seconds. Later milestones add their columns
 through new migrations (see the spec's "Schema by milestone").
@@ -121,6 +123,10 @@ through new migrations (see the spec's "Schema by milestone").
 | `date_added` | timestamptz | Sets the order of the v1 recipe list (the homepage order) |
 | `start_time` | timestamptz | |
 | `last_modified` | timestamptz | Set on POST and PUT only; reads never write |
+| `owner_id` | uuid | FK to `users`; null = a default recipe (admin-owned, read-only for users) |
+| `slug` | text | URL slug. Defaults: unique among defaults, never changes. Personal: follows the name. Nullable only until a later contract migration |
+| `public_suffix` | text | 6 chars `a-z0-9`, personal recipes only (check constraint), unique |
+| `source_recipe_id` | uuid | Where a copy came from; set null if the source is deleted |
 
 `length` (total seconds) is a computed property, the sum of the steps' `wait_min`; it isn't stored.
 
@@ -149,6 +155,8 @@ don't change it.
 
 ## API Endpoints
 ### v1
+**v1 only ever sees default recipes** (`owner_id IS NULL`): personal recipes never appear in the list and 404 by id. v1 writes stay open for defaults until the admin key (breadsheet#28) lands; v1 `POST` gives each new default a slug.
+
 All routes use `/api/v1/` prefix. Responses are `{'message': ..., 'data': ...}`, exactly as
 they were on DynamoDB.
 
@@ -178,10 +186,21 @@ and GET requests never write.
 | `POST /api/v2/session` | Sign in with `{key}` |
 | `GET /api/v2/session` | The signed-in user, or 401 `not_signed_in` |
 | `DELETE /api/v2/session` | Sign out this browser only |
+| `GET /api/v2/recipes?q=` | Defaults plus the caller's own recipes, as summaries (no steps) |
+| `POST /api/v2/recipes` | Create a personal recipe (signed in) |
+| `GET /api/v2/recipes/<id>` | One recipe with steps: defaults for anyone, personal for anyone with the link |
+| `PUT`/`DELETE /api/v2/recipes/<id>` | Owner only; defaults → 403 `default_read_only`, others → 403 `not_owner` |
+| `POST /api/v2/recipes/<id>/copy` | "Make it mine": an independent personal copy (signed in) |
+| `GET /api/v2/recipes/by-slug/<slug>` | Resolve a default's URL, `/recipes/<slug>` |
+| `GET /api/v2/recipes/by-suffix/<suffix>` | Resolve a personal URL, `/recipes/<slug>-<suffix>`, with the current slug |
 
 v2 conventions (`backend/api_v2.py`):
 - Errors are `{code, message}` with a stable `code` and a message that says what to do next; raise
   `ApiError(status, code, message)`. Unknown paths and wrong methods under `/api/v2` also return JSON.
+  Validation errors can add `fields`, mapping each bad field to its message (e.g. `steps[0].text`).
+- Recipes are returned as `{recipe: …}` or `{recipes: […]}`, with `id`, `slug`, `path`, `scope`, `owner`,
+  `is_mine`, `source_recipe_id`, the descriptive fields, `length_seconds`, timestamps, and steps
+  (`id`, `position`, `text`, `note`, `wait_min`, `wait_max`). v1's `solve_for_start`/`start_time` aren't in v2.
 - `POST`/`PUT`/`PATCH`/`DELETE` require `Content-Type: application/json` (415 `json_required`).
   Together with `SameSite=Lax` and the CORS allow-list, that's the CSRF protection.
 - Every response is `Cache-Control: no-store`. A database `OperationalError` becomes 503
