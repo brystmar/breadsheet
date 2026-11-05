@@ -1,4 +1,4 @@
-"""SQLAlchemy models: recipes, recipe_steps, and replacements (M1); users (M2)."""
+"""SQLAlchemy models: recipes, recipe_steps, and replacements (M1); users and recipe scopes (M2)."""
 from backend.database import db
 from datetime import datetime, timezone
 from sqlalchemy import CheckConstraint, DateTime, ForeignKey, Index, LargeBinary, Text, UniqueConstraint, Uuid, func
@@ -45,6 +45,30 @@ class UuidPrimaryKey:
 
 class Recipe(UuidPrimaryKey, db.Model):
     __tablename__ = 'recipes'
+
+    __table_args__ = (
+        # Personal recipes (with an owner) have a public suffix; defaults never do
+        CheckConstraint("(owner_id IS NULL) = (public_suffix IS NULL)", name="suffix_only_for_personal"),
+        UniqueConstraint("public_suffix", name="uq_recipes_public_suffix"),
+        # Default slugs are unique among defaults; personal recipes are found by their suffix instead
+        Index("uq_recipes_default_slug", "slug", unique=True, postgresql_where=sql_text("owner_id IS NULL")),
+    )
+
+    ## Scope (breadsheet#29) ##
+    # The user who owns this personal recipe, or None for a default (admin-owned, read-only for users)
+    owner_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("users.id", ondelete="RESTRICT", name="fk_recipes_owner_id_users"), index=True)
+    owner: Mapped["User | None"] = relationship(lazy="selectin")
+
+    # User-facing URLs: /recipes/<slug> for defaults, /recipes/<slug>-<public_suffix> for personal recipes.
+    #   Default slugs never change; a personal recipe's slug follows its name and the suffix does the lookup.
+    #   Nullable only while older app versions may still create recipes through v1 without one.
+    slug: Mapped[str | None] = mapped_column(Text)
+    public_suffix: Mapped[str | None] = mapped_column(Text)
+
+    # Where a copy came from; no live link, and cleared if the source is deleted
+    source_recipe_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("recipes.id", ondelete="SET NULL", name="fk_recipes_source_recipe_id_recipes"))
 
     ## Primary attributes ##
     # Title of the recipe
@@ -148,6 +172,41 @@ class Recipe(UuidPrimaryKey, db.Model):
 
         return output
 
+    ## v2 (breadsheet#29) ##
+    @property
+    def is_default(self) -> bool:
+        return self.owner_id is None
+
+    @property
+    def path(self) -> str:
+        """The user-facing URL path: /recipes/<slug>, or /recipes/<slug>-<suffix> for a personal recipe."""
+        return f'/recipes/{self.slug}' if self.is_default else f'/recipes/{self.slug}-{self.public_suffix}'
+
+    def to_v2_summary(self, viewer=None) -> dict:
+        """A recipe as it appears in v2 lists: everything but the steps. `viewer` is the signed-in User, if any."""
+        return {
+            "id":               str(self.id),
+            "slug":             self.slug,
+            "path":             self.path,
+            "scope":            "default" if self.is_default else "personal",
+            "owner":            self.owner.username if self.owner else None,
+            "is_mine":          viewer is not None and self.owner_id == viewer.id,
+            "source_recipe_id": str(self.source_recipe_id) if self.source_recipe_id else None,
+            "name":             self.name,
+            "author":           self.author or None,
+            "source":           self.source or None,
+            "url":              self.url or None,
+            "difficulty":       self.difficulty,
+            "length_seconds":   self.length,
+            "step_count":       len(self.steps),
+            "created_at":       self.date_added.astimezone(timezone.utc).isoformat(),
+            "updated_at":       self.last_modified.astimezone(timezone.utc).isoformat()
+        }
+
+    def to_v2_dict(self, viewer=None) -> dict:
+        """One recipe in v2, with its steps. Leaves out v1's plan-view state (solve_for_start, start_time)."""
+        return {**self.to_v2_summary(viewer), "steps": [step.to_v2_dict() for step in self.steps]}
+
     def __repr__(self) -> str:
         return f'<Recipe | id: {self.id}, name: {self.name}, length: {self.length}, ' \
                f'steps: {len(self.steps)}>'
@@ -175,6 +234,16 @@ class RecipeStep(UuidPrimaryKey, db.Model):
     wait_max: Mapped[int] = mapped_column(default=0, server_default=sql_text("0"))
 
     recipe: Mapped[Recipe] = relationship(back_populates="steps")
+
+    def to_v2_dict(self) -> dict:
+        return {
+            "id":       str(self.id),
+            "position": self.position,
+            "text":     self.text,
+            "note":     self.note or None,
+            "wait_min": self.wait_min,
+            "wait_max": self.wait_max
+        }
 
     def to_dict(self) -> dict:
         return {

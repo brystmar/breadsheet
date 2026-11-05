@@ -189,3 +189,18 @@ class TestErrorLogging:
         caplog.set_level(logging.DEBUG)
         post(client, {**RECIPE, 'name': 'A very distinctive recipe name'})
         assert 'A very distinctive recipe name' not in caplog.text
+
+
+class TestDefaultSlugs:
+    def test_v1_creates_defaults_with_a_unique_slug_that_never_changes(self, client):
+        first = post(client, RECIPE).json['data']['id']
+        second = post(client, RECIPE).json['data']['id']
+
+        slugs = {str(r.id): r.slug for r in db.session.scalars(db.select(Recipe))}
+        assert slugs[first] == 'country-sourdough'
+        assert slugs[second] == 'country-sourdough-2'
+
+        # Renaming a default keeps its slug
+        put(client, first, {**RECIPE, 'id': first, 'name': 'Renamed Sourdough'})
+        db.session.expire_all()
+        assert db.session.get(Recipe, UUID(first)).slug == 'country-sourdough'

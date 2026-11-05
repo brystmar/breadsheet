@@ -24,13 +24,20 @@ DB_RETRY_AFTER_SECONDS = 30
 
 
 class ApiError(Exception):
-    def __init__(self, status: int, code: str, message: str, headers: dict | None = None):
+    """An error response. `fields` optionally maps request fields to what's wrong with each, for forms."""
+
+    def __init__(self, status: int, code: str, message: str, headers: dict | None = None,
+                 fields: dict | None = None):
         super().__init__(message)
-        self.status, self.code, self.message, self.headers = status, code, message, headers or {}
+        self.status, self.code, self.message = status, code, message
+        self.headers, self.fields = headers or {}, fields
 
 
-def error_response(status: int, code: str, message: str, headers: dict | None = None):
-    response = jsonify({'code': code, 'message': message})
+def error_response(status: int, code: str, message: str, headers: dict | None = None, fields: dict | None = None):
+    body = {'code': code, 'message': message}
+    if fields:
+        body['fields'] = fields
+    response = jsonify(body)
     response.status_code = status
     response.headers.update(headers or {})
     response.headers['Cache-Control'] = 'no-store'
@@ -59,7 +66,7 @@ def never_cache(response):
 
 @api_v2.errorhandler(ApiError)
 def handle_api_error(e: ApiError):
-    return error_response(e.status, e.code, e.message, e.headers)
+    return error_response(e.status, e.code, e.message, e.headers, e.fields)
 
 
 @api_v2.errorhandler(OperationalError)

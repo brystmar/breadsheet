@@ -54,6 +54,7 @@ def register_v2(app: Flask):
     """The /api/v2 blueprint (plain Flask views; see backend/api_v2.py)."""
     from backend.api_v2 import api_v2, register_v2_http_errors
     import backend.identity_routes  # noqa: F401 (registers its routes on the blueprint)
+    import backend.recipe_routes_v2  # noqa: F401
 
     app.register_blueprint(api_v2)
     register_v2_http_errors(app)
