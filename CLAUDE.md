@@ -191,7 +191,7 @@ v2 conventions (`backend/api_v2.py`):
 SHA-256 and compared with `hmac.compare_digest`. The session is Flask's signed cookie
 (`breadsheet_session`: `HttpOnly`, `Secure` except locally, `SameSite=Lax`, one year, refreshed
 on use) holding the user id and a fingerprint of the key hash; there's no sessions table. Username
-rules: 3–30 ASCII letters, digits, `_` or `-`, starting with a letter or digit, unique ignoring
+rules: 3–30 ASCII letters, digits, `_` or `-`, starting with a letter, unique ignoring
 case, with a reserved list. Key links are `breadsheet.com/k#<key>` (the fragment never reaches a server).
 
 **Rate limits** (`backend/rate_limits.py`): per IP, 10 failed sign-ins per 15 minutes and 5 signups

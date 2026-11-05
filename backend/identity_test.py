@@ -22,12 +22,12 @@ def test_key_fingerprint_is_short_and_not_the_hash():
     assert fingerprint not in key_hash.hex()
 
 
-@mark.parametrize('username', ['abc', 'Thomas_B', 'bread-head', '9lives', 'a' * 30, 'A-_'])
+@mark.parametrize('username', ['abc', 'Thomas_B', 'bread-head', 'baker9', 'a' * 30, 'A-_'])
 def test_valid_usernames(username):
     assert username_problem(username) is None
 
 
-@mark.parametrize('username', ['ab', 'a' * 31, '_abc', '-abc', 'has space', 'émile', 'dot.name', 'at@me',
+@mark.parametrize('username', ['ab', 'a' * 31, '_abc', '-abc', '9lives', '42', 'has space', 'émile', 'dot.name', 'at@me',
                                '', None, 42, 'abc\n'])
 def test_invalid_usernames(username):
     assert 'letters, numbers' in username_problem(username)
