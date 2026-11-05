@@ -6,9 +6,10 @@ runtime: python314
 #   and is plenty for breadsheet's traffic. A custom entrypoint requires gunicorn in requirements.txt.
 entrypoint: gunicorn -b :$PORT --workers 2 --threads 4 main:app
 
-# Shared memcache (free) for rate-limit counters; needs appengine-python-standard and wrap_wsgi_app (main.py)
-app_engine_bundled_services:
-  - memcache
+# Shared memcache (free) for rate-limit counters; needs appengine-python-standard and wrap_wsgi_app (main.py).
+#   Not `app_engine_bundled_services`: gcloud only knows that setting in its beta schema, and plain
+#   `gcloud app deploy` (deploy.sh) drops it without a warning. This turns on all bundled services.
+app_engine_apis: true
 
 includes:
   - env_variables.yaml

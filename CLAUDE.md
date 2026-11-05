@@ -248,7 +248,10 @@ because migrations run before the new code takes traffic, and rollback is just m
   (about 300 MiB with the App Engine SDK); App Engine's default of 4 workers runs out of memory.
   Check memory before adding heavy dependencies, and look for "Exceeded hard memory limit" in the
   version's logs if a smoke test returns intermittent 503s.
-- `app.yaml` enables the shared memcache bundled service (`app_engine_bundled_services`);
+- `app.yaml` enables the shared memcache bundled service with `app_engine_apis: true`. Not
+  `app_engine_bundled_services`, which only gcloud's beta schema knows: plain `gcloud app deploy`
+  drops it silently. The SDK returns `None` instead of raising when memcache is off, so
+  `backend/cache.py` logs a warning when that happens. Confirm the rate limit trips after a deploy.
   `main.py` wraps the app with the SDK's `wrap_wsgi_app` when running on App Engine (`GAE_ENV`).
 - `env_variables.yaml` (git-ignored) holds production config, including the production branch's
   pooled `DATABASE_URL` (added at the M1 cutover).
