@@ -19,7 +19,7 @@ from uuid import UUID
 
 KEY_BYTES = 16  # 128 bits, shown as 22 URL-safe characters
 
-USERNAME_PATTERN = r'[A-Za-z0-9][A-Za-z0-9_-]{2,29}'
+USERNAME_PATTERN = r'[A-Za-z][A-Za-z0-9_-]{2,29}'
 RESERVED_USERNAMES = frozenset({'admin', 'breadsheet', 'api', 'bread', 'prep', 'root',
                                 'brystmar', 'thomas', 'tberg'})
 
@@ -44,7 +44,7 @@ def username_problem(username) -> str | None:
     """Returns why a username isn't allowed, in words a person can act on, or None if it's fine."""
     if not isinstance(username, str) or not fullmatch(USERNAME_PATTERN, username):
         return ("Usernames are 3 to 30 characters: letters, numbers, underscores, and hyphens, "
-                "starting with a letter or number.")
+                "starting with a letter.")
     if username.lower() in RESERVED_USERNAMES:
         return "That username is reserved. Please pick another."
     return None
