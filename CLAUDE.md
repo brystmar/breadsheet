@@ -259,6 +259,21 @@ No maintenance windows or maintenance mode.
 5. Roll back by moving traffic to the previous version. Keep the last few versions deployed;
    delete older ones to stay within App Engine's version limit.
 
+## How Second Rise ships
+Trunk-based: `main` is the only long-lived branch, in all three repos. There's no milestone branch.
+- **One short-lived branch per issue,** named for it (e.g. `26-users-sessions`), merged into `main`
+  by PR with a merge commit. Fixes to the live app follow the same path.
+- **Backend work ships to production as it merges** (or in small batches), using the deploy steps
+  above. `/api/v2` only adds endpoints, so new ones sit unused until the UI calls them.
+- **The UI hides unfinished work behind a milestone toggle** in the footer (breadsheet-ui#41):
+  `m1` (today's app, the default) or `m2`, with later milestones added as levels. It's stored in
+  the browser only. Releasing a milestone means changing the default level, not merging a branch;
+  rolling back means changing it back.
+- **v1 must not change.** Any change to a v1 response is a red flag in review. In particular, once
+  M2 adds personal and draft recipes to `recipes`, v1 endpoints return defaults only.
+- **Migrations are expand-then-contract** (see Migrations), so every deployed version works with
+  the current schema whichever way traffic points.
+
 ## Backups
 Weekly `pg_dump` of the production branch to Thomas's TrueNAS NAS, keeping the newest 12
 (`etc/backup_postgres.sh`). The NAS only connects out to Neon. Neon's own point-in-time restore

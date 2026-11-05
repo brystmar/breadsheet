@@ -1,6 +1,6 @@
 # Breadsheet Second Rise: Spec & Backlog
 
-Nov 1, 2026 · updated Nov 4, 2026 · @Thomas
+Nov 1, 2026 · updated Nov 5, 2026 · @Thomas
 
 ## Overview
 
@@ -70,6 +70,7 @@ Every question raised during scoping is settled; these are the answers the rest 
 | Live Activities | Opt-in, step level. One activity updated across consecutive steps; ended for waits over 4 hours. |
 | Resilience | A running bake must survive a breadsheet outage of minutes to an hour. Clients keep running the bake from their last good copy and queue check-offs. Offline recipe editing is out of scope. |
 | Deploys | Versioned App Engine deploys without promotion, smoke-tested, then traffic migrated; rollback by moving traffic back. Alembic migrations are expand-then-contract, so the previous version always works against the current schema. No maintenance mode. |
+| Release | Trunk-based: each issue merges to `main` and ships when ready. The UI hides unfinished milestones behind a browser-only toggle in the footer (`m1` default, then `m2`, …); releasing a milestone means changing the default level. No milestone branches. |
 | Database | Postgres on Neon free tier, US West region. Replaces DynamoDB entirely, including replacements; PynamoDB and boto3 are removed. |
 | API | New `/api/v2`, growing additively by milestone. v1 is reimplemented on Postgres at cutover with identical responses; v1 recipe endpoints retire later, `/api/v1/replacements` stays. |
 | API host | `api.breadsheet.com`, an App Engine custom domain with a Google-managed certificate; still App Engine standard. Being same-site with breadsheet.com keeps the session cookie first-party. |
@@ -132,7 +133,7 @@ Nine Postgres tables replace every DynamoDB model (`Recipe`, `Step`, and `Replac
 | `users` | id, username (unique, case-insensitive), key\_hash, created\_at, last\_seen\_at | M2. Store only hashes. |
 | `connections` | id, user\_id, label, scopes, token\_hash, created\_at, last\_used\_at, revoked\_at | M3. One row per paired HA instance. Tokens don't expire; they're revoked. |
 | `pairing_codes` | code, user\_id, expires\_at, used\_at | M3. HA pairing. Short-lived, single use. |
-| `recipes` | id, public\_suffix (null for defaults), slug, owner\_id (null = default), source\_recipe\_id, name, author, source, url, difficulty, category (bread or prep), detail\_level (simple or detailed), is\_draft, published\_at (nullable), archived\_at, timestamps | M1 with v1 columns; the rest in M2. `archived_at` set hides a recipe from every recipe list, v1 and v2, though it still opens by id or URL. `source_recipe_id` records where a copy came from; no live link. `is_draft` marks agent imports awaiting review. `published_at` set means the recipe is in the community library. |
+| `recipes` | id, public\_suffix (null for defaults), slug, owner\_id (null = default), source\_recipe\_id, name, author, source, url, difficulty, category (bread or prep), detail\_level (simple or detailed), is\_draft, published\_at (nullable), archived\_at, timestamps | M1 with v1 columns; the rest in M2. `archived_at` set hides a recipe from every recipe list, v1 and v2, though it still opens by id or URL. v1 recipe endpoints only ever return default recipes: personal and draft recipes never appear in v1 lists or open by id there. `source_recipe_id` records where a copy came from; no live link. `is_draft` marks agent imports awaiting review. `published_at` set means the recipe is in the community library. |
 | `recipe_steps` | id, recipe\_id, position, text, note, wait\_min, wait\_max, active\_seconds (nullable), needs\_presence (nullable) | M1, with the detail columns in M2. Existing steps migrate as simple: `wait_min = wait_max = then_wait`, detail fields null. |
 | `recipe_prerequisites` | recipe\_id, prerequisite\_recipe\_id, position | M2. Alternatives: any one prerequisite satisfies the requirement, listed in `position` order. Every prerequisite must be a `prep` recipe, and `prep` recipes have no prerequisites of their own, so there are no chains or cycles. Deleting either recipe removes the link. |
 | `bakes` | id, public\_suffix, user\_id, recipe\_id, name\_snapshot, anchor\_type (start or finish), anchor\_time, time\_zone (IANA, e.g. `America/Los_Angeles`), alert\_mode (simple or fancy), status, created\_via (web, ha, or agent), idempotency\_key (nullable, unique per user), started\_at, completed\_at, projected\_end | M2. Status: not\_started, in\_progress, completed. Stored status may lag; reads treat any bake past `projected_end` as completed and write that back lazily. |
