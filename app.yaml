@@ -1,6 +1,11 @@
 # https://yamlchecker.com/
 runtime: python314
 
+# F1 instances have 384 MiB. App Engine's default entrypoint starts 4 workers, which (with the
+#   App Engine SDK loaded in each) runs out of memory. 2 workers with 4 threads each fits easily
+#   and is plenty for breadsheet's traffic. A custom entrypoint requires gunicorn in requirements.txt.
+entrypoint: gunicorn -b :$PORT --workers 2 --threads 4 main:app
+
 # Shared memcache (free) for rate-limit counters; needs appengine-python-standard and wrap_wsgi_app (main.py)
 app_engine_bundled_services:
   - memcache

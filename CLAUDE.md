@@ -55,6 +55,7 @@ Pinned in `requirements.txt` (production) and `requirements-dev.txt` (adds test 
 | Package | Version |
 |---|---|
 | Flask | 3.1.3 |
+| gunicorn | 26.2.0 (App Engine entrypoint) |
 | Flask-RESTful | 0.3.10 (unmaintained since 2023; v1 only, and `/api/v2` doesn't use it) |
 | Flask-Cors | 6.0.5 |
 | Flask-SQLAlchemy | 3.1.1 (last release 2023; verified with SQLAlchemy 2.1) |
@@ -243,6 +244,10 @@ because migrations run before the new code takes traffic, and rollback is just m
   end of support 2030-10-10). App Engine applies patch releases automatically.
 - Legacy `breadsheet.appspot.com` requests 301-redirected to `breadsheet.com`
   in `handle_before_request()` in `main.py`
+- Instances are F1 (384 MiB). `app.yaml` sets the entrypoint to 2 gunicorn workers × 4 threads
+  (about 300 MiB with the App Engine SDK); App Engine's default of 4 workers runs out of memory.
+  Check memory before adding heavy dependencies, and look for "Exceeded hard memory limit" in the
+  version's logs if a smoke test returns intermittent 503s.
 - `app.yaml` enables the shared memcache bundled service (`app_engine_bundled_services`);
   `main.py` wraps the app with the SDK's `wrap_wsgi_app` when running on App Engine (`GAE_ENV`).
 - `env_variables.yaml` (git-ignored) holds production config, including the production branch's
