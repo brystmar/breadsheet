@@ -1,15 +1,19 @@
 """Initialization file that creates the app and applies our config object."""
-from backend.global_logger import logger
+import logging
 from backend.config import Config
 from backend.database import db, migrate
+from backend.logging_setup import configure_logging
 from flask import Flask
 from flask_cors import CORS
 from flask_restful import Api
 from os import path
 
 
+logger = logging.getLogger(__name__)
+
+
 def create_app(config_class=Config):
-    logger.debug(f"Creating app with config")
+    configure_logging()
     breadapp = Flask(__name__)
     breadapp.config.from_object(config_class)
     if not breadapp.config.get('SECRET_KEY'):
@@ -18,7 +22,6 @@ def create_app(config_class=Config):
     # Attach the database and Alembic migrations (via Flask-Migrate) to the app
     db.init_app(breadapp)
     migrate.init_app(breadapp, db, directory=path.join(path.dirname(path.dirname(__file__)), 'migrations'))
-    logger.debug("Database initialized")
 
     # Credentialed CORS for breadsheet-ui's origins only, so browsers can send cookies (M2's session)
     #   https://flask-cors.readthedocs.io/en/latest/
@@ -26,7 +29,7 @@ def create_app(config_class=Config):
 
     register_endpoints(Api(breadapp))
     register_v2(breadapp)
-    logger.debug(f"App created: {breadapp.name}")
+    logger.debug("App created")
 
     return breadapp
 
@@ -44,7 +47,7 @@ def register_endpoints(api: Api):
                      '/api/v1/replacements/<scope>/<old_value>')
 
     api.add_resource(ReadmeApi, '/api/v1/readme')
-    logger.info("API endpoints initialized")
+    logger.debug("API v1 endpoints registered")
 
 
 def register_v2(app: Flask):
@@ -54,4 +57,4 @@ def register_v2(app: Flask):
 
     app.register_blueprint(api_v2)
     register_v2_http_errors(app)
-    logger.info("API v2 endpoints initialized")
+    logger.debug("API v2 endpoints registered")

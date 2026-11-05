@@ -1,12 +1,14 @@
 """Signup and browser sessions: /api/v2/users and /api/v2/session (breadsheet#26)."""
+import logging
 from backend import rate_limits
 from backend.api_v2 import ApiError, api_v2, json_body
 from backend.database import db
-from backend.global_logger import logger
 from backend.identity import (current_user, end_session, find_user_by_key, generate_key, hash_key,
                               start_session, username_problem, username_taken)
 from backend.models import User
 from sqlalchemy.exc import IntegrityError
+
+logger = logging.getLogger(__name__)
 
 USERNAME_TAKEN = "That username is taken. Please pick another."
 
@@ -42,7 +44,7 @@ def create_user():
 
     rate_limits.record(rate_limits.SIGNUPS)
     start_session(user)
-    logger.info(f"New user: {user.id}")
+    logger.info("New user %s", user.id)
     return {'user': user.to_dict(), 'key': key}, 201
 
 

@@ -242,3 +242,18 @@ class TestV2Conventions:
         response = client.options('/api/v2/session', headers={
             'Origin': 'https://evil.example', 'Access-Control-Request-Method': 'POST'})
         assert 'Access-Control-Allow-Origin' not in response.headers
+
+
+class TestNothingSecretIsLogged:
+    def test_keys_never_appear_in_logs(self, app, client, caplog):
+        import logging
+        caplog.set_level(logging.DEBUG)
+
+        key = signup(client).json['key']
+        phone = app.test_client()
+        sign_in(phone, key)
+        sign_in(phone, 'y' * 22)  # a failed attempt
+        phone.get('/api/v2/session')
+
+        assert key not in caplog.text
+        assert 'y' * 22 not in caplog.text

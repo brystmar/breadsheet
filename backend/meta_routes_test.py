@@ -35,7 +35,7 @@ class TestCors:
 
     def test_dev_origin_only_when_local(self, app):
         from backend.config import Config
-        from backend.global_logger import local
+        from backend.environment import local
 
         assert ('http://localhost:3000' in Config.CORS_ORIGINS) == local
         assert '*' not in Config.CORS_ORIGINS

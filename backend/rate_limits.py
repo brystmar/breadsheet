@@ -1,5 +1,6 @@
 """Per-IP fixed-window rate limits, counted in the shared cache. A cache outage lets requests through."""
-from backend.cache import ON_APP_ENGINE, cache
+from backend.cache import cache
+from backend.environment import ON_APP_ENGINE
 from dataclasses import dataclass
 from flask import request
 from time import time
