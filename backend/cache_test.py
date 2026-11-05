@@ -25,3 +25,21 @@ def test_clear():
     cache.incr('k', ttl=60)
     cache.clear()
     assert cache.get('k') is None
+
+
+def test_memcache_returning_nothing_is_logged(mock_logs):
+    # The SDK returns None instead of raising when memcache is unavailable; that must not be silent
+    from backend.cache import MemcacheCache
+    with patch('google.appengine.api.memcache.add', return_value=False), \
+            patch('google.appengine.api.memcache.incr', return_value=None):
+        assert MemcacheCache().incr('rl:test', ttl=60) is None
+    mock_logs.check_present(('backend.global_logger', 'WARNING',
+                             "memcache incr returned nothing for rl:test; is memcache enabled (app.yaml)?"))
+
+
+def test_memcache_incr_returns_the_count(mock_logs):
+    from backend.cache import MemcacheCache
+    with patch('google.appengine.api.memcache.add', return_value=True), \
+            patch('google.appengine.api.memcache.incr', return_value=3):
+        assert MemcacheCache().incr('rl:test', ttl=60) == 3
+    assert not [r for r in mock_logs.records if r.levelname == 'WARNING']

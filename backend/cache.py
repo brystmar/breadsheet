@@ -45,10 +45,16 @@ class MemcacheCache:
         try:
             # add() only sets the expiry when the key is new; incr() never touches it
             memcache.add(key, 0, time=ttl)
-            return memcache.incr(key)
+            value = memcache.incr(key)
         except Exception as e:
             logger.warning(f"memcache incr failed for {key}: {e}")
             return None
+
+        if value is None:
+            # The SDK swallows its own RPC errors and returns None, so a disabled or broken memcache
+            #   looks like an empty cache. Right after add(), incr() should never return None.
+            logger.warning(f"memcache incr returned nothing for {key}; is memcache enabled (app.yaml)?")
+        return value
 
     def get(self, key: str) -> int | None:
         from google.appengine.api import memcache
