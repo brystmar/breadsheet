@@ -1,5 +1,10 @@
 # https://yamlchecker.com/
 runtime: python314
+
+# Shared memcache (free) for rate-limit counters; needs appengine-python-standard and wrap_wsgi_app (main.py)
+app_engine_bundled_services:
+  - memcache
+
 includes:
   - env_variables.yaml
 

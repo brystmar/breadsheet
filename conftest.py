@@ -18,6 +18,8 @@ class TestConfig(Config):
     TESTING = True
     SQLALCHEMY_DATABASE_URI = TEST_DATABASE_URL
     MIGRATIONS_DATABASE_URI = TEST_DATABASE_URL
+    SECRET_KEY = 'test-only-secret-key'
+    SESSION_COOKIE_SECURE = False  # the test client uses plain http
 
 
 @fixture(scope='function')
@@ -58,8 +60,12 @@ def database(app):
 def client(app, database):
     """A test client with empty tables."""
     with app.app_context():
-        database.session.execute(text("TRUNCATE recipes, recipe_steps, replacements"))
+        database.session.execute(text("TRUNCATE recipes, recipe_steps, replacements, users"))
         database.session.commit()
+
+    # Rate-limit counters live in the in-process cache locally; start each test from zero
+    from backend.cache import cache
+    cache.clear()
 
     with app.test_client() as test_client:
         yield test_client

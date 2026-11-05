@@ -9,3 +9,6 @@ alembic==1.20.1
 psycopg[binary]==3.3.7
 python-dotenv==1.2.4
 Markdown==3.11.2
+
+# App Engine bundled services (shared memcache); pins urllib3<2
+appengine-python-standard==3.1.0

@@ -12,6 +12,13 @@ from backend.config import Config
 app = create_app()
 logger.info("Created the Flask app")
 
+# App Engine's legacy bundled services (memcache, for rate limits) need the SDK's WSGI wrapper.
+#   Locally, backend/cache.py uses an in-process dict instead.
+from backend.cache import ON_APP_ENGINE
+if ON_APP_ENGINE:
+    from google.appengine.api import wrap_wsgi_app
+    app.wsgi_app = wrap_wsgi_app(app.wsgi_app)
+
 
 @app.before_request
 def handle_before_request():

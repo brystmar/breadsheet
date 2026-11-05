@@ -1,0 +1,44 @@
+"""Per-IP fixed-window rate limits, counted in the shared cache. A cache outage lets requests through."""
+from backend.cache import ON_APP_ENGINE, cache
+from dataclasses import dataclass
+from flask import request
+from time import time
+
+
+@dataclass(frozen=True)
+class Limit:
+    name: str
+    max_count: int
+    window: int  # seconds
+
+
+# From the spec's Identity and ownership: Security
+SIGN_IN_FAILURES = Limit('sign_in_failures', 10, 15 * 60)
+SIGNUPS = Limit('signups', 5, 60 * 60)
+
+
+def client_ip() -> str:
+    # App Engine sets this header itself, overwriting anything the client sent.
+    #   api.breadsheet.com is DNS-only in Cloudflare, so it's the real client address.
+    if ON_APP_ENGINE:
+        return request.headers.get('X-Appengine-User-Ip') or request.remote_addr or 'unknown'
+    return request.remote_addr or 'unknown'
+
+
+def _window(limit: Limit) -> tuple[str, int]:
+    """This window's cache key, and the seconds until it ends."""
+    now = int(time())
+    index = now // limit.window
+    return f"rl:{limit.name}:{client_ip()}:{index}", (index + 1) * limit.window - now
+
+
+def retry_after(limit: Limit) -> int | None:
+    """Seconds until this client may try again, or None when it's under the limit."""
+    key, remaining = _window(limit)
+    count = cache.get(key)
+    return max(remaining, 1) if count is not None and count >= limit.max_count else None
+
+
+def record(limit: Limit):
+    key, remaining = _window(limit)
+    cache.incr(key, ttl=remaining + 60)

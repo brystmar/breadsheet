@@ -1,7 +1,7 @@
-"""SQLAlchemy models for the M1 schema: recipes, recipe_steps, and replacements."""
+"""SQLAlchemy models: recipes, recipe_steps, and replacements (M1); users (M2)."""
 from backend.database import db
 from datetime import datetime, timezone
-from sqlalchemy import CheckConstraint, DateTime, ForeignKey, Text, UniqueConstraint, Uuid, func
+from sqlalchemy import CheckConstraint, DateTime, ForeignKey, Index, LargeBinary, Text, UniqueConstraint, Uuid, func
 from sqlalchemy import text as sql_text  # aliased: RecipeStep has a `text` column
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from uuid import UUID, uuid7
@@ -210,3 +210,38 @@ class Replacement(UuidPrimaryKey, db.Model):
 
     def __repr__(self) -> str:
         return f'<Replacement Text | scope: {self.scope}, old: {self.old}, new: {self.new}>'
+
+
+class User(UuidPrimaryKey, db.Model):
+    """
+    A breadsheet user: a display username plus a secret key. Whoever holds the key is the user.
+    Only the key's SHA-256 is stored (see backend/identity.py); the key itself is shown once at signup.
+    """
+    __tablename__ = 'users'
+
+    # Display handle, kept as typed; unique case-insensitively (see the index below)
+    username: Mapped[str] = mapped_column(Text)
+
+    # SHA-256 of the user's key; sign-in looks users up by this
+    key_hash: Mapped[bytes] = mapped_column(LargeBinary(32), unique=True)
+
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now,
+                                                 server_default=func.now())
+
+    # Refreshed at most daily while the user is active; groundwork for abandoned-username reclamation
+    last_seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now,
+                                                   server_default=func.now())
+
+    def to_dict(self) -> dict:
+        return {
+            "id":         str(self.id),
+            "username":   self.username,
+            "created_at": self.created_at.astimezone(timezone.utc).isoformat()
+        }
+
+    def __repr__(self) -> str:
+        return f'<User | id: {self.id}, username: {self.username}>'
+
+
+# Usernames are unique regardless of case ("Thomas" and "thomas" can't both exist)
+Index('uq_users_username_lower', func.lower(User.username), unique=True)
