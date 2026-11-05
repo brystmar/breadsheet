@@ -1,6 +1,6 @@
 # Breadsheet Second Rise: Spec & Backlog
 
-Nov 1, 2026 · updated Nov 3, 2026 · @Thomas
+Nov 1, 2026 · updated Nov 4, 2026 · @Thomas
 
 ## Overview
 
@@ -80,7 +80,7 @@ Every question raised during scoping is settled; these are the answers the rest 
 | Existing recipes | Migrated from DynamoDB; all 11 become defaults (curated Nov 2026). Archiving arrives in M2, for retiring a default later. |
 | Recipe categories | Every recipe has one category, deliberately generic: `bread` (the default) or `prep` (getting something ready to bake with, such as reviving or building a sourdough starter). Stored as text and validated by the API, so adding a category needs no migration. |
 | Prerequisites | A recipe can list `prep` recipes as prerequisites, any one of which gets you ready to start it (for example, an active starter at peak strength). Shown as a reminder with links before a bake starts; never enforced. Scheduling a prerequisite bake to end when the main bake begins is parked; in M4 an agent can plan both bakes. |
-| Backlog | GitHub Projects, one board across all three repos, with a Milestone field. |
+| Backlog | GitHub issues across the three repos are the backlog; the issue is the only id. Each repo has milestones M1–M4 with matching labels, and `parked` and `decision` labels mark the rest. No Projects board. |
 | URLs | Defaults use a pure slug (/recipes/country-sourdough). Personal recipes, published or not, append a 6-character lowercase suffix (/recipes/country-sourdough-k7qx2m); the suffix does the lookup, so renames redirect. Bakes use /bakes/\<suffix>. Old recipe URLs (breadsheet.com/\<id>, with any legacy id, timestamp or UUID) redirect to the homepage; no legacy ids are stored. These public URLs are user-facing only; the API keeps using internal ids. |
 | Link sharing | Anyone with a personal recipe's URL can view it read-only and copy it. Only the owner can edit. |
 
@@ -222,7 +222,7 @@ All new functionality lives under `/api/v2` on `api.breadsheet.com`. Each milest
 
 **Polling support (M3).** `GET /api/v2/bakes?status=active&alert=fancy` returns an ETag and a suggested next poll interval. When the user has no active Fancy bakes, the server answers from a cache without querying Postgres, so idle polls never wake the Neon database.
 
-**Cache.** App Engine's shared memcache, the free tier of the bundled memcache service (dedicated memcache is billed per GB-hour and not needed). Capacity is best-effort with no guarantees, which is fine: the cache only holds data that can be rebuilt. It stores the rate-limit counters (from M2) and each user's "no active Fancy bakes" flag (from M3, cleared when a Fancy bake starts or a bake switches to Fancy). A missing entry costs at most one Postgres wake-up or a reset rate-limit count. It requires the `appengine-python-standard` SDK, which pins `urllib3<2`, plus the bundled-services setting in `app.yaml`. Google's docs show both `app_engine_apis: true` and `app_engine_bundled_services: [memcache]`, so confirm which one applies to `python314` when setting it up in item 6.
+**Cache.** App Engine's shared memcache, the free tier of the bundled memcache service (dedicated memcache is billed per GB-hour and not needed). Capacity is best-effort with no guarantees, which is fine: the cache only holds data that can be rebuilt. It stores the rate-limit counters (from M2) and each user's "no active Fancy bakes" flag (from M3, cleared when a Fancy bake starts or a bake switches to Fancy). A missing entry costs at most one Postgres wake-up or a reset rate-limit count. It requires the `appengine-python-standard` SDK, which pins `urllib3<2`, plus the bundled-services setting in `app.yaml`. Google's docs show both `app_engine_apis: true` and `app_engine_bundled_services: [memcache]`, so confirm which one applies to `python314` when setting it up in [breadsheet#26](https://github.com/brystmar/breadsheet/issues/26).
 
 ## Alerts
 
@@ -290,7 +290,7 @@ Arrives in M4. `breadsheet-hass` registers a **Breadsheet** LLM API with Home As
 - **Claude, ChatGPT, and other MCP clients:** through HA's MCP Server integration, which lists each LLM API as its own MCP server with its own URL. The user copies the Breadsheet URL into their assistant's connector settings and signs in with HA's OAuth. Cloud assistants need the user's HA reachable from the internet (Home Assistant Cloud or equivalent).
 - **HA Assist:** any Assist conversation agent with the Breadsheet API enabled can use the tools directly, including by voice and with a fully local model ("mark my second fold done").
 
-**Scoping.** The Breadsheet API contains only breadsheet tools. The README tells users to connect agents to the Breadsheet MCP URL rather than an API that exposes their whole home, and to review HA's "Expose all LLM APIs" option, which is on by default. The HA token the agent holds is broader than the tools it can see over MCP; the README says so plainly. Verify the MCP Server config flow and options against current HA when building item 33, since that integration changes often.
+**Scoping.** The Breadsheet API contains only breadsheet tools. The README tells users to connect agents to the Breadsheet MCP URL rather than an API that exposes their whole home, and to review HA's "Expose all LLM APIs" option, which is on by default. The HA token the agent holds is broader than the tools it can see over MCP; the README says so plainly. Verify the MCP Server config flow and options against current HA when building [breadsheet-hass#9](https://github.com/brystmar/breadsheet-hass/issues/9), since that integration changes often.
 
 **Attribution.** Tool calls send `X-Breadsheet-Via: agent`, plus `X-Breadsheet-Agent: <name>` when HA's LLM context identifies the client (verify what it exposes). Breadsheet records `created_via: agent` and the agent name in `events` when present. Self-reported, used only for metrics.
 
@@ -366,7 +366,7 @@ Two layers, neither invasive: cookieless traffic analytics for visits, and first
 
 **Traffic.** Hosted GoatCounter (goatcounter.com), with periodic CSV exports so history is never at the mercy of retention limits: visits, pages, referrers, countries, devices. No cookies, no consent banner, no cross-site tracking. Added to the current site early, so there's a baseline before Second Rise launches.
 
-GoatCounter site: `brystmar.goatcounter.com`. Add this to `index.html` in breadsheet-ui (item 1c):
+GoatCounter site: `brystmar.goatcounter.com`. Add this to `index.html` in breadsheet-ui ([breadsheet-ui#26](https://github.com/brystmar/breadsheet-ui/issues/26)):
 
 ```html
 <script data-goatcounter="https://brystmar.goatcounter.com/count"
@@ -395,67 +395,67 @@ A short privacy page states exactly what's collected and what isn't.
 
 ## Backlog
 
-Second Rise breaks into seven epics across four milestones, roughly in build order; each row below becomes one GitHub issue on the shared Projects board. Item numbers are stable; items 30, 31, and 32 (OAuth server, consent screen, MCP service) were removed when agents moved into `breadsheet-hass`.
+Second Rise breaks into seven epics across four milestones. Rows are in rough build order within each milestone, and each links to its GitHub issue, which is the backlog item's only id. Issues carry the matching milestone and label; `parked` and `decision` labels mark the rest.
 
-| # | Issue | Repo | Epic | Milestone |
-| --- | --- | --- | --- | --- |
-| 1a | Upgrade Python (latest App Engine-supported runtime) and backend dependencies; update CLAUDE.md for React frontend and planned Postgres move | breadsheet | Foundation | M1 |
-| 1b | Upgrade React, Vite, and frontend dependencies to current stable; update UI docs | breadsheet-ui | Foundation | M1 |
-| 1c | Add hosted GoatCounter to the current site for a pre-launch baseline, including SPA route tracking | breadsheet-ui | Foundation | M1 |
-| 1d | Serve the API at `api.breadsheet.com` (App Engine custom domain, managed cert); credentialed CORS allow-list; point the UI at it | breadsheet, breadsheet-ui | Foundation | M1 |
-| 2 | Create Neon project, dev branch, App Engine secret | breadsheet | Foundation | M1 |
-| 3 | Replace PynamoDB with SQLAlchemy + Alembic for all models (incl. replacements); initial schema with the M1 tables only; v1 endpoints on Postgres with identical responses; remove PynamoDB and boto3; document the expand-then-contract migration rule and the no-promote deploy process in CLAUDE.md | breadsheet | Foundation | M1 |
-| 4 | DynamoDB to Postgres migration script (recipes and replacements) with verification; convert-text behavior unchanged | breadsheet | Foundation | M1 |
-| 5 | Curate default recipes (all 11 kept; no code needed) | breadsheet | Foundation | M1 |
-| 5b | Weekly `pg_dump` backups to the NAS (TrueNAS cron job, read-only Neon role, keep the last 12); one test restore | breadsheet | Foundation | M1 |
-| 6 | Users, key hashing, session cookie, key-link sign-in, sign-in and signup rate limits; set up shared memcache here, since the rate limits need it first | breadsheet | Identity | M2 |
-| 8 | Admin key for managing defaults and unpublishing community recipes | breadsheet | Identity | M2 |
-| 9 | Signup, save-your-key, link-device screens | breadsheet-ui | Identity | M2 |
-| 11 | Recipe scopes, copy-to-personal, slugs and suffixes, URL lookup endpoints | breadsheet | Recipes and bakes | M2 |
-| 11b | Community recipes: publish and unpublish, community library endpoint, copy from community, admin unpublish | breadsheet | Recipes and bakes | M2 |
-| 12 | Recipe detail levels in the API: wait ranges, hands-on time, needs-presence, validation, the "unknown is not zero" defaults, drafts | breadsheet | Recipes and bakes | M2 |
-| 12b | Recipe categories (`bread`, `prep`) and prerequisites: `recipe_prerequisites` table and validation, category filters on recipe lists, prerequisites in recipe responses, archiving hides recipes from lists; set the migrated recipes' categories | breadsheet | Recipes and bakes | M2 |
-| 13 | Bakes: start, snapshot, projection, check-off with client-supplied `completed_at` (idempotent, first write wins), cancel, auto-complete computed on read, time zones, alert mode, idempotent start | breadsheet | Recipes and bakes | M2 |
-| 13c | ICS export built in the browser: at bake start (Simple checkbox) and "Export again" from the bake view; UTC times, stable UIDs, increasing SEQUENCE | breadsheet-ui | Recipes and bakes | M2 |
-| 14 | Freeze the M2 `/api/v2` contract (including error codes, `service_unavailable` with `Retry-After`, and check-off semantics) and document it; later milestones only add endpoints | breadsheet | Recipes and bakes | M2 |
-| 16 | Mock up plan, start bake, and bake views | breadsheet-ui | UI | M2 |
-| 17 | Recipe view with the Simple/Detailed toggle, range and hands-on editing, category and prerequisite pickers, "Make it mine", publish/unpublish, the draft review banner, and unsaved changes kept on a failed save | breadsheet-ui | UI | M2 |
-| 17b | My recipes and community library screens: browse, search, filter by category, copy | breadsheet-ui | UI | M2 |
-| 18 | Plan view range caption and Start bake, with the prerequisite reminder | breadsheet-ui | UI | M2 |
-| 19 | Bake view and active bakes list; runs from the last fetched schedule during outages, with queued check-offs and a "Saved, will sync" state | breadsheet-ui | UI | M2 |
-| 20 | In-tab browser notifications | breadsheet-ui | UI | M2 |
-| 20b | Start bake alert options: plain Simple radio (default) with the ICS checkbox; sparkly Fancy radio, disabled with a "Coming soon!" tooltip | breadsheet-ui | UI | M2 |
-| 29 | Product events table (including self-reported agent attribution), metrics queries, and privacy page | breadsheet | Metrics | M2 |
-| 7 | Pairing codes, connections table (HA device tokens with scopes, all four issued at pairing), connections list, revoke, pairing rate limits | breadsheet | Identity | M3 |
-| 10 | Pair HA and connections list screens; revoke notes that it also disconnects assistants using that HA | breadsheet-ui | Identity | M3 |
-| 15 | Idle-poll cache (using the memcache from item 6), suggested poll interval, and the `alert=fancy` filter | breadsheet | Recipes and bakes | M3 |
-| 21 | Repo scaffold, Marketplace manifest, release-asset packaging, config flow with pairing | breadsheet-hass | HA integration | M3 |
-| 22 | Adaptive polling coordinator that keeps serving last good data on failed polls, honors `Retry-After`, and exposes last-synced time | breadsheet-hass | HA integration | M3 |
-| 23 | Calendar entity and bake sensors that stay available through outages | breadsheet-hass | HA integration | M3 |
-| 24 | `complete_step` action with client-supplied `completed_at`, a retry queue, and immediate local re-projection | breadsheet-hass | HA integration | M3 |
-| 25 | Sidebar panel with panel tokens | breadsheet-hass | HA integration | M3 |
-| 26 | Notification blueprint (lead time, Done action, late nag) | breadsheet-hass | HA integration | M3 |
-| 27 | Live Activities in blueprint (opt-in) | breadsheet-hass | HA integration | M3 |
-| 28 | README and Marketplace submission | breadsheet-hass | HA integration | M3 |
-| 28b | Enable the Fancy option at bake start; route to HA pairing when no HA is paired | breadsheet-ui | UI | M3 |
-| 13b | Schedule preview endpoint (no save), with hands-on windows and estimated flags | breadsheet | Recipes and bakes | M4 |
-| 33 | Breadsheet LLM API: register with HA; tools for search, get, import, preview, start, list, get bake, update, complete, cancel; agent-friendly descriptions; attribution headers; verify MCP Server exposure and hint support | breadsheet-hass | AI agents | M4 |
-| 34 | Recipe import endpoint: import schema, validation, draft creation, review link | breadsheet | AI agents | M4 |
-| 35 | End-to-end tests with Claude and ChatGPT through HA's MCP Server, and with Assist (plan a bake from a calendar, import a recipe from a photo); agent setup and scoping guide in the README | breadsheet-hass | AI agents | M4 |
+| Issue | Description | Epic | Milestone |
+| --- | --- | --- | --- |
+| [breadsheet#19](https://github.com/brystmar/breadsheet/issues/19) | Upgrade Python (latest App Engine-supported runtime) and backend dependencies; update CLAUDE.md for React frontend and planned Postgres move | Foundation | M1 |
+| [breadsheet-ui#25](https://github.com/brystmar/breadsheet-ui/issues/25) | Upgrade React, Vite, and frontend dependencies to current stable; update UI docs | Foundation | M1 |
+| [breadsheet-ui#26](https://github.com/brystmar/breadsheet-ui/issues/26) | Add hosted GoatCounter to the current site for a pre-launch baseline, including SPA route tracking | Foundation | M1 |
+| [breadsheet#20](https://github.com/brystmar/breadsheet/issues/20), [breadsheet-ui#27](https://github.com/brystmar/breadsheet-ui/issues/27) | Serve the API at `api.breadsheet.com` (App Engine custom domain, managed cert); credentialed CORS allow-list; point the UI at it | Foundation | M1 |
+| [breadsheet#21](https://github.com/brystmar/breadsheet/issues/21) | Create Neon project, dev branch, App Engine secret | Foundation | M1 |
+| [breadsheet#22](https://github.com/brystmar/breadsheet/issues/22) | Replace PynamoDB with SQLAlchemy + Alembic for all models (incl. replacements); initial schema with the M1 tables only; v1 endpoints on Postgres with identical responses; remove PynamoDB and boto3; document the expand-then-contract migration rule and the no-promote deploy process in CLAUDE.md | Foundation | M1 |
+| [breadsheet#23](https://github.com/brystmar/breadsheet/issues/23) | DynamoDB to Postgres migration script (recipes and replacements) with verification; convert-text behavior unchanged | Foundation | M1 |
+| [breadsheet#24](https://github.com/brystmar/breadsheet/issues/24) | Curate default recipes (all 11 kept; no code needed) | Foundation | M1 |
+| [breadsheet#25](https://github.com/brystmar/breadsheet/issues/25) | Weekly `pg_dump` backups to the NAS (TrueNAS cron job, read-only Neon role, keep the last 12); one test restore | Foundation | M1 |
+| [breadsheet#26](https://github.com/brystmar/breadsheet/issues/26) | Users, key hashing, session cookie, key-link sign-in, sign-in and signup rate limits; set up shared memcache here, since the rate limits need it first | Identity | M2 |
+| [breadsheet#28](https://github.com/brystmar/breadsheet/issues/28) | Admin key for managing defaults and unpublishing community recipes | Identity | M2 |
+| [breadsheet-ui#28](https://github.com/brystmar/breadsheet-ui/issues/28) | Signup, save-your-key, link-device screens | Identity | M2 |
+| [breadsheet#29](https://github.com/brystmar/breadsheet/issues/29) | Recipe scopes, copy-to-personal, slugs and suffixes, URL lookup endpoints | Recipes and bakes | M2 |
+| [breadsheet#58](https://github.com/brystmar/breadsheet/issues/58) | Community recipes: publish and unpublish, community library endpoint, copy from community, admin unpublish | Recipes and bakes | M2 |
+| [breadsheet#30](https://github.com/brystmar/breadsheet/issues/30) | Recipe detail levels in the API: wait ranges, hands-on time, needs-presence, validation, the "unknown is not zero" defaults, drafts | Recipes and bakes | M2 |
+| [breadsheet#59](https://github.com/brystmar/breadsheet/issues/59) | Recipe categories (`bread`, `prep`) and prerequisites: `recipe_prerequisites` table and validation, category filters on recipe lists, prerequisites in recipe responses, archiving hides recipes from lists; set the migrated recipes' categories | Recipes and bakes | M2 |
+| [breadsheet#31](https://github.com/brystmar/breadsheet/issues/31) | Bakes: start, snapshot, projection, check-off with client-supplied `completed_at` (idempotent, first write wins), cancel, auto-complete computed on read, time zones, alert mode, idempotent start | Recipes and bakes | M2 |
+| [breadsheet-ui#38](https://github.com/brystmar/breadsheet-ui/issues/38) | ICS export built in the browser: at bake start (Simple checkbox) and "Export again" from the bake view; UTC times, stable UIDs, increasing SEQUENCE | Recipes and bakes | M2 |
+| [breadsheet#32](https://github.com/brystmar/breadsheet/issues/32) | Freeze the M2 `/api/v2` contract (including error codes, `service_unavailable` with `Retry-After`, and check-off semantics) and document it; later milestones only add endpoints | Recipes and bakes | M2 |
+| [breadsheet-ui#30](https://github.com/brystmar/breadsheet-ui/issues/30) | Mock up plan, start bake, and bake views | UI | M2 |
+| [breadsheet-ui#31](https://github.com/brystmar/breadsheet-ui/issues/31) | Recipe view with the Simple/Detailed toggle, range and hands-on editing, category and prerequisite pickers, "Make it mine", publish/unpublish, the draft review banner, and unsaved changes kept on a failed save | UI | M2 |
+| [breadsheet-ui#39](https://github.com/brystmar/breadsheet-ui/issues/39) | My recipes and community library screens: browse, search, filter by category, copy | UI | M2 |
+| [breadsheet-ui#32](https://github.com/brystmar/breadsheet-ui/issues/32) | Plan view range caption and Start bake, with the prerequisite reminder | UI | M2 |
+| [breadsheet-ui#33](https://github.com/brystmar/breadsheet-ui/issues/33) | Bake view and active bakes list; runs from the last fetched schedule during outages, with queued check-offs and a "Saved, will sync" state | UI | M2 |
+| [breadsheet-ui#34](https://github.com/brystmar/breadsheet-ui/issues/34) | In-tab browser notifications | UI | M2 |
+| [breadsheet-ui#35](https://github.com/brystmar/breadsheet-ui/issues/35) | Start bake alert options: plain Simple radio (default) with the ICS checkbox; sparkly Fancy radio, disabled with a "Coming soon!" tooltip | UI | M2 |
+| [breadsheet#34](https://github.com/brystmar/breadsheet/issues/34) | Product events table (including self-reported agent attribution), metrics queries, and privacy page | Metrics | M2 |
+| [breadsheet#27](https://github.com/brystmar/breadsheet/issues/27) | Pairing codes, connections table (HA device tokens with scopes, all four issued at pairing), connections list, revoke, pairing rate limits | Identity | M3 |
+| [breadsheet-ui#29](https://github.com/brystmar/breadsheet-ui/issues/29) | Pair HA and connections list screens; revoke notes that it also disconnects assistants using that HA | Identity | M3 |
+| [breadsheet#33](https://github.com/brystmar/breadsheet/issues/33) | Idle-poll cache (using the memcache from [breadsheet#26](https://github.com/brystmar/breadsheet/issues/26)), suggested poll interval, and the `alert=fancy` filter | Recipes and bakes | M3 |
+| [breadsheet-hass#1](https://github.com/brystmar/breadsheet-hass/issues/1) | Repo scaffold, Marketplace manifest, release-asset packaging, config flow with pairing | HA integration | M3 |
+| [breadsheet-hass#2](https://github.com/brystmar/breadsheet-hass/issues/2) | Adaptive polling coordinator that keeps serving last good data on failed polls, honors `Retry-After`, and exposes last-synced time | HA integration | M3 |
+| [breadsheet-hass#3](https://github.com/brystmar/breadsheet-hass/issues/3) | Calendar entity and bake sensors that stay available through outages | HA integration | M3 |
+| [breadsheet-hass#4](https://github.com/brystmar/breadsheet-hass/issues/4) | `complete_step` action with client-supplied `completed_at`, a retry queue, and immediate local re-projection | HA integration | M3 |
+| [breadsheet-hass#5](https://github.com/brystmar/breadsheet-hass/issues/5) | Sidebar panel with panel tokens | HA integration | M3 |
+| [breadsheet-hass#6](https://github.com/brystmar/breadsheet-hass/issues/6) | Notification blueprint (lead time, Done action, late nag) | HA integration | M3 |
+| [breadsheet-hass#7](https://github.com/brystmar/breadsheet-hass/issues/7) | Live Activities in blueprint (opt-in) | HA integration | M3 |
+| [breadsheet-hass#8](https://github.com/brystmar/breadsheet-hass/issues/8) | README and Marketplace submission | HA integration | M3 |
+| [breadsheet-ui#40](https://github.com/brystmar/breadsheet-ui/issues/40) | Enable the Fancy option at bake start; route to HA pairing when no HA is paired | UI | M3 |
+| [breadsheet#45](https://github.com/brystmar/breadsheet/issues/45) | Schedule preview endpoint (no save), with hands-on windows and estimated flags | Recipes and bakes | M4 |
+| [breadsheet-hass#9](https://github.com/brystmar/breadsheet-hass/issues/9) | Breadsheet LLM API: register with HA; tools for search, get, import, preview, start, list, get bake, update, complete, cancel; agent-friendly descriptions; attribution headers; verify MCP Server exposure and hint support | AI agents | M4 |
+| [breadsheet#50](https://github.com/brystmar/breadsheet/issues/50) | Recipe import endpoint: import schema, validation, draft creation, review link | AI agents | M4 |
+| [breadsheet-hass#10](https://github.com/brystmar/breadsheet-hass/issues/10) | End-to-end tests with Claude and ChatGPT through HA's MCP Server, and with Assist (plan a bake from a calendar, import a recipe from a photo); agent setup and scoping guide in the README | AI agents | M4 |
 
 **Parked for later**
 
-- Public remote MCP server for non-HA users, with breadsheet as its own OAuth authorization server. Replaced in M4 by the Breadsheet LLM API in `breadsheet-hass`.
+- Public remote MCP server for non-HA users, with breadsheet as its own OAuth authorization server. Replaced in M4 by the Breadsheet LLM API in `breadsheet-hass`. [breadsheet#53](https://github.com/brystmar/breadsheet/issues/53)
 - Live calendar feed: a private per-user ICS subscription URL that updates as bakes change, with rotate and revoke. Deferred when Simple alerts became a per-bake export.
 - Community moderation beyond admin unpublish: a report button and a review queue, if the library sees abuse.
-- Username recovery.
-- Abandoned username reclamation using `last_seen_at`.
-- Dough Not Disturb (reserved name): a plan-view warning when a step lands in a user-defined sleep window. Muting stays with the phone.
-- Check-off directly from a Live Activity, once the companion app supports actions on activities.
-- Web Push notifications for non-HA users.
-- Server-side schedule fitting: `preview_schedule` accepts busy windows and picks the waits itself, instead of the agent trying options.
+- Username recovery. [breadsheet#37](https://github.com/brystmar/breadsheet/issues/37)
+- Abandoned username reclamation using `last_seen_at`. [breadsheet#38](https://github.com/brystmar/breadsheet/issues/38)
+- Dough Not Disturb (reserved name): a plan-view warning when a step lands in a user-defined sleep window. Muting stays with the phone. [breadsheet#39](https://github.com/brystmar/breadsheet/issues/39)
+- Check-off directly from a Live Activity, once the companion app supports actions on activities. [breadsheet#40](https://github.com/brystmar/breadsheet/issues/40)
+- Web Push notifications for non-HA users. [breadsheet#41](https://github.com/brystmar/breadsheet/issues/41)
+- Server-side schedule fitting: `preview_schedule` accepts busy windows and picks the waits itself, instead of the agent trying options. [breadsheet#52](https://github.com/brystmar/breadsheet/issues/52)
 - Offline recipe editing and sync.
-- Official HA core integration, if adoption warrants it.
+- Official HA core integration, if adoption warrants it. [breadsheet#42](https://github.com/brystmar/breadsheet/issues/42)
 - Chained bakes: start a prerequisite bake (such as reviving a starter) scheduled so its last step lands at peak strength when the main bake begins. In M4, an agent can plan both bakes with `preview_schedule` instead.
-- Convert-text rewrite: a fuller Paprika 3 formatter to replace the find-and-replace version.
-- Deleting a recipe that has bakes: decide whether to block it, archive instead, or keep the bakes with `recipe_id` set to null. Bakes keep their own step snapshot either way. Needs an interim rule before item 13 ships.
+- Convert-text rewrite: a fuller Paprika 3 formatter to replace the find-and-replace version. [breadsheet#43](https://github.com/brystmar/breadsheet/issues/43)
+- Deleting a recipe that has bakes ([breadsheet#35](https://github.com/brystmar/breadsheet/issues/35), a `decision`): decide whether to block it, archive instead, or keep the bakes with `recipe_id` set to null. Bakes keep their own step snapshot either way. Needs an interim rule before [breadsheet#31](https://github.com/brystmar/breadsheet/issues/31) ships.

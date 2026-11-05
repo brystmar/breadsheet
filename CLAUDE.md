@@ -26,10 +26,10 @@ schedule. Lives at breadsheet.com.
 | Tests | pytest against local Postgres (co-located *_test.py files in backend/) |
 | IDE | PyCharm Professional |
 
-> **DynamoDB is legacy.** The API ran on DynamoDB + PynamoDB until Second Rise item 3. The
+> **DynamoDB is legacy.** The API ran on DynamoDB + PynamoDB until Second Rise M1 (breadsheet#22). The
 > DynamoDB tables (`Recipe`, `Replacement` in `us-west-1`) stay as a fallback until v2 has run
-> cleanly for a while (spec item 6); no code in this repo reads them except the one-time
-> migration script (item 4). Local `.env` points at a copy in `us-east-2`; production is `us-west-1`.
+> cleanly for a while (spec: Infrastructure and migration, step 6); no code in this repo reads them
+> except the one-time migration script (breadsheet#23). Local `.env` points at a copy in `us-east-2`; production is `us-west-1`.
 >
 > `etc/migrate_dynamodb.py` loads and verifies in one transaction, comparing the new v1 responses
 > with the live production API; it's a dry run unless given `--commit`. See its docstring for usage.
@@ -79,8 +79,8 @@ breadsheet/
 ├── conftest.py              # Pytest fixtures (app, test database, client)
 ├── migrations/              # Alembic (Flask-Migrate) env and versions
 ├── etc/
-│   ├── migrate_dynamodb.py  # One-time DynamoDB → Postgres load and verification (item 4)
-│   └── backup_postgres.sh   # Weekly pg_dump to the NAS (item 5b; see Backups)
+│   ├── migrate_dynamodb.py  # One-time DynamoDB → Postgres load and verification (breadsheet#23)
+│   └── backup_postgres.sh   # Weekly pg_dump to the NAS (breadsheet#25; see Backups)
 ├── backend/
 │   ├── __init__.py          # create_app() factory: db, migrations, CORS, endpoints
 │   ├── config.py            # Config: database URLs, ports, domain, env detection
@@ -98,7 +98,7 @@ breadsheet/
 ```
 
 ## Data Models (`backend/models.py`)
-M1 schema (Second Rise item 3). Every table has a UUIDv7 `id` primary key, assigned when the
+M1 schema (breadsheet#22). Every table has a UUIDv7 `id` primary key, assigned when the
 object is created (Python's `uuid.uuid7()`), with Postgres's `uuidv7()` as the server default.
 Times are `timestamptz` in UTC; durations are in seconds. Later milestones add their columns
 through new migrations (see the spec's "Schema by milestone").
@@ -274,9 +274,14 @@ docker compose up -d breadsheet-db   # local Postgres 18 on port 5433 (data in t
 ## Current Status
 - Backend stable and deployed to GCP; React (breadsheet-ui) is the only frontend
 - Runtime and dependencies upgraded to current stable (Python 3.14, Nov 2026)
-- Second Rise item 3 done in code: v1 runs on Postgres via SQLAlchemy + Alembic. Production
-  still serves the DynamoDB version until the M1 cutover (items 4 to 6: migrate data, curate
-  defaults, verify, then deploy)
+- Second Rise M1 complete (2026-11-04): production runs v1 on Neon Postgres. App Engine version
+  `m1` serves all traffic; `py314` (the DynamoDB version) is the rollback target
+- Next: M2, starting with users and sessions (breadsheet#26)
 
 ## Second Rise spec
 The source of truth is `./docs/second-rise.md`, in this repo. Read it before planning or executing any Second Rise work. If it needs changes, say so and stop.
+
+The backlog is GitHub issues across breadsheet, breadsheet-ui, and breadsheet-hass; the spec's
+backlog table links each one. Refer to work by issue (`breadsheet#26`), always with its title,
+never by the old spec item numbers. Each repo has milestones M1–M4 with matching labels; the
+`parked` and `decision` labels mark the rest.
