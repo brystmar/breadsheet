@@ -91,15 +91,18 @@ A user is a username plus a secret key; whoever holds the key is that user. Ther
 **Signup**
 
 1. The user picks a username: unique, case-insensitive, display only.
-2. Breadsheet generates a 128-bit random key and shows it once as a copyable string, a QR code, and a link (`breadsheet.com/k/<key>`).
+2. Breadsheet generates a 128-bit random key and shows it once as a copyable string, a QR code, and a link (`breadsheet.com/k#<key>`).
 3. The user must copy, download, or scan it before continuing. Copy states plainly that the key is the only way back in.
 4. The server sets a first-party session cookie so the browser stays signed in: `HttpOnly`, `Secure`, `SameSite=Lax`, one-year lifetime refreshed on use. Losing the cookie costs nothing if the key was saved.
 
 **Other devices.** Opening the key link on any other browser signs that browser in and sets the same session cookie, exactly as signup does. The key never needs to be retyped.
 
+**Key links.** The key travels in the URL fragment (after `#`), which browsers never send to any server, so it stays out of Cloudflare and server logs, analytics, and link-preview fetches. The page reads the key, exchanges it with `POST /api/v2/session` (the key goes in the JSON body, never in an API URL), and then removes it from the address bar and history. GoatCounter never counts a key-link page.
+
 **Security**
 
 - **Key hashing.** Keys are 128-bit random values from Python's `secrets` module, so they don't need a slow password hash like bcrypt or Argon2 (those exist to protect weak, human-chosen passwords). Store SHA-256 of the key (`hashlib`, standard library), look users up by that hash, and compare with `hmac.compare_digest`. Device tokens (256-bit) and panel tokens use the same scheme. The same practice is used for API tokens generally.
+- **Session cookies.** Signed with the server's `SECRET_KEY` (Flask's signed cookie, no sessions table). The cookie holds the user id and a short fingerprint of the key hash, so a future key reset would end every existing session. Signing out clears only that browser; a lost device stays signed in until its cookie expires, which is accepted, since a leaked key is the bigger risk and also has no recovery in v1. `SECRET_KEY` is different in every environment and is never in the repo.
 - **Pairing codes (M3).** 8 characters from Crockford base32 (no I, L, O, or U), shown as `XXXX-XXXX`. They expire after 10 minutes, work once, and each user has at most one live code; issuing a new one voids the old one.
 - **Rate limits.** Per client IP, returning HTTP 429 when exceeded: 10 failed key sign-ins per 15 minutes on `POST /session`, 5 signups per hour on `POST /users`, and (from M3) 5 failed pairing attempts per 15 minutes on `POST /devices`. Counters live in the same cache as idle polls.
 - **CSRF.** `SameSite=Lax` cookies, the restricted CORS origin list, and requiring `Content-Type: application/json` on every state-changing request (which forces a CORS preflight) together cover it; no CSRF tokens needed.
