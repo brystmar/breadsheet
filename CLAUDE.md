@@ -366,7 +366,8 @@ docker compose up -d breadsheet-db   # local Postgres 18 on port 5433 (data in t
   (breadsheet#26)
 - Backend logging refactor (breadsheet#67) live since 2026-11-05: structured logs on App Engine,
   production `LOG_LEVEL` is `INFO`
-- App Engine version `m2d` serves all traffic; `m2c` is the rollback target. `py314` (the DynamoDB
+- Usernames must start with a letter (breadsheet#69, 2026-11-05)
+- App Engine version `m2e` serves all traffic; `m2d` is the rollback target. `py314` (the DynamoDB
   version) is kept until DynamoDB is retired
 
 ## Second Rise spec
