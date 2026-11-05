@@ -12,6 +12,8 @@ def create_app(config_class=Config):
     logger.debug(f"Creating app with config")
     breadapp = Flask(__name__)
     breadapp.config.from_object(config_class)
+    if not breadapp.config.get('SECRET_KEY'):
+        raise RuntimeError("SECRET_KEY isn't set; it signs session cookies, so the app won't start without it.")
 
     # Attach the database and Alembic migrations (via Flask-Migrate) to the app
     db.init_app(breadapp)
@@ -23,6 +25,7 @@ def create_app(config_class=Config):
     CORS(breadapp, resources={r'/api/*': {'origins': breadapp.config['CORS_ORIGINS']}}, supports_credentials=True)
 
     register_endpoints(Api(breadapp))
+    register_v2(breadapp)
     logger.debug(f"App created: {breadapp.name}")
 
     return breadapp
@@ -42,3 +45,13 @@ def register_endpoints(api: Api):
 
     api.add_resource(ReadmeApi, '/api/v1/readme')
     logger.info("API endpoints initialized")
+
+
+def register_v2(app: Flask):
+    """The /api/v2 blueprint (plain Flask views; see backend/api_v2.py)."""
+    from backend.api_v2 import api_v2, register_v2_http_errors
+    import backend.identity_routes  # noqa: F401 (registers its routes on the blueprint)
+
+    app.register_blueprint(api_v2)
+    register_v2_http_errors(app)
+    logger.info("API v2 endpoints initialized")

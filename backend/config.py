@@ -1,6 +1,7 @@
 """Defines an object used to configure parameters for our Flask app."""
 from backend.global_logger import logger, local
 from backend.database import ENGINE_OPTIONS, sqlalchemy_url
+from datetime import timedelta
 from os import environ
 
 
@@ -36,11 +37,19 @@ class Config(object):
         # The Vite dev server (npm start)
         CORS_ORIGINS += ['http://localhost:3000', 'http://127.0.0.1:3000']
 
-    SECRET_KEY = environ.get('SECRET_KEY') or '0mW7@LN0n32L6ntaj0d8jzsXiAW4mkPL7u5l'
+    # Signs the session cookie: anyone who knows it can sign in as any user. Each environment has its
+    #   own value (.env locally, env_variables.yaml in production), and create_app() refuses to start
+    #   without one. Never log it.
+    SECRET_KEY = environ.get('SECRET_KEY')
+
+    # Browser sessions (spec: Identity and ownership). Host-only on api.breadsheet.com, which is
+    #   same-site with breadsheet.com, so the UI's credentialed fetches send it.
+    SESSION_COOKIE_NAME = 'breadsheet_session'
+    SESSION_COOKIE_HTTPONLY = True
+    SESSION_COOKIE_SECURE = not local  # the Vite dev server calls the API over plain http
+    SESSION_COOKIE_SAMESITE = 'Lax'
+    PERMANENT_SESSION_LIFETIME = timedelta(days=365)
+    SESSION_REFRESH_EACH_REQUEST = True
+
     logger.debug(f"DOMAIN_URL: {DOMAIN_URL}")
-    logger.debug(f"SECRET_KEY: {SECRET_KEY}")
-
-    if SECRET_KEY != environ.get('SECRET_KEY'):
-        logger.warning("Error loading SECRET_KEY! Temporarily using a hard-coded key.")
-
     logger.debug("End of the Config() class.")

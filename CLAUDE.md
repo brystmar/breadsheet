@@ -16,7 +16,7 @@ schedule. Lives at breadsheet.com.
 | Layer | Technology |
 |---|---|
 | Language | Python 3.14 (App Engine runtime `python314`) |
-| Framework | Flask 3.1 + Flask-RESTful (JSON API only, no server-rendered UI) |
+| Framework | Flask 3.1, JSON API only (no server-rendered UI): v1 on Flask-RESTful, v2 as a plain Flask blueprint |
 | Database | Postgres 18 on Neon |
 | ORM | SQLAlchemy 2.1 via Flask-SQLAlchemy |
 | Migrations | Alembic via Flask-Migrate (`migrations/`) |
@@ -55,7 +55,7 @@ Pinned in `requirements.txt` (production) and `requirements-dev.txt` (adds test 
 | Package | Version |
 |---|---|
 | Flask | 3.1.3 |
-| Flask-RESTful | 0.3.10 (unmaintained since 2023; candidate for removal with `/api/v2`) |
+| Flask-RESTful | 0.3.10 (unmaintained since 2023; v1 only, and `/api/v2` doesn't use it) |
 | Flask-Cors | 6.0.5 |
 | Flask-SQLAlchemy | 3.1.1 (last release 2023; verified with SQLAlchemy 2.1) |
 | Flask-Migrate | 4.1.0 |
@@ -64,6 +64,7 @@ Pinned in `requirements.txt` (production) and `requirements-dev.txt` (adds test 
 | psycopg[binary] | 3.3.7 |
 | python-dotenv | 1.2.4 |
 | Markdown | 3.11.2 |
+| appengine-python-standard | 3.1.0 (App Engine shared memcache; pins `urllib3<2`) |
 | pytest (dev) | 9.2.0 |
 | testfixtures (dev) | 12.4.0 |
 
@@ -82,12 +83,17 @@ breadsheet/
 │   ├── migrate_dynamodb.py  # One-time DynamoDB → Postgres load and verification (breadsheet#23)
 │   └── backup_postgres.sh   # Weekly pg_dump to the NAS (breadsheet#25; see Backups)
 ├── backend/
-│   ├── __init__.py          # create_app() factory: db, migrations, CORS, endpoints
+│   ├── __init__.py          # create_app() factory: db, migrations, CORS, v1 and v2 endpoints
 │   ├── config.py            # Config: database URLs, ports, domain, env detection
 │   ├── database.py          # SQLAlchemy `db`, Flask-Migrate, Neon engine settings
 │   ├── global_logger.py     # Logger + `local` bool (True when APP_ENV=local)
 │   ├── functions.py         # Utilities incl. replace_text()
-│   ├── models.py            # SQLAlchemy models: Recipe, RecipeStep, Replacement
+│   ├── models.py            # SQLAlchemy models: Recipe, RecipeStep, Replacement, User
+│   ├── api_v2.py            # /api/v2 blueprint: error bodies, JSON-only writes, no-store, 503s
+│   ├── identity.py          # Keys, usernames, session cookie helpers, current_user()
+│   ├── identity_routes.py   # /api/v2/users and /api/v2/session
+│   ├── cache.py             # Shared memcache on App Engine, in-process dict locally
+│   ├── rate_limits.py       # Per-IP fixed-window limits (sign-in failures, signups)
 │   ├── recipe_routes.py     # RecipeCollectionApi, RecipeApi
 │   ├── replacement_routes.py
 │   ├── meta_routes.py       # ReadmeApi
@@ -98,7 +104,7 @@ breadsheet/
 ```
 
 ## Data Models (`backend/models.py`)
-M1 schema (breadsheet#22). Every table has a UUIDv7 `id` primary key, assigned when the
+M1 schema (breadsheet#22), plus `users` (M2, breadsheet#26). Every table has a UUIDv7 `id` primary key, assigned when the
 object is created (Python's `uuid.uuid7()`), with Postgres's `uuidv7()` as the server default.
 Times are `timestamptz` in UTC; durations are in seconds. Later milestones add their columns
 through new migrations (see the spec's "Schema by milestone").
@@ -132,7 +138,16 @@ Convert-text substitutions. Unique on (`scope`, `old`). `old` uses `COLLATE "C"`
 which matches DynamoDB's range-key sort; convert-text applies replacements in this order, so
 don't change it.
 
+### `User` (table `users`, M2)
+| Column | Type | Notes |
+|---|---|---|
+| `id` | uuid | UUIDv7 |
+| `username` | text | Display case kept; unique on `lower(username)` |
+| `key_hash` | bytea(32) | SHA-256 of the user's key, unique; the key itself is never stored |
+| `created_at`, `last_seen_at` | timestamptz | `last_seen_at` is written at most once a day |
+
 ## API Endpoints
+### v1
 All routes use `/api/v1/` prefix. Responses are `{'message': ..., 'data': ...}`, exactly as
 they were on DynamoDB.
 
@@ -155,6 +170,34 @@ Changes from the DynamoDB version: the server assigns recipe and step ids (it ig
 client-generated `id` on POST), PUT to an unknown id returns 404 instead of creating the recipe,
 and GET requests never write.
 
+### v2 (growing by milestone; see the spec's API v2 table)
+| Endpoint | Purpose |
+|---|---|
+| `POST /api/v2/users` | Sign up with `{username}`; returns `{user, key}` (the only time the key is shown) and signs in |
+| `POST /api/v2/session` | Sign in with `{key}` |
+| `GET /api/v2/session` | The signed-in user, or 401 `not_signed_in` |
+| `DELETE /api/v2/session` | Sign out this browser only |
+
+v2 conventions (`backend/api_v2.py`):
+- Errors are `{code, message}` with a stable `code` and a message that says what to do next; raise
+  `ApiError(status, code, message)`. Unknown paths and wrong methods under `/api/v2` also return JSON.
+- `POST`/`PUT`/`PATCH`/`DELETE` require `Content-Type: application/json` (415 `json_required`).
+  Together with `SameSite=Lax` and the CORS allow-list, that's the CSRF protection.
+- Every response is `Cache-Control: no-store`. A database `OperationalError` becomes 503
+  `service_unavailable` with `Retry-After`.
+
+**Identity** (`backend/identity.py`): keys are 128-bit (`secrets.token_urlsafe(16)`), stored as
+SHA-256 and compared with `hmac.compare_digest`. The session is Flask's signed cookie
+(`breadsheet_session`: `HttpOnly`, `Secure` except locally, `SameSite=Lax`, one year, refreshed
+on use) holding the user id and a fingerprint of the key hash; there's no sessions table. Username
+rules: 3–30 ASCII letters, digits, `_` or `-`, starting with a letter or digit, unique ignoring
+case, with a reserved list. Key links are `breadsheet.com/k#<key>` (the fragment never reaches a server).
+
+**Rate limits** (`backend/rate_limits.py`): per IP, 10 failed sign-ins per 15 minutes and 5 signups
+per hour, returning 429 `rate_limited` with `Retry-After`. The IP is App Engine's
+`X-Appengine-User-Ip` (`api.breadsheet.com` is DNS-only in Cloudflare). Counters live in
+`backend/cache.py`; if the cache fails, requests go through.
+
 ## Config & Environment
 `backend/config.py` + `backend/global_logger.py`. The `local` boolean is `True` when
 `APP_ENV=local` is set in the environment; locally, `Config` loads `.env`.
@@ -168,6 +211,9 @@ Key values:
 - `DATABASE_URL_UNPOOLED` — Neon direct connection string, for Alembic
 - `BOUND_PORT` — local port (set in `.flaskenv`)
 - `DOMAIN_URL` — `breadsheet.com`
+- `SECRET_KEY` — signs session cookies, so anyone who has it can sign in as any user. Different in
+  every environment (`.env` locally, `env_variables.yaml` in production); never log or commit it.
+  `create_app()` refuses to start without one. Rotating it signs every browser out.
 
 ## Running Locally
 ```bash
@@ -197,6 +243,8 @@ because migrations run before the new code takes traffic, and rollback is just m
   end of support 2030-10-10). App Engine applies patch releases automatically.
 - Legacy `breadsheet.appspot.com` requests 301-redirected to `breadsheet.com`
   in `handle_before_request()` in `main.py`
+- `app.yaml` enables the shared memcache bundled service (`app_engine_bundled_services`);
+  `main.py` wraps the app with the SDK's `wrap_wsgi_app` when running on App Engine (`GAE_ENV`).
 - `env_variables.yaml` (git-ignored) holds production config, including the production branch's
   pooled `DATABASE_URL` (added at the M1 cutover).
 
@@ -276,7 +324,7 @@ docker compose up -d breadsheet-db   # local Postgres 18 on port 5433 (data in t
 - Runtime and dependencies upgraded to current stable (Python 3.14, Nov 2026)
 - Second Rise M1 complete (2026-11-04): production runs v1 on Neon Postgres. App Engine version
   `m1` serves all traffic; `py314` (the DynamoDB version) is the rollback target
-- Next: M2, starting with users and sessions (breadsheet#26)
+- M2 in progress: users and sessions (breadsheet#26)
 
 ## Second Rise spec
 The source of truth is `./docs/second-rise.md`, in this repo. Read it before planning or executing any Second Rise work. If it needs changes, say so and stop.
