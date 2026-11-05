@@ -345,9 +345,11 @@ docker compose up -d breadsheet-db   # local Postgres 18 on port 5433 (data in t
 ## Current Status
 - Backend stable and deployed to GCP; React (breadsheet-ui) is the only frontend
 - Runtime and dependencies upgraded to current stable (Python 3.14, Nov 2026)
-- Second Rise M1 complete (2026-11-04): production runs v1 on Neon Postgres. App Engine version
-  `m1` serves all traffic; `py314` (the DynamoDB version) is the rollback target
-- M2 in progress: users and sessions (breadsheet#26)
+- Second Rise M1 complete (2026-11-04): production runs v1 on Neon Postgres
+- M2 in progress. Live since 2026-11-05: users, key sign-in, sessions, and rate limits
+  (breadsheet#26), in App Engine version `m2c`, which serves all traffic. `m1` is the rollback
+  target; `py314` (the DynamoDB version) is kept until DynamoDB is retired
+- Next: backend logging refactor (breadsheet#67)
 
 ## Second Rise spec
 The source of truth is `./docs/second-rise.md`, in this repo. Read it before planning or executing any Second Rise work. If it needs changes, say so and stop.
