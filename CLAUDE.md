@@ -296,7 +296,10 @@ No maintenance windows or maintenance mode.
    `production` branch, set only for that command, never saved in `.env`). They must be
    expand-then-contract (see Migrations).
 2. `./deploy.sh [version]` deploys with `--no-promote`, so the new version gets no traffic.
-3. Smoke-test it at `https://<version>-dot-breadsheet.wl.r.appspot.com`.
+3. Smoke-test it at `https://<version>-dot-breadsheet.wl.r.appspot.com`. The new version shares the
+   production database with the version that still has traffic, so **don't create data the live version
+   would show publicly** (e.g. personal recipes, which pre-`m2f` versions list on the homepage) until
+   traffic has moved; test those after step 4, then delete the test data.
 4. Move traffic: `gcloud app services set-traffic default --splits <version>=1`.
 5. Roll back by moving traffic to the previous version. Keep the last few versions deployed;
    delete older ones to stay within App Engine's version limit.
@@ -386,7 +389,9 @@ docker compose up -d breadsheet-db   # local Postgres 18 on port 5433 (data in t
 - Backend logging refactor (breadsheet#67) live since 2026-11-05: structured logs on App Engine,
   production `LOG_LEVEL` is `INFO`
 - Usernames must start with a letter (breadsheet#69, 2026-11-05)
-- App Engine version `m2e` serves all traffic; `m2d` is the rollback target. `py314` (the DynamoDB
+- Recipe scopes, copy-to-personal, slugs and suffixes (breadsheet#29) live since 2026-11-05
+- App Engine version `m2f` serves all traffic; `m2e` is the rollback target, but it lists personal
+  recipes on the v1 homepage, so delete any personal recipes before rolling back to it. `py314` (the DynamoDB
   version) is kept until DynamoDB is retired
 
 ## Second Rise spec
