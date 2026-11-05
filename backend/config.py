@@ -1,22 +1,13 @@
 """Defines an object used to configure parameters for our Flask app."""
-from backend.global_logger import logger, local
 from backend.database import ENGINE_OPTIONS, sqlalchemy_url
+from backend.environment import local
 from datetime import timedelta
 from os import environ
 
 
 class Config(object):
-    logger.debug("Start of the Config() class.")
-
-    # Apply the environment variables when running locally
-    if local:
-        from dotenv import load_dotenv
-        load_dotenv()
-        logger.info("Local .env variables applied.")
-
-    else:
-        # When running in GCP, these are loaded from the env_variables.yaml file when the app loads
-        pass
+    # Values come from the environment: `.env` locally (loaded by backend/environment.py), and
+    #   env_variables.yaml on App Engine
 
     # Neon Postgres; locally these point at the `dev` branch
     # The app uses the pooled URL; Alembic migrations use the unpooled (direct) URL, since
@@ -50,6 +41,3 @@ class Config(object):
     SESSION_COOKIE_SAMESITE = 'Lax'
     PERMANENT_SESSION_LIFETIME = timedelta(days=365)
     SESSION_REFRESH_EACH_REQUEST = True
-
-    logger.debug(f"DOMAIN_URL: {DOMAIN_URL}")
-    logger.debug("End of the Config() class.")

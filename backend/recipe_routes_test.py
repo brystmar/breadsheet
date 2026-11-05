@@ -169,3 +169,23 @@ class TestRecipeApi:
         response = client.delete(f'/api/v1/recipe/{recipe_id}')
         assert response.status_code == 404
         assert response.json == {'message': 'Not Found', 'data': f'Recipe {recipe_id} not found.'}
+
+
+class TestErrorLogging:
+    def test_database_errors_are_logged_at_error_with_traceback(self, client, caplog):
+        from sqlalchemy.exc import OperationalError
+        from unittest.mock import patch
+
+        outage = OperationalError('SELECT', None, Exception('connection refused'))
+        with patch('backend.recipe_routes.db.session.scalars', side_effect=outage):
+            response = client.get('/api/v1/recipes')
+
+        assert response.status_code == 500  # unchanged v1 behavior
+        errors = [r for r in caplog.records if r.name == 'backend.recipe_routes' and r.levelname == 'ERROR']
+        assert errors and errors[0].exc_info is not None
+
+    def test_request_bodies_are_not_logged(self, client, caplog):
+        import logging
+        caplog.set_level(logging.DEBUG)
+        post(client, {**RECIPE, 'name': 'A very distinctive recipe name'})
+        assert 'A very distinctive recipe name' not in caplog.text

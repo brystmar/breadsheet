@@ -1,4 +1,5 @@
 """Tests for the local cache used in development and tests (App Engine uses memcache)."""
+import logging
 from backend.cache import LocalCache
 from unittest.mock import patch
 
@@ -27,19 +28,19 @@ def test_clear():
     assert cache.get('k') is None
 
 
-def test_memcache_returning_nothing_is_logged(mock_logs):
+def test_memcache_returning_nothing_is_logged(caplog):
     # The SDK returns None instead of raising when memcache is unavailable; that must not be silent
     from backend.cache import MemcacheCache
     with patch('google.appengine.api.memcache.add', return_value=False), \
             patch('google.appengine.api.memcache.incr', return_value=None):
         assert MemcacheCache().incr('rl:test', ttl=60) is None
-    mock_logs.check_present(('backend.global_logger', 'WARNING',
-                             "memcache incr returned nothing for rl:test; is memcache enabled (app.yaml)?"))
+    assert ('backend.cache', logging.WARNING,
+            "memcache incr returned nothing for rl:test; is memcache enabled (app.yaml)?") in caplog.record_tuples
 
 
-def test_memcache_incr_returns_the_count(mock_logs):
+def test_memcache_incr_returns_the_count(caplog):
     from backend.cache import MemcacheCache
     with patch('google.appengine.api.memcache.add', return_value=True), \
             patch('google.appengine.api.memcache.incr', return_value=3):
         assert MemcacheCache().incr('rl:test', ttl=60) == 3
-    assert not [r for r in mock_logs.records if r.levelname == 'WARNING']
+    assert not [r for r in caplog.records if r.levelno >= logging.WARNING]

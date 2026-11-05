@@ -67,14 +67,13 @@ Pinned in `requirements.txt` (production) and `requirements-dev.txt` (adds test 
 | Markdown | 3.11.2 |
 | appengine-python-standard | 3.1.0 (App Engine shared memcache; pins `urllib3<2`) |
 | pytest (dev) | 9.2.0 |
-| testfixtures (dev) | 12.4.0 |
 
 ## Repo Structure
 ```
 breadsheet/
 ├── main.py                  # Entrypoint: creates the app, GCP redirect handler
 ├── requirements.txt         # Production dependencies (App Engine installs only this)
-├── requirements-dev.txt     # Adds pytest and testfixtures
+├── requirements-dev.txt     # Adds pytest
 ├── app.yaml                 # GCP App Engine config
 ├── deploy.sh                # No-promote deploy (see Deploys)
 ├── docker-compose.yaml      # Local Postgres for tests
@@ -87,7 +86,8 @@ breadsheet/
 │   ├── __init__.py          # create_app() factory: db, migrations, CORS, v1 and v2 endpoints
 │   ├── config.py            # Config: database URLs, ports, domain, env detection
 │   ├── database.py          # SQLAlchemy `db`, Flask-Migrate, Neon engine settings
-│   ├── global_logger.py     # Logger + `local` bool (True when APP_ENV=local)
+│   ├── environment.py       # `local`, `ON_APP_ENGINE`, `GCP_PROJECT`; loads `.env`
+│   ├── logging_setup.py     # configure_logging(): console locally, JSON on App Engine
 │   ├── functions.py         # Utilities incl. replace_text()
 │   ├── models.py            # SQLAlchemy models: Recipe, RecipeStep, Replacement, User
 │   ├── api_v2.py            # /api/v2 blueprint: error bodies, JSON-only writes, no-store, 503s
@@ -200,8 +200,9 @@ per hour, returning 429 `rate_limited` with `Retry-After`. The IP is App Engine'
 `backend/cache.py`; if the cache fails, requests go through.
 
 ## Config & Environment
-`backend/config.py` + `backend/global_logger.py`. The `local` boolean is `True` when
-`APP_ENV=local` is set in the environment; locally, `Config` loads `.env`.
+`backend/environment.py` decides where the app is running, once: `local` is `True` when
+`APP_ENV=local`, and `ON_APP_ENGINE` when App Engine sets `GAE_ENV=standard`. It loads `.env` on
+import (a no-op on App Engine, where `.env` isn't deployed). `backend/config.py` reads the values.
 
 Set `APP_ENV=local` in `.env` for local development (already present). Do NOT set it
 in `env_variables.yaml` — GCP must not see this value.
@@ -215,6 +216,20 @@ Key values:
 - `SECRET_KEY` — signs session cookies, so anyone who has it can sign in as any user. Different in
   every environment (`.env` locally, `env_variables.yaml` in production); never log or commit it.
   `create_app()` refuses to start without one. Rotating it signs every browser out.
+- `LOG_LEVEL` — `DEBUG` locally and `INFO` on App Engine by default
+- `LOG_FILE` — optional, local only: also write logs to this file (e.g. `logs/breadsheet.log`)
+
+## Logging
+`create_app()` calls `configure_logging()` (`backend/logging_setup.py`) once. Every module just does
+`logger = logging.getLogger(__name__)`; never call `basicConfig()` or add handlers elsewhere.
+- Locally: readable lines on stderr. On App Engine: one JSON object per line on stdout, which Cloud
+  Logging reads for `severity` and groups by request (via `X-Cloud-Trace-Context`). Filter on
+  `severity>=ERROR` in the Logs Explorer to find failures.
+- In `except` blocks for server-side failures, use `logger.exception(...)` so the traceback is kept
+  at ERROR. Bad client input is a WARNING; routine detail is DEBUG.
+- Use `%s` arguments (`logger.info("Created recipe %s", recipe.id)`), not f-strings.
+- **Never log** request bodies, keys, cookies, `SECRET_KEY`, database URLs, or users' recipe text.
+  Log ids instead.
 
 ## Running Locally
 ```bash
@@ -330,13 +345,14 @@ docker compose up -d breadsheet-db   # local Postgres 18 on port 5433 (data in t
 .venv/bin/python -m pytest
 ```
 - Co-located `*_test.py` files alongside each module in `backend/`; `conftest.py` at root.
+- Check log output with pytest's built-in `caplog` fixture.
 - The `database` fixture rebuilds the test schema from the Alembic migrations (downgrade to base,
   then upgrade), so tests cover the migrations too. The `client` fixture truncates every table.
 - Tests that need the database skip when the container isn't running. Tests never touch Neon,
   except the live round trip in `database_test.py`. Override the target with `TEST_DATABASE_URL`.
 
 ## Coding Conventions
-- `local` bool controls local vs. cloud behavior throughout the codebase
+- `local` and `ON_APP_ENGINE` (from `backend/environment.py`) control local vs. cloud behavior
 - Datetimes stored as UTC; v1 `to_dict()` returns ISO strings by default, or epoch ms
   with `dates_as_epoch=True`
 - Ids are UUIDv7, assigned by the server; never accept client-supplied ids
@@ -349,7 +365,7 @@ docker compose up -d breadsheet-db   # local Postgres 18 on port 5433 (data in t
 - M2 in progress. Live since 2026-11-05: users, key sign-in, sessions, and rate limits
   (breadsheet#26), in App Engine version `m2c`, which serves all traffic. `m1` is the rollback
   target; `py314` (the DynamoDB version) is kept until DynamoDB is retired
-- Next: backend logging refactor (breadsheet#67)
+- Backend logging refactor (breadsheet#67) in progress
 
 ## Second Rise spec
 The source of truth is `./docs/second-rise.md`, in this repo. Read it before planning or executing any Second Rise work. If it needs changes, say so and stop.

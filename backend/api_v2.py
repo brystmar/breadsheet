@@ -9,11 +9,13 @@ The /api/v2 blueprint and its conventions, shared by every v2 endpoint:
 
 Plain Flask views, not Flask-RESTful (unmaintained); v1 keeps Flask-RESTful.
 """
+import logging
 from backend.database import db
-from backend.global_logger import logger
 from flask import Blueprint, jsonify, request
 from sqlalchemy.exc import OperationalError
 from werkzeug.exceptions import HTTPException
+
+logger = logging.getLogger(__name__)
 
 api_v2 = Blueprint('api_v2', __name__, url_prefix='/api/v2')
 
@@ -62,7 +64,7 @@ def handle_api_error(e: ApiError):
 
 @api_v2.errorhandler(OperationalError)
 def handle_database_outage(e: OperationalError):
-    logger.error(f"Database unavailable: {e}")
+    logger.error("Database unavailable", exc_info=e)
     db.session.rollback()
     return error_response(503, 'service_unavailable',
                           "Breadsheet can't reach its database right now. Try again shortly.",

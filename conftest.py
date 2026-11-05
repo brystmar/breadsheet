@@ -22,15 +22,6 @@ class TestConfig(Config):
     SESSION_COOKIE_SECURE = False  # the test client uses plain http
 
 
-@fixture(scope='function')
-def mock_logs():
-    """Fixture to validate that logs are captured as desired."""
-    from testfixtures import LogCapture
-
-    with LogCapture() as capture:
-        yield capture
-
-
 @fixture(scope='session')
 def app():
     """The Flask app, configured for the test database. Creating it doesn't connect to the database."""
