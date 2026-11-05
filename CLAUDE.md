@@ -363,9 +363,11 @@ docker compose up -d breadsheet-db   # local Postgres 18 on port 5433 (data in t
 - Runtime and dependencies upgraded to current stable (Python 3.14, Nov 2026)
 - Second Rise M1 complete (2026-11-04): production runs v1 on Neon Postgres
 - M2 in progress. Live since 2026-11-05: users, key sign-in, sessions, and rate limits
-  (breadsheet#26), in App Engine version `m2c`, which serves all traffic. `m1` is the rollback
-  target; `py314` (the DynamoDB version) is kept until DynamoDB is retired
-- Backend logging refactor (breadsheet#67) in progress
+  (breadsheet#26)
+- Backend logging refactor (breadsheet#67) live since 2026-11-05: structured logs on App Engine,
+  production `LOG_LEVEL` is `INFO`
+- App Engine version `m2d` serves all traffic; `m2c` is the rollback target. `py314` (the DynamoDB
+  version) is kept until DynamoDB is retired
 
 ## Second Rise spec
 The source of truth is `./docs/second-rise.md`, in this repo. Read it before planning or executing any Second Rise work. If it needs changes, say so and stop.
