@@ -1,8 +1,8 @@
 """
 v2 recipes (breadsheet#29): default and personal scopes, copy-to-personal, and URL lookups.
 
-- Default recipes (no owner) are visible to everyone and read-only here; the admin key (breadsheet#28)
-  will manage them. Until then v1 still edits them.
+- Default recipes (no owner) are visible to everyone and read-only here; the admin key manages them
+  (backend/admin_routes.py).
 - Personal recipes belong to their owner. Anyone with the link (the id, or the URL's suffix) can view
   and copy one; only the owner can edit or delete it.
 - Writes need a signed-in browser.

@@ -1,9 +1,12 @@
-"""Defines recipe-related endpoints for the front end to consume."""
+"""
+v1 recipe endpoints: read-only, default recipes only.
+
+v1 writes were turned off in breadsheet#28; POST, PUT and DELETE return 405. Default recipes are
+managed with the admin key (backend/admin_routes.py).
+"""
 import logging
 from backend.database import db
-from backend.models import Recipe, utc_now
-from backend.slugs import unique_default_slug
-from flask import request
+from backend.models import Recipe
 from flask_restful import Resource
 from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
@@ -46,42 +49,6 @@ class RecipeCollectionApi(Resource):
             logger.exception(error_msg)
             return {'message': 'Error', 'data': error_msg}, 500
 
-    def post(self) -> dict:
-        """Add a new recipe based on the submitted JSON."""
-
-        # Ensure there's a body to accompany this request
-        data = request.get_json(force=True)
-        if data is None:
-            return {'message': 'Error', 'data': 'POST request must contain a body.'}, 400
-
-
-        # Create a new Recipe from the provided data; the server assigns its id
-        try:
-            new_recipe = Recipe()
-            new_recipe.update_from_v1(data)
-            new_recipe.last_modified = new_recipe.date_added
-
-            # v1 creates default recipes; their slug is set once and never changes
-            new_recipe.slug = unique_default_slug(db.session, new_recipe.name)
-
-        except (KeyError, TypeError, ValueError, AttributeError) as e:
-            error_msg = f"Other error in parsing args."
-            logger.warning("%s %s", error_msg, e)
-            return {'message': 'Error', 'data': error_msg}, 500
-
-        # Write this new recipe to the db
-        try:
-            db.session.add(new_recipe)
-            db.session.commit()
-            logger.info("Created recipe %s", new_recipe.id)
-            return {'message': 'Created', 'data': new_recipe.to_dict(dates_as_epoch=False)}, 201
-
-        except SQLAlchemyError as e:
-            db.session.rollback()
-            error_msg = f"Error attempting to save new recipe."
-            logger.exception(error_msg)
-            return {'message': 'Error', 'data': error_msg}, 500
-
 
 class RecipeApi(Resource):
     """Endpoint: /api/v1/recipe/<recipe_id>"""
@@ -99,80 +66,5 @@ class RecipeApi(Resource):
             return {'message': 'Success', 'data': recipe.to_dict(dates_as_epoch=True)}, 200
         except SQLAlchemyError as e:
             error_msg = f"Error attempting to retrieve recipe {recipe_id}."
-            logger.exception(error_msg)
-            return {'message': 'Error', 'data': error_msg}, 500
-
-    def put(self, recipe_id) -> dict:
-        """
-        Update an existing recipe using data from the request.
-        Returns a copy of the new recipe.
-        """
-
-        # Ensure there's a body to accompany this request
-        data = request.get_json(force=True)
-        if data is None:
-            return {'message': 'Error', 'data': 'POST request must contain a body.'}, 400
-
-
-        # Ensure the /<recipe_id> provided to the endpoint matches the recipe_id in the body.
-        if str(recipe_id) != str(data.get('id')):
-            error_msg = f"/recipe_id provided to the endpoint ({recipe_id}) " \
-                        f"doesn't match the id from the body ({data.get('id')})."
-            logger.debug(error_msg)
-            return {'message': 'Error', 'data': error_msg}, 400
-
-        try:
-            recipe = get_recipe(recipe_id)
-            if recipe is None:
-                logger.debug("Recipe %s not found", recipe_id)
-                return {'message': 'Not Found', 'data': f'Recipe {recipe_id} not found.'}, 404
-
-            # Apply the provided data to the recipe
-            try:
-                recipe.update_from_v1(data)
-            except (KeyError, TypeError, ValueError, AttributeError) as e:
-                db.session.rollback()
-                error_msg = f"Error parsing data into the Recipe model."
-                logger.warning("%s %s", error_msg, e)
-                return {'message': 'Error', 'data': f'{error_msg}\n{e}'}, 500
-
-            # Update the last_modified timestamp and save to the database
-            recipe.last_modified = utc_now()
-            db.session.commit()
-            logger.info("Updated recipe %s", recipe.id)
-            return {'message': 'Success', 'data': recipe.to_dict(dates_as_epoch=True)}, 200
-
-        except SQLAlchemyError as e:
-            db.session.rollback()
-            error_msg = f"Error attempting to save recipe {recipe_id}."
-            logger.exception(error_msg)
-            return {'message': 'Error', 'data': error_msg}, 500
-
-    def delete(self, recipe_id) -> dict:
-        """Delete the specified recipe."""
-
-        # Retrieve the recipe from the database
-        try:
-            recipe = get_recipe(recipe_id)
-            if recipe is None:
-                logger.debug("Recipe %s not found", recipe_id)
-                return {'message': 'Not Found', 'data': f'Recipe {recipe_id} not found.'}, 404
-
-        except SQLAlchemyError as e:
-            error_msg = f"Error attempting to retrieve recipe {recipe_id}."
-            logger.exception(error_msg)
-            return {'message': 'Error', 'data': error_msg}, 500
-
-        # Delete the specified recipe; its steps are removed with it
-        try:
-            footprint = f"{recipe}"
-            db.session.delete(recipe)
-            db.session.commit()
-            logger.info("Deleted %s", footprint)
-            return {'message': 'Success', 'data': f'{footprint} deleted successfully.'}, 200
-
-        except SQLAlchemyError as e:
-            db.session.rollback()
-            error_msg = f"Error attempting to delete recipe {recipe}."
             logger.exception(error_msg)
             return {'message': 'Error', 'data': error_msg}, 500

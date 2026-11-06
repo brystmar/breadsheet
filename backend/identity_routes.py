@@ -13,16 +13,10 @@ logger = logging.getLogger(__name__)
 USERNAME_TAKEN = "That username is taken. Please pick another."
 
 
-def rate_limited(limit: rate_limits.Limit, message: str):
-    wait = rate_limits.retry_after(limit)
-    if wait is not None:
-        raise ApiError(429, 'rate_limited', message, {'Retry-After': str(wait)})
-
-
 @api_v2.post('/users')
 def create_user():
     """Create a user and sign this browser in. The key is returned once, here, and never again."""
-    rate_limited(rate_limits.SIGNUPS, "Too many new accounts from this network. Try again later.")
+    rate_limits.enforce(rate_limits.SIGNUPS, "Too many new accounts from this network. Try again later.")
 
     username = json_body().get('username')
     username = username.strip() if isinstance(username, str) else username
@@ -51,7 +45,7 @@ def create_user():
 @api_v2.post('/session')
 def sign_in():
     """Exchange a key (from the key link or pasted) for a session cookie."""
-    rate_limited(rate_limits.SIGN_IN_FAILURES, "Too many sign-in attempts from this network. Wait a bit and try again.")
+    rate_limits.enforce(rate_limits.SIGN_IN_FAILURES, "Too many sign-in attempts from this network. Wait a bit and try again.")
 
     user = find_user_by_key(json_body().get('key'))
     if user is None:
