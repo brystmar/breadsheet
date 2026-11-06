@@ -63,8 +63,8 @@ Every question raised during scoping is settled; these are the answers the rest 
 | Late steps | One nag at +5 min, then silence. Schedule shifts only on check-off. |
 | Early check-off | Allowed; downstream steps re-project from the actual time. |
 | Check-off time | The client supplies `completed_at`, so a check-off retried after an outage records when the step was actually done. Check-off is idempotent; the first write wins. |
-| Bake status | Three values only: not started, in progress, completed. Cancelling and passing the projected end both mark a bake completed. |
-| Abandonment | A bake auto-completes at its latest projected end time, computed when read rather than by a scheduled job. |
+| Bake status | Three values only: not started, in progress, completed. Completing, canceling, and expiring all mark a bake completed; its `outcome` (finished, canceled, expired) records which. |
+| Abandonment | A bake auto-completes an hour after its latest projected end time, computed when read rather than by a scheduled job. |
 | Concurrent bakes | Allowed, soft cap of 3 active (not started or in progress) per user. |
 | Quiet hours | Out of scope. Phone-level Do Not Disturb and companion app settings already handle muting. |
 | Live Activities | Opt-in, step level. One activity updated across consecutive steps; ended for waits over 4 hours. |
@@ -136,8 +136,8 @@ Nine Postgres tables replace every DynamoDB model (`Recipe`, `Step`, and `Replac
 | `recipes` | id, public\_suffix (null for defaults), slug, owner\_id (null = default), source\_recipe\_id, name, author, source, url, difficulty, category (bread or prep), detail\_level (simple or detailed), is\_draft, published\_at (nullable), archived\_at, timestamps | M1 with v1 columns; the rest in M2. `archived_at` set hides a recipe from every recipe list, v1 and v2, though it still opens by id or URL. v1 recipe endpoints only ever return default recipes: personal and draft recipes never appear in v1 lists or open by id there. `source_recipe_id` records where a copy came from; no live link. `is_draft` marks agent imports awaiting review. `published_at` set means the recipe is in the community library. |
 | `recipe_steps` | id, recipe\_id, position, text, note, then\_wait (nullable), wait\_min, wait\_max, active\_seconds (nullable), needs\_presence (nullable) | M1, with `then_wait` and the detail columns in M2. `then_wait` is the step's Then Wait, the timing a bake runs on; `wait_min` and `wait_max` are the range around it. Existing steps migrate as simple: `then_wait = wait_min = wait_max` = the v1 `then_wait`, detail fields null. |
 | `recipe_prerequisites` | recipe\_id, prerequisite\_recipe\_id, position | M2. Alternatives: any one prerequisite satisfies the requirement, listed in `position` order. Every prerequisite must be a `prep` recipe, and `prep` recipes have no prerequisites of their own, so there are no chains or cycles. Deleting either recipe removes the link. |
-| `bakes` | id, public\_suffix, user\_id, recipe\_id, name\_snapshot, anchor\_type (start or finish), anchor\_time, time\_zone (IANA, e.g. `America/Los_Angeles`), alert\_mode (simple or fancy), status, created\_via (web, ha, or agent), idempotency\_key (nullable, unique per user), started\_at, completed\_at, projected\_end | M2. Status: not\_started, in\_progress, completed. Stored status may lag; reads treat any bake past `projected_end` as completed and write that back lazily. `recipe_id` becomes null if the recipe is deleted; the bake keeps its snapshot (`name_snapshot` and `bake_steps`). |
-| `bake_steps` | id, bake\_id, position, text\_snapshot, note\_snapshot, wait\_min, wait\_max, wait\_chosen, active\_seconds, needs\_presence, scheduled\_at, completed\_at | M2. Snapshot of the recipe at bake start, so later recipe edits never change a running bake. The note travels with the step text, since it often says what to watch for mid-bake. `completed_at` is the client-supplied time the step was done. |
+| `bakes` | id, public\_suffix, user\_id, recipe\_id, name\_snapshot, anchor\_type (start or finish), anchor\_time, time\_zone (IANA, e.g. `America/Los_Angeles`), alert\_mode (simple or fancy), status, created\_via (web, ha, or agent), idempotency\_key (nullable, unique per user), started\_at, completed\_at, projected\_end, outcome (nullable: finished, canceled, or expired) | M2. Status: not\_started, in\_progress, completed. `outcome` is set when a bake completes. Stored status may lag; reads treat any bake more than an hour past `projected_end` as completed (expired) and write that back lazily. `recipe_id` becomes null if the recipe is deleted; the bake keeps its snapshot (`name_snapshot` and `bake_steps`). |
+| `bake_steps` | id, bake\_id, position, text\_snapshot, note\_snapshot, wait\_min, wait\_max, wait\_chosen, active\_seconds, needs\_presence, skipped, scheduled\_at (null for skipped steps), completed\_at | M2. Snapshot of the recipe at bake start, so later recipe edits never change a running bake. The note travels with the step text, since it often says what to watch for mid-bake. `completed_at` is the client-supplied time the step was done. `skipped` marks steps before the one a bake started at. |
 | `replacements` | id, scope, old, new | M1. Convert-text substitutions; unique on (scope, old), matching the DynamoDB hash and range keys. Migrated as is. |
 
 **Recipe detail levels.**
@@ -163,16 +163,19 @@ Nine Postgres tables replace every DynamoDB model (`Recipe`, `Step`, and `Replac
 A bake is a snapshot of a recipe with a schedule anchored to a start or finish time; it runs until checked off or until its projected end passes.
 
 - **Start.** Choose any recipe you can see: your own, a default, a community recipe, or a personal recipe shared by link. No copy is needed. Set the anchor (start or finish) and time zone, each step's wait starts at its default (its Then Wait, or the middle of its range) and can be adjusted within or outside its range, choose alerts (Simple or Fancy), then start. Steps are copied into `bake_steps`. Draft recipes can't be baked.
+- **Start partway through.** A baker who has already done the first few steps can start at the step they're on. The anchor applies to that step, and earlier steps are copied as skipped: no scheduled time, notifications, or calendar events. Skipped steps count as done for status, so the bake starts in progress.
 - **Alerts.** Every bake has an alert mode, chosen at start and changeable later: Simple (the default) or Fancy. Fancy needs a paired HA instance; until M3 the option is visible but disabled. Only Fancy bakes reach Home Assistant. See Alerts.
 - **Idempotent start.** `POST /bakes` accepts an `Idempotency-Key` header. A repeat with the same key returns the original bake instead of creating a second one, so a retrying client never double-books a loaf.
 - **Time zones.** Every bake stores the IANA time zone it was planned in, taken from the browser by default. Responses include each step's time in UTC and in that zone, so "Thursday at 7am" means the same thing to the browser, the agent, the server, and any exported calendar events.
-- **Status.** A bake is *not started* from Start until its first step is checked off, *in progress* after that, and *completed* once every step is checked off, it's cancelled, or its projected end passes. Notifications run for both not-started and in-progress bakes.
-- **Cancel.** The owner can end a bake at any time; it becomes completed and all notifications stop.
+- **Status.** A bake is *not started* from Start until its first step is checked off or skipped, *in progress* after that, and *completed* once every step is done, it's completed or canceled by the owner, or an hour passes after its projected end. Notifications run for both not-started and in-progress bakes.
+- **Complete.** The owner can complete a bake at any time. If steps remain, the UI asks them to confirm, then those steps are checked off as done at that time; breadsheet takes the baker's word for it. Outcome: finished. Checking off every step one at a time is also finished.
+- **Cancel.** The owner can end a bake at any time without finishing it. Steps not yet done stay unchecked. Outcome: canceled.
+- Either way the bake becomes completed and all notifications stop.
 - **Deleted recipes.** Deleting a recipe never blocks and never deletes its bakes. They keep running from their snapshot, with `recipe_id` set to null. The bake view shows the snapshot name with "This recipe was deleted" instead of a link, and "Bake again" and "Make it mine" aren't available. If the person deleting has bakes of their own from that recipe that aren't completed, the confirm dialog says how many keep running. Other people's bakes carry on, and they aren't notified. Unpublishing a community recipe doesn't affect any bakes.
-- **Check-off.** Any step can be marked done at any time, including early. The client sends `completed_at`, the moment the user marked it done; the server rejects times in the future (beyond a minute of clock skew) or before the bake was created. All later steps re-project from that time. Checking off a step that's already done returns the existing result unchanged: the first write wins.
+- **Check-off.** Any step can be marked done at any time, including early. The client sends `completed_at`, the moment the user marked it done; the server rejects times more than five minutes in the future or before the bake was created. All later steps re-project from that time. Checking off a step that's already done returns the existing result unchanged: the first write wins.
 - **Out-of-range waits.** Allowed; the UI flags them. No hard block.
 - **Late.** If a step passes its scheduled time unchecked, one reminder fires at +5 minutes (Fancy). After that, silence. The schedule does not shift on its own.
-- **Abandonment.** When the latest projected end time passes, the bake is completed. This is computed on every read, not by a scheduled job, so nothing is missed during an outage. No further notifications or input.
+- **Abandonment.** An hour after the latest projected end time passes, the bake is completed with outcome expired. Until then, late check-offs still count. This is computed on every read, not by a scheduled job, so nothing is missed during an outage. No further notifications or input.
 - **Concurrency.** Up to 3 active (not started or in progress) bakes per user (soft cap with a clear message). Every notification and calendar event names its bake.
 - **Same-minute steps.** Each gets its own notification or calendar event, in step order; notifications are sent 1 to 2 seconds apart.
 
@@ -211,7 +214,8 @@ All new functionality lives under `/api/v2` on `api.breadsheet.com`. Each milest
 | `GET /api/v2/bakes/by-suffix/<suffix>` | Resolve a bake URL (owner only); returns the bake with its internal id | Browser | M2 |
 | `POST /api/v2/bakes` | Start a bake, including its alert mode; honors `Idempotency-Key` | All | M2 |
 | `PATCH /api/v2/bakes/<id>` | Change anchor, chosen waits, or alert mode | All | M2 |
-| `POST /api/v2/bakes/<id>/cancel` | End a bake early; marks it completed | All | M2 |
+| `POST /api/v2/bakes/<id>/complete` | Finish a bake: checks off any remaining steps; outcome finished | All | M2 |
+| `POST /api/v2/bakes/<id>/cancel` | End a bake without finishing it; outcome canceled | All | M2 |
 | `POST /api/v2/bakes/<id>/steps/<pos>/complete` | Check off a step at the client-supplied `completed_at`; idempotent, first write wins | All | M2 |
 | `POST /api/v2/admin/recipes` | Create a default recipe (admin key) | Admin | M2 |
 | `PUT/DELETE /api/v2/admin/recipes/<id>` | Edit or archive a default recipe (admin key); slug never changes | Admin | M2 |
@@ -339,7 +343,7 @@ The current schedule table stays nearly untouched; new information goes into sep
   - **Simple** is selected by default and deliberately plain-jane: default system font, thin gray border, no color, no icon. Beside it, the "Export calendar events as ICS" checkbox.
   - **Fancy** gets a little sparkle: a ✨ next to the title and a soft gradient border with a slow shimmer, a few twinkles on hover. In M2 it's disabled, shown dimmed and without animation, with a "Coming soon!" tooltip on hover, focus, or tap. In M3 it's enabled, and choosing it without a paired HA instance leads to the pairing flow. All animation stops under `prefers-reduced-motion`.
 - **Bake view (M2):** the mid-bake phone screen. Current step, next step with countdown, a large Done button, and the remaining timeline. No edit fields. An "Export again" button for the current schedule as ICS, and the alert mode with a way to change it. In-tab browser notifications while it's open. Keeps running from its last fetched schedule if breadsheet is unreachable; Done taps record `completed_at`, queue, and retry, showing "Saved, will sync" until confirmed.
-- **Identity flows:** pick username, save-your-key screen (copy, QR, link), and link-another-device (M2); pair Home Assistant (pairing code) and a connections list of paired HA instances with revoke (M3). Revoking notes that it also disconnects any assistants using that Home Assistant.
+- **Identity flows:** pick username, save-your-key screen (copy, QR, link), and a profile page (`/profile`, opened from the username in the header) showing who's signed in, with a Devices section on using breadsheet elsewhere (M2); pair Home Assistant (pairing code) and a connections list of paired HA instances with revoke (M3). Revoking notes that it also disconnects any assistants using that Home Assistant.
 - **Active bakes list (M2):** up to three, each linking to its bake view.
 
 Mock-ups of the plan, start bake, and bake views come before implementation, so layout can be judged on real screens.
@@ -386,7 +390,7 @@ The script counts the initial page load only. Because React route changes don't 
 | Metric | Question it answers |
 | --- | --- |
 | Weekly active bakers | Is anyone using it, and is it growing? |
-| Bakes started vs. finished (every step checked off) | Do people finish what they start? Derived from `bake_steps`, since cancelled and expired bakes are also `completed`. |
+| Bakes started vs. finished (outcome finished) | Do people finish what they start? Read from `bakes.outcome`, since canceled and expired bakes are also `completed`. |
 | Steps checked off on time, late, or never | Are the alerts working? |
 | Simple vs. Fancy bakes, and ICS exports | Which alert path do people pick, and do Simple users actually export? |
 | Share of bakes with HA paired | Is the integration the reason people come back? |
