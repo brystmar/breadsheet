@@ -409,9 +409,10 @@ docker compose up -d breadsheet-db   # local Postgres 18 on port 5433 (data in t
 - Recipe scopes, copy-to-personal, slugs and suffixes (breadsheet#29) live since 2026-11-05
 - The reserved usernames `brystmar`, `breadsheet` and `tberg` are registered in production (inserted
   directly, since signup refuses reserved names); their keys are with Thomas
-- App Engine version `m2f` serves all traffic; `m2e` is the rollback target, but it lists personal
-  recipes on the v1 homepage, so delete any personal recipes before rolling back to it. `py314` (the DynamoDB
-  version) is kept until DynamoDB is retired
+- Admin key and read-only v1 (breadsheet#28) live since 2026-11-05; the UI's v1 edit controls were
+  removed first (breadsheet-ui#45)
+- App Engine version `m2g` serves all traffic; `m2f` is the rollback target (it only reopens v1
+  recipe writes). `py314` (the DynamoDB version) is kept until DynamoDB is retired
 
 ## Second Rise spec
 The source of truth is `./docs/second-rise.md`, in this repo. Read it before planning or executing any Second Rise work. If it needs changes, say so and stop.
