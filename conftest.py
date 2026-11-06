@@ -5,13 +5,15 @@ from backend.database import db
 from flask_migrate import downgrade, upgrade
 from hashlib import sha256
 from os import environ
-from pytest import fixture, skip
+from pytest import fail, fixture, skip
 from sqlalchemy import create_engine, text
 from sqlalchemy.exc import OperationalError
 
 # Disposable local Postgres from docker-compose (`docker compose up -d breadsheet-db`); never Neon
 TEST_DATABASE_URL = environ.get('TEST_DATABASE_URL',
                                 'postgresql+psycopg://breadsheet:breadsheet@localhost:5433/breadsheet_test')
+# CI sets this, so an unreachable database fails the run instead of skipping every test
+REQUIRE_TEST_DATABASE = environ.get('REQUIRE_TEST_DATABASE') == '1'
 
 
 class TestConfig(Config):
@@ -37,7 +39,9 @@ def database(app):
     try:
         with engine.connect():
             pass
-    except OperationalError:
+    except OperationalError as error:
+        if REQUIRE_TEST_DATABASE:
+            fail(f"REQUIRE_TEST_DATABASE is set, but the test Postgres isn't reachable: {error}")
         skip("Test Postgres isn't running; start it with `docker compose up -d breadsheet-db`.")
     finally:
         engine.dispose()

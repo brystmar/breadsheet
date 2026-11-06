@@ -51,6 +51,8 @@ schedule. Lives at breadsheet.com.
 
 ## Dependency Versions
 Pinned in `requirements.txt` (production) and `requirements-dev.txt` (adds test tools):
+Dependabot (`.github/dependabot.yml`) opens monthly grouped pip and GitHub Actions updates, waiting 7
+days after a release (security fixes come right away). When merging one, update this table too.
 
 | Package | Version |
 |---|---|
@@ -396,6 +398,10 @@ docker compose up -d breadsheet-db   # local Postgres 18 on port 5433 (data in t
   then upgrade), so tests cover the migrations too. The `client` fixture truncates every table.
 - Tests that need the database skip when the container isn't running. Tests never touch Neon,
   except the live round trip in `database_test.py`. Override the target with `TEST_DATABASE_URL`.
+- `migrations_test.py` fails if the models and the migrated schema differ: add a migration.
+- CI (`.github/workflows/tests.yml`) runs pytest against a throwaway `postgres:18.6` service on every
+  PR and push to `main`, with `REQUIRE_TEST_DATABASE=1` so an unreachable database fails the run
+  instead of skipping every test. No secrets, no Neon.
 
 ## Coding Conventions
 - `local` and `ON_APP_ENGINE` (from `backend/environment.py`) control local vs. cloud behavior

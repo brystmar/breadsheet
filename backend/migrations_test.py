@@ -1,4 +1,6 @@
-"""Tests for data changes made inside Alembic migrations."""
+"""Tests for the Alembic migrations: the schema they build, and data changes made inside them."""
+from alembic.autogenerate import compare_metadata
+from alembic.migration import MigrationContext
 from backend.database import db
 from flask_migrate import downgrade, upgrade
 from sqlalchemy import text
@@ -30,3 +32,11 @@ def test_0003_backfills_default_slugs_oldest_first(app, database):
             db.session.execute(text("TRUNCATE recipes, recipe_steps, replacements, users"))
             db.session.commit()
             upgrade()
+
+
+def test_migrations_match_the_models(app, database):
+    """The schema the migrations build must be exactly what the models describe."""
+    with app.app_context(), db.engine.connect() as connection:
+        context = MigrationContext.configure(connection, opts={'compare_type': True})
+        differences = compare_metadata(context, db.metadata)
+    assert differences == [], "The models and migrations differ; add a migration (flask db migrate)"
