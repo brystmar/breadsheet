@@ -1,12 +1,16 @@
-"""Unit tests for the Config class to ensure the environment variables are loaded."""
+"""Unit tests for configuration. They must not depend on the git-ignored .env, which CI doesn't have."""
+from backend import create_app
 from backend.config import Config
 from backend.database import sqlalchemy_url
+from pytest import raises
 
 
-def test_config():
-    # App-related
-    assert Config.SECRET_KEY is not None
-    assert Config.DOMAIN_URL is not None
+def test_the_app_refuses_to_start_without_a_secret_key():
+    class NoSecretKey(Config):
+        SECRET_KEY = None
+
+    with raises(RuntimeError, match="SECRET_KEY"):
+        create_app(NoSecretKey)
 
 
 def test_sqlalchemy_url():
