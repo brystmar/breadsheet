@@ -1,10 +1,14 @@
-"""SQLAlchemy models: recipes, recipe_steps, and replacements (M1); users and recipe scopes (M2)."""
+"""SQLAlchemy models: recipes, recipe_steps, and replacements (M1); users, recipe scopes and detail (M2)."""
 from backend.database import db
 from datetime import datetime, timezone
 from sqlalchemy import CheckConstraint, DateTime, ForeignKey, Index, LargeBinary, Text, UniqueConstraint, Uuid, func
 from sqlalchemy import text as sql_text  # aliased: RecipeStep has a `text` column
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from uuid import UUID, uuid7
+
+
+# Scheduling assumes this much hands-on time when a step's active_seconds is unknown (spec: unknown is not zero)
+UNKNOWN_HANDS_ON_SECONDS = 10 * 60
 
 
 def utc_now() -> datetime:
@@ -55,6 +59,10 @@ class Recipe(UuidPrimaryKey, db.Model):
         # Only personal recipes can be published (breadsheet#58); the community list reads newest first
         CheckConstraint("owner_id IS NOT NULL OR published_at IS NULL", name="published_only_personal"),
         Index("ix_recipes_published_at", "published_at", postgresql_where=sql_text("published_at IS NOT NULL")),
+        # Detail levels and drafts (breadsheet#30): only personal recipes are drafts, and drafts are never published
+        CheckConstraint("detail_level IN ('simple', 'detailed')", name="detail_level_valid"),
+        CheckConstraint("owner_id IS NOT NULL OR NOT is_draft", name="drafts_only_personal"),
+        CheckConstraint("NOT is_draft OR published_at IS NULL", name="drafts_never_published"),
     )
 
     ## Scope (breadsheet#29) ##
@@ -76,6 +84,14 @@ class Recipe(UuidPrimaryKey, db.Model):
     # When the owner published this recipe to the community library (breadsheet#58), or None.
     #   Republishing keeps the original time; unpublishing clears it.
     published_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    # Which step fields the recipe view shows (breadsheet#30): simple or detailed. Switching back to simple
+    #   hides the detail fields but never erases them.
+    detail_level: Mapped[str] = mapped_column(Text, default="simple", server_default="simple")
+
+    # A draft can be saved incomplete, is visible only to its owner, can't be baked or published, and must
+    #   pass validation to go live (breadsheet#30)
+    is_draft: Mapped[bool] = mapped_column(default=False, server_default=sql_text("false"))
 
     ## Primary attributes ##
     # Title of the recipe
@@ -110,8 +126,13 @@ class Recipe(UuidPrimaryKey, db.Model):
 
     @property
     def length(self) -> int:
-        """Total duration in seconds: the sum of each step's wait. Computed, never stored."""
-        return sum(step.wait_min for step in self.steps)
+        """Total duration in seconds: the sum of each step's default wait (its Then Wait). Computed, never stored."""
+        return sum(step.default_wait for step in self.steps)
+
+    @property
+    def length_max(self) -> int:
+        """The longest it could take: each step at the top of its range (or its Then Wait, if that's longer)."""
+        return sum(max(step.wait_max, step.default_wait) for step in self.steps)
 
     def update_from_v1(self, data: dict):
         """
@@ -143,7 +164,7 @@ class Recipe(UuidPrimaryKey, db.Model):
             step.position = position
             step.text = step_data['text']
             step.note = step_data.get('note')
-            step.wait_min = step.wait_max = int(step_data.get('then_wait') or 0)
+            step.then_wait = step.wait_min = step.wait_max = int(step_data.get('then_wait') or 0)
             new_steps.append(step)
 
         self.steps = new_steps
@@ -200,12 +221,15 @@ class Recipe(UuidPrimaryKey, db.Model):
             "is_mine":          viewer is not None and self.owner_id == viewer.id,
             "source_recipe_id": str(self.source_recipe_id) if self.source_recipe_id else None,
             "published_at":     self.published_at.astimezone(timezone.utc).isoformat() if self.published_at else None,
+            "detail_level":     self.detail_level,
+            "is_draft":         self.is_draft,
             "name":             self.name,
             "author":           self.author or None,
             "source":           self.source or None,
             "url":              self.url or None,
             "difficulty":       self.difficulty,
             "length_seconds":   self.length,
+            "length_max_seconds": self.length_max,
             "step_count":       len(self.steps),
             "created_at":       self.date_added.astimezone(timezone.utc).isoformat(),
             "updated_at":       self.last_modified.astimezone(timezone.utc).isoformat()
@@ -225,6 +249,8 @@ class RecipeStep(UuidPrimaryKey, db.Model):
     __tablename__ = 'recipe_steps'
     __table_args__ = (
         CheckConstraint("wait_min >= 0 AND wait_min <= wait_max", name="wait_range_valid"),
+        CheckConstraint("then_wait >= 0", name="then_wait_valid"),
+        CheckConstraint("active_seconds >= 0", name="active_seconds_valid"),
     )
 
     recipe_id: Mapped[UUID] = mapped_column(ForeignKey("recipes.id", ondelete="CASCADE"), index=True)
@@ -236,21 +262,65 @@ class RecipeStep(UuidPrimaryKey, db.Model):
     text: Mapped[str] = mapped_column(Text)
     note: Mapped[str | None] = mapped_column(Text)
 
-    # How long to wait after finishing this step, in seconds. Simple steps have wait_min == wait_max,
-    #   which is v1's `then_wait`.
+    # The Then Wait: how long to wait after this step before starting the next, in seconds. It's the timing a
+    #   bake runs on. Null only for a detailed step that has a range but no Then Wait (breadsheet#30).
+    then_wait: Mapped[int | None]
+
+    # The range around the Then Wait. Simple steps have wait_min == wait_max == then_wait. A Then Wait
+    #   outside its range is allowed but flagged ("12-24 hours, or skip if your starter is already active").
     wait_min: Mapped[int] = mapped_column(default=0, server_default=sql_text("0"))
     wait_max: Mapped[int] = mapped_column(default=0, server_default=sql_text("0"))
 
+    # Detailed steps only; null means unknown, never zero. Hands-on time counts from the step's start;
+    #   needs_presence means you must be home, not just awake.
+    active_seconds: Mapped[int | None]
+    needs_presence: Mapped[bool | None]
+
     recipe: Mapped[Recipe] = relationship(back_populates="steps")
+
+    @property
+    def default_wait(self) -> int:
+        """Where a bake starts this step: its Then Wait, or the middle of its range rounded to the nearest minute."""
+        if self.then_wait is not None:
+            return self.then_wait
+        if self.wait_min == self.wait_max:
+            return self.wait_min
+        middle = (self.wait_min + self.wait_max) // 2
+        rounded = (middle + 30) // 60 * 60
+        return min(max(rounded, self.wait_min), self.wait_max)
+
+    def hands_on(self) -> tuple[int, bool, bool]:
+        """
+        (hands-on seconds, estimated, needs presence) for scheduling. Unknown is not zero: a null
+        active_seconds means 10 minutes, estimated; a null needs_presence means presence is needed.
+        """
+        estimated = self.active_seconds is None
+        seconds = UNKNOWN_HANDS_ON_SECONDS if estimated else self.active_seconds
+        return seconds, estimated, self.needs_presence is not False
+
+    @property
+    def warnings(self) -> list[str]:
+        """Allowed but worth a look; the recipe view shows these next to the step."""
+        found = []
+        if self.then_wait is not None and not self.wait_min <= self.then_wait <= self.wait_max:
+            found.append("then_wait_outside_range")
+        if self.active_seconds is not None and self.active_seconds > self.default_wait:
+            found.append("hands_on_longer_than_wait")
+        return found
 
     def to_v2_dict(self) -> dict:
         return {
-            "id":       str(self.id),
-            "position": self.position,
-            "text":     self.text,
-            "note":     self.note or None,
-            "wait_min": self.wait_min,
-            "wait_max": self.wait_max
+            "id":             str(self.id),
+            "position":       self.position,
+            "text":           self.text,
+            "note":           self.note or None,
+            "then_wait":      self.then_wait,
+            "wait_min":       self.wait_min,
+            "wait_max":       self.wait_max,
+            "default_wait":   self.default_wait,
+            "active_seconds": self.active_seconds,
+            "needs_presence": self.needs_presence,
+            "warnings":       self.warnings
         }
 
     def to_dict(self) -> dict:
@@ -258,12 +328,12 @@ class RecipeStep(UuidPrimaryKey, db.Model):
             "step_id":   str(self.id),
             "number":    self.position,
             "text":      self.text,
-            "then_wait": self.wait_min,
+            "then_wait": self.default_wait,
             "note":      self.note or None
         }
 
     def __repr__(self) -> str:
-        return f'<Step #{self.position}, id: {self.id}, then_wait: {self.wait_min}>'
+        return f'<Step #{self.position}, id: {self.id}, then_wait: {self.default_wait}>'
 
 
 class Replacement(UuidPrimaryKey, db.Model):
