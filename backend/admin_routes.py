@@ -6,8 +6,8 @@ Admin). Callers send `Authorization: Bearer <admin key>`; the server keeps only 
 (ADMIN_KEY_HASH, as hex) and compares in constant time. Failed attempts are rate limited per IP. With no
 hash configured, every admin request is refused.
 
-Archiving a default (breadsheet#59) and unpublishing community recipes (breadsheet#58) arrive with the
-columns they need. Day to day, etc/admin_recipes.py calls these endpoints.
+The same key unpublishes any community recipe (breadsheet#58). Archiving a default arrives with
+breadsheet#59. Day to day, etc/admin_recipes.py calls these endpoints.
 """
 import hmac
 import logging
@@ -90,3 +90,15 @@ def admin_update_recipe(recipe_id):
     db.session.commit()
     logger.info("Admin updated default recipe %s", recipe.id)
     return {'recipe': recipe.to_v2_dict()}, 200
+
+
+@api_v2.delete('/admin/recipes/<recipe_id>/publish')
+def admin_unpublish_recipe(recipe_id):
+    """Take any recipe out of the community library. The recipe itself, and copies of it, are untouched."""
+    require_admin()
+    recipe = recipe_or_404(recipe_id)
+    if recipe.published_at is not None:
+        recipe.published_at = None
+        db.session.commit()
+        logger.info("Admin unpublished recipe %s", recipe.id)
+    return '', 204

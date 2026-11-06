@@ -94,8 +94,8 @@ breadsheet/
 │   ├── api_v2.py            # /api/v2 blueprint: error bodies, JSON-only writes, no-store, 503s
 │   ├── identity.py          # Keys, usernames, session cookie helpers, current_user()
 │   ├── identity_routes.py   # /api/v2/users and /api/v2/session
-│   ├── recipe_routes_v2.py  # /api/v2/recipes: scopes, copy, lookups (breadsheet#29)
-│   ├── admin_routes.py      # /api/v2/admin/recipes: the admin key, create and edit defaults (breadsheet#28)
+│   ├── recipe_routes_v2.py  # /api/v2/recipes: scopes, copy, lookups (breadsheet#29), publishing (breadsheet#58)
+│   ├── admin_routes.py      # /api/v2/admin/recipes: the admin key, create and edit defaults, unpublish (breadsheet#28)
 │   ├── slugs.py             # Recipe slugs and public suffixes for user-facing URLs
 │   ├── cache.py             # Shared memcache on App Engine, in-process dict locally
 │   ├── rate_limits.py       # Per-IP fixed-window limits (sign-in and admin failures, signups)
@@ -129,6 +129,7 @@ through new migrations (see the spec's "Schema by milestone").
 | `slug` | text | URL slug. Defaults: unique among defaults, never changes. Personal: follows the name. Nullable only until a later contract migration |
 | `public_suffix` | text | 6 chars `a-z0-9`, personal recipes only (check constraint), unique |
 | `source_recipe_id` | uuid | Where a copy came from; set null if the source is deleted |
+| `published_at` | timestamptz | Set while the recipe is in the community library; personal recipes only (check constraint) |
 
 `length` (total seconds) is a computed property, the sum of the steps' `wait_min`; it isn't stored.
 
@@ -190,16 +191,22 @@ Changes from the DynamoDB version: GET requests never write, and recipe writes a
 | `POST /api/v2/recipes/<id>/copy` | "Make it mine": an independent personal copy (signed in) |
 | `GET /api/v2/recipes/by-slug/<slug>` | Resolve a default's URL, `/recipes/<slug>` |
 | `GET /api/v2/recipes/by-suffix/<suffix>` | Resolve a personal URL, `/recipes/<slug>-<suffix>`, with the current slug |
+| `POST /api/v2/recipes/<id>/publish` | Publish to the community library (owner only; must pass validation); republishing keeps the original time |
+| `DELETE /api/v2/recipes/<id>/publish` | Unpublish (owner only); 204 even if it wasn't published |
+| `GET /api/v2/community/recipes?q=` | Published recipes for everyone, newest first, as summaries; the newest 200 |
 | `POST /api/v2/admin/recipes` | Create a default recipe (admin key); its slug is unique among defaults |
 | `PUT /api/v2/admin/recipes/<id>` | Edit a default (admin key); the slug never changes, personal recipes → 404 |
+| `DELETE /api/v2/admin/recipes/<id>/publish` | Unpublish anyone's recipe (admin key) |
 
 v2 conventions (`backend/api_v2.py`):
 - Errors are `{code, message}` with a stable `code` and a message that says what to do next; raise
   `ApiError(status, code, message)`. Unknown paths and wrong methods under `/api/v2` also return JSON.
   Validation errors can add `fields`, mapping each bad field to its message (e.g. `steps[0].text`).
 - Recipes are returned as `{recipe: …}` or `{recipes: […]}`, with `id`, `slug`, `path`, `scope`, `owner`,
-  `is_mine`, `source_recipe_id`, the descriptive fields, `length_seconds`, timestamps, and steps
+  `is_mine`, `source_recipe_id`, `published_at`, the descriptive fields, `length_seconds`, timestamps, and steps
   (`id`, `position`, `text`, `note`, `wait_min`, `wait_max`). v1's `solve_for_start`/`start_time` aren't in v2.
+  `scope` is `default` or `personal`; a published recipe is still `personal` (same owner, URL and edit
+  rights) with `published_at` set.
 - `POST`/`PUT`/`PATCH`/`DELETE` require `Content-Type: application/json` (415 `json_required`).
   Together with `SameSite=Lax` and the CORS allow-list, that's the CSRF protection.
 - Every response is `Cache-Control: no-store`. A database `OperationalError` becomes 503
@@ -215,8 +222,8 @@ case, with a reserved list. Key links are `breadsheet.com/k#<key>` (the fragment
 **Admin key** (`backend/admin_routes.py`): a separate secret, not a user role. Callers send
 `Authorization: Bearer <admin key>`; the server has only its SHA-256 (`ADMIN_KEY_HASH`) and compares
 in constant time. Wrong or missing keys get 401 `admin_key_invalid`; with no hash configured, every
-admin request is refused. Archiving defaults comes with breadsheet#59 and admin unpublish with
-breadsheet#58. Day to day, use the script (the key comes from the password manager, set for that one
+admin request is refused. The key also unpublishes any community recipe; archiving defaults comes with
+breadsheet#59. Day to day, use the script (the key comes from the password manager, set for that one
 command; `BREADSHEET_API` defaults to production):
 
 ```bash
