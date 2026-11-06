@@ -1,10 +1,13 @@
 """
-v2 recipes (breadsheet#29): default and personal scopes, copy-to-personal, and URL lookups.
+v2 recipes: default and personal scopes, copy-to-personal, and URL lookups (breadsheet#29), plus
+publishing to the community library (breadsheet#58).
 
 - Default recipes (no owner) are visible to everyone and read-only here; the admin key manages them
   (backend/admin_routes.py).
 - Personal recipes belong to their owner. Anyone with the link (the id, or the URL's suffix) can view
   and copy one; only the owner can edit or delete it.
+- A published personal recipe is also listed in the community library for everyone. Publishing changes
+  nothing else: same owner, URL, and edit rights. Copies made from it are unaffected by unpublishing.
 - Writes need a signed-in browser.
 """
 import logging
@@ -29,6 +32,7 @@ MAX_STEP_TEXT = 1000
 MAX_NOTE = 5000
 MAX_WAIT_SECONDS = 30 * 24 * 60 * 60
 MAX_QUERY = 100
+COMMUNITY_LIMIT = 200  # newest first; paging can be added later without breaking clients
 
 
 ## Loading and permissions ##
@@ -165,6 +169,25 @@ def apply_recipe(recipe: Recipe, values: dict):
     recipe.steps = new_steps
 
 
+def recipe_body(recipe: Recipe) -> dict:
+    """A recipe's current content as a create/update body, for copying and for validating before publish."""
+    return {
+        'name': recipe.name, 'author': recipe.author, 'source': recipe.source, 'url': recipe.url,
+        'difficulty': recipe.difficulty,
+        'steps': [{'id': None, 'text': s.text, 'note': s.note, 'wait_min': s.wait_min, 'wait_max': s.wait_max}
+                  for s in recipe.steps]
+    }
+
+
+def name_matches(query, q: str):
+    """Filters a recipe query by a case-insensitive name search; % and _ are literal."""
+    q = (q or '').strip()[:MAX_QUERY]
+    if not q:
+        return query
+    escaped = q.replace('\\', '\\\\').replace('%', '\\%').replace('_', '\\_')
+    return query.where(Recipe.name.ilike(f'%{escaped}%', escape='\\'))
+
+
 def new_personal_recipe(owner: User, name: str) -> Recipe:
     now = utc_now()
     return Recipe(owner_id=owner.id, name=name, slug=slugify(name),
@@ -185,10 +208,7 @@ def list_recipes():
         visible = or_(visible, Recipe.owner_id == user.id)
     query = query.where(visible)
 
-    q = (request.args.get('q') or '').strip()[:MAX_QUERY]
-    if q:
-        escaped = q.replace('\\', '\\\\').replace('%', '\\%').replace('_', '\\_')
-        query = query.where(Recipe.name.ilike(f'%{escaped}%', escape='\\'))
+    query = name_matches(query, request.args.get('q'))
 
     # Defaults first, in homepage order, then the caller's own
     query = query.order_by(Recipe.owner_id.is_not(None), Recipe.date_added, Recipe.id)
@@ -251,12 +271,7 @@ def copy_recipe(recipe_id):
 
     copy = new_personal_recipe(user, source.name)
     copy.source_recipe_id = source.id
-    apply_recipe(copy, {
-        'name': source.name, 'author': source.author, 'source': source.source, 'url': source.url,
-        'difficulty': source.difficulty,
-        'steps': [{'id': None, 'text': s.text, 'note': s.note, 'wait_min': s.wait_min, 'wait_max': s.wait_max}
-                  for s in source.steps]
-    })
+    apply_recipe(copy, recipe_body(source))
     db.session.add(copy)
     db.session.commit()
     logger.info("User %s copied recipe %s to %s", user.id, source.id, copy.id)
@@ -281,3 +296,44 @@ def recipe_by_suffix(suffix):
     if recipe is None:
         raise ApiError(404, 'not_found', "That recipe doesn't exist.")
     return {'recipe': recipe.to_v2_dict(current_user())}, 200
+
+
+## Community library (breadsheet#58) ##
+
+@api_v2.post('/recipes/<recipe_id>/publish')
+def publish_recipe(recipe_id):
+    """Publish a personal recipe to the community library (owner only). It must pass validation as it stands."""
+    user = require_user()
+    recipe = recipe_or_404(recipe_id)
+    require_owner(recipe, user)
+    validated_recipe(recipe_body(recipe))
+
+    if recipe.published_at is None:
+        recipe.published_at = utc_now()
+        db.session.commit()
+        logger.info("User %s published recipe %s", user.id, recipe.id)
+    return {'recipe': recipe.to_v2_dict(user)}, 200
+
+
+@api_v2.delete('/recipes/<recipe_id>/publish')
+def unpublish_recipe(recipe_id):
+    """Take a recipe out of the community library (owner only). Copies people made are unaffected."""
+    user = require_user()
+    recipe = recipe_or_404(recipe_id)
+    require_owner(recipe, user)
+
+    if recipe.published_at is not None:
+        recipe.published_at = None
+        db.session.commit()
+        logger.info("User %s unpublished recipe %s", user.id, recipe.id)
+    return '', 204
+
+
+@api_v2.get('/community/recipes')
+def community_recipes():
+    """Published recipes for everyone, newest first, as summaries with the publisher's username."""
+    query = select(Recipe).where(Recipe.published_at.is_not(None))
+    query = name_matches(query, request.args.get('q'))
+    query = query.order_by(Recipe.published_at.desc(), Recipe.id).limit(COMMUNITY_LIMIT)
+    user = current_user()
+    return {'recipes': [recipe.to_v2_summary(user) for recipe in db.session.scalars(query)]}, 200

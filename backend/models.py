@@ -52,6 +52,9 @@ class Recipe(UuidPrimaryKey, db.Model):
         UniqueConstraint("public_suffix", name="uq_recipes_public_suffix"),
         # Default slugs are unique among defaults; personal recipes are found by their suffix instead
         Index("uq_recipes_default_slug", "slug", unique=True, postgresql_where=sql_text("owner_id IS NULL")),
+        # Only personal recipes can be published (breadsheet#58); the community list reads newest first
+        CheckConstraint("owner_id IS NOT NULL OR published_at IS NULL", name="published_only_personal"),
+        Index("ix_recipes_published_at", "published_at", postgresql_where=sql_text("published_at IS NOT NULL")),
     )
 
     ## Scope (breadsheet#29) ##
@@ -69,6 +72,10 @@ class Recipe(UuidPrimaryKey, db.Model):
     # Where a copy came from; no live link, and cleared if the source is deleted
     source_recipe_id: Mapped[UUID | None] = mapped_column(
         ForeignKey("recipes.id", ondelete="SET NULL", name="fk_recipes_source_recipe_id_recipes"))
+
+    # When the owner published this recipe to the community library (breadsheet#58), or None.
+    #   Republishing keeps the original time; unpublishing clears it.
+    published_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
     ## Primary attributes ##
     # Title of the recipe
@@ -192,6 +199,7 @@ class Recipe(UuidPrimaryKey, db.Model):
             "owner":            self.owner.username if self.owner else None,
             "is_mine":          viewer is not None and self.owner_id == viewer.id,
             "source_recipe_id": str(self.source_recipe_id) if self.source_recipe_id else None,
+            "published_at":     self.published_at.astimezone(timezone.utc).isoformat() if self.published_at else None,
             "name":             self.name,
             "author":           self.author or None,
             "source":           self.source or None,
