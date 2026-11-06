@@ -24,10 +24,15 @@ DETAILED = {**RECIPE, "detail_level": "detailed", "steps": [
 
 
 def test_an_exported_recipe_updates_cleanly(client, admin_headers):
-    created = client.post('/api/v2/admin/recipes', json=DETAILED, headers=admin_headers).json['recipe']
+    starter = client.post('/api/v2/admin/recipes', json={**RECIPE, "name": "Revive a Starter", "category": "prep"},
+                          headers=admin_headers).json['recipe']
+    created = client.post('/api/v2/admin/recipes', json={**DETAILED, "prerequisites": [starter['id']]},
+                          headers=admin_headers).json['recipe']
 
     body = editable(created)
-    assert set(body) == {'id', 'name', 'author', 'source', 'url', 'difficulty', 'detail_level', 'steps'}
+    assert set(body) == {'id', 'name', 'author', 'source', 'url', 'difficulty', 'detail_level', 'category',
+                         'prerequisites', 'steps'}
+    assert body['prerequisites'] == [starter['id']]
     recipe_id = body.pop('id')
     response = client.put(f'/api/v2/admin/recipes/{recipe_id}', json=body, headers=admin_headers)
     assert response.status_code == 200
@@ -35,4 +40,5 @@ def test_an_exported_recipe_updates_cleanly(client, admin_headers):
     unchanged = response.json['recipe']
     assert unchanged['steps'] == created['steps']  # detail fields and the missing Then Wait survive
     assert unchanged['steps'][1]['then_wait'] is None
+    assert unchanged['prerequisites'] == created['prerequisites']
     assert {k: unchanged[k] for k in body if k != 'steps'} == {k: created[k] for k in body if k != 'steps'}

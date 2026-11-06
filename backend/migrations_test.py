@@ -8,7 +8,7 @@ from sqlalchemy import text
 
 def test_0003_backfills_default_slugs_oldest_first(app, database):
     with app.app_context():
-        db.session.execute(text("TRUNCATE recipes, recipe_steps, replacements, users"))
+        db.session.execute(text("TRUNCATE recipes, recipe_steps, replacements, users CASCADE"))
         db.session.commit()
         downgrade(revision='0002')
         try:
@@ -29,14 +29,14 @@ def test_0003_backfills_default_slugs_oldest_first(app, database):
             ]
         finally:
             db.session.rollback()
-            db.session.execute(text("TRUNCATE recipes, recipe_steps, replacements, users"))
+            db.session.execute(text("TRUNCATE recipes, recipe_steps, replacements, users CASCADE"))
             db.session.commit()
             upgrade()
 
 
 def test_0005_makes_every_existing_wait_a_then_wait(app, database):
     with app.app_context():
-        db.session.execute(text("TRUNCATE recipes, recipe_steps, replacements, users"))
+        db.session.execute(text("TRUNCATE recipes, recipe_steps, replacements, users CASCADE"))
         db.session.commit()
         downgrade(revision='0004')
         try:
@@ -58,7 +58,42 @@ def test_0005_makes_every_existing_wait_a_then_wait(app, database):
             assert tuple(recipe) == ('simple', False)
         finally:
             db.session.rollback()
-            db.session.execute(text("TRUNCATE recipes, recipe_steps, replacements, users"))
+            db.session.execute(text("TRUNCATE recipes, recipe_steps, replacements, users CASCADE"))
+            db.session.commit()
+            upgrade()
+
+
+def test_0006_makes_the_starter_prep_for_the_sourdoughs(app, database):
+    with app.app_context():
+        db.session.execute(text("TRUNCATE recipes, recipe_steps, replacements, users CASCADE"))
+        db.session.commit()
+        downgrade(revision='0005')
+        try:
+            db.session.execute(text("""
+                INSERT INTO recipes (name, slug, date_added) VALUES
+                    ('Country Sourdough: Pain de Campagne', 'country-sourdough-pain-de-campagne', '2019-01-01'),
+                    ('White Bread with Overnight Poolish', 'white-bread-with-overnight-poolish', '2019-01-02'),
+                    ('Revive a Refrigerated Sourdough Starter', 'revive-a-refrigerated-sourdough-starter', '2019-01-03'),
+                    ('Basic Open-Crumb Sourdough', 'basic-open-crumb-sourdough', '2019-01-04')
+            """))
+            db.session.commit()
+            upgrade(revision='0006')
+
+            categories = db.session.execute(text("SELECT slug, category FROM recipes ORDER BY date_added")).all()
+            assert [c for _, c in categories] == ['bread', 'bread', 'prep', 'bread']
+            links = db.session.execute(text("""
+                SELECT bread.slug, starter.slug, link.position FROM recipe_prerequisites link
+                JOIN recipes bread ON bread.id = link.recipe_id
+                JOIN recipes starter ON starter.id = link.prerequisite_recipe_id
+                ORDER BY bread.date_added
+            """)).all()
+            assert [tuple(link) for link in links] == [
+                ('country-sourdough-pain-de-campagne', 'revive-a-refrigerated-sourdough-starter', 1),
+                ('basic-open-crumb-sourdough', 'revive-a-refrigerated-sourdough-starter', 1),
+            ]
+        finally:
+            db.session.rollback()
+            db.session.execute(text("TRUNCATE recipes, recipe_steps, replacements, users CASCADE"))
             db.session.commit()
             upgrade()
 

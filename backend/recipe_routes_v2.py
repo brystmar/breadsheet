@@ -12,16 +12,19 @@ publishing to the community library (breadsheet#58).
   on, and optionally a range around it plus hands-on time and "needs you home". `detail_level` only
   changes what the UI shows. A draft is visible only to its owner, can be saved incomplete, and must pass
   validation to go live; drafts can't be published.
+- Categories, prerequisites and archiving (breadsheet#59). A recipe is `bread` or `prep`; it can list prep
+  recipes as prerequisites (alternatives, never enforced). Archived recipes are left out of every list but
+  still open by id or URL.
 - Writes need a signed-in browser.
 """
 import logging
 from backend.api_v2 import ApiError, api_v2, json_body
 from backend.database import db
 from backend.identity import current_user
-from backend.models import Recipe, RecipeStep, User, utc_now
+from backend.models import Recipe, RecipePrerequisite, RecipeStep, User, utc_now
 from backend.slugs import is_public_suffix, new_public_suffix, slugify
 from flask import request
-from sqlalchemy import or_, select
+from sqlalchemy import delete, or_, select
 from urllib.parse import urlparse
 from uuid import UUID
 
@@ -37,6 +40,8 @@ MAX_NOTE = 5000
 MAX_WAIT_SECONDS = 30 * 24 * 60 * 60
 MAX_QUERY = 100
 DETAIL_LEVELS = ('simple', 'detailed')
+CATEGORIES = ('bread', 'prep')
+MAX_PREREQUISITES = 10
 STEP_DETAIL_FIELDS = ('then_wait', 'wait_min', 'wait_max', 'active_seconds', 'needs_presence')
 COMMUNITY_LIMIT = 200  # newest first; paging can be added later without breaking clients
 
@@ -123,6 +128,56 @@ def validated_waits(step: dict, prefix: str, problems: dict) -> dict:
     return {'then_wait': then_wait, 'wait_min': wait_min, 'wait_max': wait_max}
 
 
+def validated_prerequisite_ids(value, problems: dict) -> list[UUID]:
+    """The shape of `prerequisites`: a list of distinct recipe ids. check_prerequisites looks them up."""
+    if value is None:
+        return []
+    if not isinstance(value, list):
+        problems['prerequisites'] = "Must be a list of recipe ids."
+        return []
+    if len(value) > MAX_PREREQUISITES:
+        problems['prerequisites'] = f"A recipe can list up to {MAX_PREREQUISITES} prerequisites."
+        return []
+    ids = []
+    for i, item in enumerate(value):
+        try:
+            recipe_id = UUID(item) if isinstance(item, str) else None
+        except ValueError:
+            recipe_id = None
+        if recipe_id is None:
+            problems[f'prerequisites[{i}]'] = "Must be a recipe id."
+        elif recipe_id in ids:
+            problems[f'prerequisites[{i}]'] = "Listed twice."
+        else:
+            ids.append(recipe_id)
+    return ids
+
+
+def check_prerequisites(values: dict, editor: User | None, recipe: Recipe | None = None):
+    """
+    Each prerequisite must be a prep recipe the editor can see (a default, or a personal recipe that isn't
+    a draft), and not the recipe itself. A default can only list defaults, so a public recipe never depends
+    on someone's personal one. `editor` is None for the admin key. Archived recipes are fine: they still open.
+    """
+    problems = {}
+    for i, recipe_id in enumerate(values['prerequisites']):
+        field = f'prerequisites[{i}]'
+        found = db.session.get(Recipe, recipe_id)
+        if found is None or (editor is not None and not found.visible_to(editor)):
+            problems[field] = "That recipe doesn't exist."
+        elif found.is_draft:
+            problems[field] = "Drafts can't be prerequisites."
+        elif editor is None and not found.is_default:
+            problems[field] = "A default recipe's prerequisites must be default recipes."
+        elif recipe is not None and found.id == recipe.id:
+            problems[field] = "A recipe can't be its own prerequisite."
+        elif found.category != 'prep':
+            problems[field] = "Only prep recipes can be prerequisites."
+    if problems:
+        first = next(iter(problems.values()))
+        raise ApiError(400, 'recipe_invalid', f"Check the recipe: {first}", fields=problems)
+
+
 def validated_recipe(data: dict, drafts_allowed: bool = True) -> dict:
     """
     A create or full-update body, checked and cleaned; raises 400 `recipe_invalid` with per-field messages.
@@ -141,6 +196,14 @@ def validated_recipe(data: dict, drafts_allowed: bool = True) -> dict:
     detail_level = data.get('detail_level') or 'simple'
     if detail_level not in DETAIL_LEVELS:
         problems['detail_level'] = f"Must be one of: {', '.join(DETAIL_LEVELS)}."
+
+    category = data.get('category') or 'bread'
+    if category not in CATEGORIES:
+        problems['category'] = f"Must be one of: {', '.join(CATEGORIES)}."
+
+    prerequisites = validated_prerequisite_ids(data.get('prerequisites'), problems)
+    if prerequisites and category == 'prep':
+        problems['prerequisites'] = "Prep recipes can't have prerequisites of their own."
 
     name = data.get('name')
     if name is None and is_draft:
@@ -203,6 +266,8 @@ def validated_recipe(data: dict, drafts_allowed: bool = True) -> dict:
         'difficulty': difficulty,
         'detail_level': detail_level,
         'is_draft':   is_draft,
+        'category':   category,
+        'prerequisites': prerequisites,
         'steps':      steps
     }
 
@@ -213,9 +278,23 @@ def validated_recipe(data: dict, drafts_allowed: bool = True) -> dict:
 
 
 def apply_recipe(recipe: Recipe, values: dict):
-    """Replaces a recipe's fields and steps. Steps whose id matches an existing step keep it."""
-    for field in ('name', 'author', 'source', 'url', 'difficulty', 'detail_level', 'is_draft'):
+    """
+    Replaces a recipe's fields, steps and prerequisites. Steps whose id matches an existing step keep it.
+    A prep recipe that becomes bread stops being anyone's prerequisite, just as if it were deleted.
+    """
+    if recipe.category == 'prep' and values['category'] != 'prep':
+        db.session.execute(delete(RecipePrerequisite).where(RecipePrerequisite.prerequisite_recipe_id == recipe.id))
+
+    for field in ('name', 'author', 'source', 'url', 'difficulty', 'detail_level', 'is_draft', 'category'):
         setattr(recipe, field, values[field])
+
+    links = {link.prerequisite_recipe_id: link for link in recipe.prerequisite_links}
+    new_links = []
+    for position, prerequisite_id in enumerate(values['prerequisites'], start=1):
+        link = links.pop(prerequisite_id, None) or RecipePrerequisite(prerequisite_recipe_id=prerequisite_id)
+        link.position = position
+        new_links.append(link)
+    recipe.prerequisite_links = new_links
 
     existing = {str(step.id): step for step in recipe.steps}
     new_steps = []
@@ -235,6 +314,7 @@ def recipe_body(recipe: Recipe) -> dict:
     return {
         'name': recipe.name, 'author': recipe.author, 'source': recipe.source, 'url': recipe.url,
         'difficulty': recipe.difficulty, 'detail_level': recipe.detail_level, 'is_draft': recipe.is_draft,
+        'category': recipe.category, 'prerequisites': [str(link.prerequisite_recipe_id) for link in recipe.prerequisite_links],
         'steps': [{'id': None, 'text': s.text, 'note': s.note,
                    **{field: getattr(s, field) for field in STEP_DETAIL_FIELDS}} for s in recipe.steps]
     }
@@ -258,18 +338,27 @@ def new_personal_recipe(owner: User, name: str) -> Recipe:
 
 ## Endpoints ##
 
+def listed(query):
+    """Filters a list query: archived recipes are left out, and `category` narrows it."""
+    query = query.where(Recipe.archived_at.is_(None))
+    category = request.args.get('category')
+    if category:
+        if category not in CATEGORIES:
+            raise ApiError(400, 'category_invalid', f"Pick a category: {', '.join(CATEGORIES)}.")
+        query = query.where(Recipe.category == category)
+    return name_matches(query, request.args.get('q'))
+
+
 @api_v2.get('/recipes')
 def list_recipes():
-    """Defaults plus the caller's own personal recipes, as summaries; `q` filters by name."""
+    """Defaults plus the caller's own personal recipes, as summaries; `q` and `category` filter it."""
     user = current_user()
     query = select(Recipe)
 
     visible = Recipe.owner_id.is_(None)
     if user is not None:
         visible = or_(visible, Recipe.owner_id == user.id)
-    query = query.where(visible)
-
-    query = name_matches(query, request.args.get('q'))
+    query = listed(query.where(visible))
 
     # Defaults first, in homepage order, then the caller's own
     query = query.order_by(Recipe.owner_id.is_not(None), Recipe.date_added, Recipe.id)
@@ -281,6 +370,7 @@ def create_recipe():
     """Create a personal recipe from scratch."""
     user = require_user()
     values = validated_recipe(json_body())
+    check_prerequisites(values, user)
 
     recipe = new_personal_recipe(user, values['name'])
     apply_recipe(recipe, values)
@@ -303,6 +393,7 @@ def update_recipe(recipe_id):
     recipe = recipe_or_404(recipe_id)
     require_owner(recipe, user)
     values = validated_recipe(json_body())
+    check_prerequisites(values, user, recipe)
     if values['is_draft'] and recipe.published_at is not None:
         raise ApiError(409, 'recipe_published', "Published recipes can't go back to draft. Unpublish it first.")
 
@@ -398,9 +489,8 @@ def unpublish_recipe(recipe_id):
 
 @api_v2.get('/community/recipes')
 def community_recipes():
-    """Published recipes for everyone, newest first, as summaries with the publisher's username."""
-    query = select(Recipe).where(Recipe.published_at.is_not(None))
-    query = name_matches(query, request.args.get('q'))
+    """Published recipes for everyone, newest first, as summaries with the publisher's username; `q` and `category` filter it."""
+    query = listed(select(Recipe).where(Recipe.published_at.is_not(None)))
     query = query.order_by(Recipe.published_at.desc(), Recipe.id).limit(COMMUNITY_LIMIT)
     user = current_user()
     return {'recipes': [recipe.to_v2_summary(user) for recipe in db.session.scalars(query)]}, 200

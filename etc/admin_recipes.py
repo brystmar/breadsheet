@@ -5,9 +5,10 @@ Manage default recipes with the admin key (breadsheet#28), until there's an admi
     python etc/admin_recipes.py export <id-or-slug> > recipe.json
     python etc/admin_recipes.py update recipe.json          # replaces the default whose id is in the file
     python etc/admin_recipes.py create recipe.json          # a new default; any id in the file is ignored
+    python etc/admin_recipes.py archive <id-or-slug>        # hide a default from every list; it still opens by URL
 
-The file is the v2 recipe body (name, author, source, url, difficulty, detail_level, steps), plus the
-recipe's `id`. Steps keep their `id`; drop it to add a new step, or delete the step to remove it. Each step
+The file is the v2 recipe body (name, author, source, url, difficulty, detail_level, category,
+prerequisites, steps), plus the recipe's `id`. `prerequisites` lists default prep recipes by id. Steps keep their `id`; drop it to add a new step, or delete the step to remove it. Each step
 has its Then Wait (`then_wait`, in seconds), the range around it, and the optional detail fields.
 
 Set ADMIN_KEY for that one command, from your password manager; it never goes in .env. BREADSHEET_API
@@ -25,7 +26,7 @@ from urllib.parse import quote
 from urllib.request import Request, urlopen
 
 DEFAULT_API = 'https://api.breadsheet.com'
-EDITABLE_FIELDS = ('name', 'author', 'source', 'url', 'difficulty', 'detail_level')
+EDITABLE_FIELDS = ('name', 'author', 'source', 'url', 'difficulty', 'detail_level', 'category')
 STEP_FIELDS = ('id', 'text', 'note', 'then_wait', 'wait_min', 'wait_max', 'active_seconds', 'needs_presence')
 
 
@@ -39,6 +40,7 @@ def editable(recipe: dict) -> dict:
     """The parts of a v2 recipe response that a create or update body takes, plus its id."""
     return {'id': recipe['id'],
             **{field: recipe.get(field) for field in EDITABLE_FIELDS},
+            'prerequisites': [prerequisite['id'] for prerequisite in recipe.get('prerequisites', [])],
             'steps': [{field: step.get(field) for field in STEP_FIELDS} for step in recipe.get('steps', [])]}
 
 
@@ -56,7 +58,8 @@ def call(method: str, path: str, body: dict | None = None, admin: bool = False) 
     data = json.dumps(body).encode('utf-8') if body is not None else None
     try:
         with urlopen(Request(url, data=data, method=method, headers=headers), timeout=30) as response:
-            return json.load(response)
+            payload = response.read()
+            return json.loads(payload) if payload else {}  # 204 No Content has no body
     except HTTPError as error:
         try:
             problem = json.load(error)
@@ -91,6 +94,7 @@ def main(argv=None):
     commands.add_parser('export', help="print a recipe as an editable JSON body").add_argument('recipe')
     commands.add_parser('update', help="replace a default recipe from a JSON file").add_argument('file')
     commands.add_parser('create', help="create a default recipe from a JSON file").add_argument('file')
+    commands.add_parser('archive', help="hide a default recipe from every list").add_argument('recipe')
     args = parser.parse_args(argv)
 
     if args.command == 'new-key':
@@ -109,6 +113,10 @@ def main(argv=None):
         body = read_body(args.file)
         body.pop('id', None)
         show(call('POST', '/admin/recipes', body, admin=True)['recipe'])
+    elif args.command == 'archive':
+        recipe = find_recipe(args.recipe)
+        call('DELETE', f"/admin/recipes/{quote(recipe['id'])}", {}, admin=True)
+        print(f"Archived {recipe['name']} ({recipe['path']}); it still opens by URL.", file=sys.stderr)
 
 
 if __name__ == '__main__':
