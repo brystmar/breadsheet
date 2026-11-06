@@ -57,7 +57,7 @@ def database(app):
 def client(app, database):
     """A test client with empty tables."""
     with app.app_context():
-        database.session.execute(text("TRUNCATE recipes, recipe_steps, replacements, users"))
+        database.session.execute(text("TRUNCATE recipes, recipe_steps, replacements, users CASCADE"))
         database.session.commit()
 
     # Rate-limit counters live in the in-process cache locally; start each test from zero

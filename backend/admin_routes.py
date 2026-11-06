@@ -6,8 +6,8 @@ Admin). Callers send `Authorization: Bearer <admin key>`; the server keeps only 
 (ADMIN_KEY_HASH, as hex) and compares in constant time. Failed attempts are rate limited per IP. With no
 hash configured, every admin request is refused.
 
-The same key unpublishes any community recipe (breadsheet#58). Archiving a default arrives with
-breadsheet#59. Day to day, etc/admin_recipes.py calls these endpoints.
+The same key unpublishes any community recipe (breadsheet#58) and archives defaults (breadsheet#59).
+Day to day, etc/admin_recipes.py calls these endpoints.
 """
 import hmac
 import logging
@@ -16,7 +16,7 @@ from backend.api_v2 import ApiError, api_v2, json_body
 from backend.database import db
 from backend.identity import hash_key
 from backend.models import Recipe, utc_now
-from backend.recipe_routes_v2 import apply_recipe, recipe_or_404, validated_recipe
+from backend.recipe_routes_v2 import apply_recipe, check_prerequisites, recipe_or_404, validated_recipe
 from backend.slugs import unique_default_slug
 from flask import current_app, request
 
@@ -67,6 +67,7 @@ def admin_create_recipe():
     """Create a default recipe. Its slug is unique among defaults and never changes."""
     require_admin()
     values = validated_recipe(json_body(), drafts_allowed=False)
+    check_prerequisites(values, editor=None)
 
     now = utc_now()
     recipe = Recipe(name=values['name'], slug=unique_default_slug(db.session, values['name']),
@@ -84,6 +85,7 @@ def admin_update_recipe(recipe_id):
     require_admin()
     recipe = default_or_404(recipe_id)
     values = validated_recipe(json_body(), drafts_allowed=False)
+    check_prerequisites(values, editor=None, recipe=recipe)
 
     apply_recipe(recipe, values)
     recipe.last_modified = utc_now()
@@ -101,4 +103,19 @@ def admin_unpublish_recipe(recipe_id):
         recipe.published_at = None
         db.session.commit()
         logger.info("Admin unpublished recipe %s", recipe.id)
+    return '', 204
+
+
+@api_v2.delete('/admin/recipes/<recipe_id>')
+def admin_archive_recipe(recipe_id):
+    """
+    Archive a default: it leaves every recipe list, v1 and v2, but still opens by id or URL, so links,
+    copies and bakes keep working. Archiving again keeps the original time. There's no unarchive endpoint.
+    """
+    require_admin()
+    recipe = default_or_404(recipe_id)
+    if recipe.archived_at is None:
+        recipe.archived_at = utc_now()
+        db.session.commit()
+        logger.info("Admin archived default recipe %s", recipe.id)
     return '', 204

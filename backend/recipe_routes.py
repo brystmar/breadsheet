@@ -35,9 +35,9 @@ class RecipeCollectionApi(Resource):
 
         try:
             # Grab all recipes from the db, sorted by date_added (the homepage order)
-            # Default recipes only: personal recipes never appear in v1
+            # Default recipes only: personal recipes never appear in v1, and archived ones are hidden
             recipes = db.session.scalars(select(Recipe)
-                                         .where(Recipe.owner_id.is_(None))
+                                         .where(Recipe.owner_id.is_(None), Recipe.archived_at.is_(None))
                                          .order_by(Recipe.date_added, Recipe.id)).all()
 
             # Convert each to a dictionary, compile into a list

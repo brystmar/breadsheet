@@ -83,7 +83,7 @@ breadsheet/
 ├── migrations/              # Alembic (Flask-Migrate) env and versions
 ├── etc/
 │   ├── migrate_dynamodb.py  # One-time DynamoDB → Postgres load and verification (breadsheet#23)
-│   ├── admin_recipes.py     # Export, create and update default recipes with the admin key (breadsheet#28)
+│   ├── admin_recipes.py     # Export, create, update and archive default recipes with the admin key (breadsheet#28)
 │   └── backup_postgres.sh   # Weekly pg_dump to the NAS (breadsheet#25; see Backups)
 ├── backend/
 │   ├── __init__.py          # create_app() factory: db, migrations, CORS, v1 and v2 endpoints
@@ -97,8 +97,8 @@ breadsheet/
 │   ├── identity.py          # Keys, usernames, session cookie helpers, current_user()
 │   ├── identity_routes.py   # /api/v2/users and /api/v2/session
 │   ├── recipe_routes_v2.py  # /api/v2/recipes: scopes, copy, lookups (breadsheet#29), publishing (breadsheet#58),
-│   │                        #   detail levels, the Then Wait, drafts (breadsheet#30)
-│   ├── admin_routes.py      # /api/v2/admin/recipes: the admin key, create and edit defaults, unpublish (breadsheet#28)
+│   │                        #   detail levels, the Then Wait, drafts (breadsheet#30), categories, prerequisites (breadsheet#59)
+│   ├── admin_routes.py      # /api/v2/admin/recipes: the admin key, create, edit and archive defaults, unpublish (breadsheet#28)
 │   ├── slugs.py             # Recipe slugs and public suffixes for user-facing URLs
 │   ├── cache.py             # Shared memcache on App Engine, in-process dict locally
 │   ├── rate_limits.py       # Per-IP fixed-window limits (sign-in and admin failures, signups)
@@ -135,6 +135,8 @@ through new migrations (see the spec's "Schema by milestone").
 | `published_at` | timestamptz | Set while the recipe is in the community library; personal recipes only (check constraint) |
 | `detail_level` | text | `simple` (default) or `detailed`; only changes which step fields the UI shows (breadsheet#30) |
 | `is_draft` | boolean | Owner-only, can be saved incomplete, can't be published or baked. Checks: personal only, never published |
+| `category` | text | `bread` (default) or `prep` (breadsheet#59). Validated by the API, not the database, so a new category needs no migration |
+| `archived_at` | timestamptz | Set when the admin retires a default: hidden from every list (v1, v2, community), still opens by id or URL |
 
 `length` (total seconds) is a computed property, the sum of the steps' `default_wait`; `length_max` uses
 each step's `wait_max` instead. Neither is stored.
@@ -156,6 +158,19 @@ each step's `wait_max` instead. Neither is stored.
 to the nearest minute. `hands_on()` applies the "unknown is not zero" defaults; `warnings` lists
 `then_wait_outside_range` and `hands_on_longer_than_wait`. Steps written by `m2h` have a null `then_wait`
 with `wait_min = wait_max`, so their default wait is unchanged.
+
+### `RecipePrerequisite` (table `recipe_prerequisites`, breadsheet#59)
+| Column | Type | Notes |
+|---|---|---|
+| `recipe_id` | uuid | FK to `recipes`, cascade delete; part of the primary key |
+| `prerequisite_recipe_id` | uuid | FK to `recipes`, cascade delete; part of the primary key. Check: not the recipe itself |
+| `position` | integer | Order from 1. Prerequisites are alternatives: any one gets you ready |
+
+The API enforces the rest: every prerequisite is a non-draft `prep` recipe the editor can see, `prep`
+recipes have none of their own, and a default lists only defaults. A prep recipe that becomes `bread`
+stops being anyone's prerequisite. Responses leave out prerequisites the viewer can't see (someone
+else's draft). Migration `0006` made "Revive a Refrigerated Sourdough Starter" `prep` and the
+prerequisite of the two sourdough defaults.
 
 ### `Replacement` (table `replacements`)
 Convert-text substitutions. Unique on (`scope`, `old`). `old` uses `COLLATE "C"` (byte order),
@@ -198,7 +213,7 @@ Changes from the DynamoDB version: GET requests never write, and recipe writes a
 | `POST /api/v2/session` | Sign in with `{key}` |
 | `GET /api/v2/session` | The signed-in user, or 401 `not_signed_in` |
 | `DELETE /api/v2/session` | Sign out this browser only |
-| `GET /api/v2/recipes?q=` | Defaults plus the caller's own recipes, as summaries (no steps) |
+| `GET /api/v2/recipes?q=&category=` | Defaults plus the caller's own recipes, as summaries (no steps); archived ones left out; unknown category → 400 `category_invalid` |
 | `POST /api/v2/recipes` | Create a personal recipe (signed in) |
 | `GET /api/v2/recipes/<id>` | One recipe with steps: defaults for anyone, personal for anyone with the link, drafts for the owner only (others get 404) |
 | `PUT`/`DELETE /api/v2/recipes/<id>` | Owner only; defaults → 403 `default_read_only`, others → 403 `not_owner`. `is_draft: false` runs full validation; a published recipe can't become a draft (409 `recipe_published`) |
@@ -207,9 +222,10 @@ Changes from the DynamoDB version: GET requests never write, and recipe writes a
 | `GET /api/v2/recipes/by-suffix/<suffix>` | Resolve a personal URL, `/recipes/<slug>-<suffix>`, with the current slug |
 | `POST /api/v2/recipes/<id>/publish` | Publish to the community library (owner only; must pass validation; drafts → 409 `recipe_is_draft`); republishing keeps the original time |
 | `DELETE /api/v2/recipes/<id>/publish` | Unpublish (owner only); 204 even if it wasn't published |
-| `GET /api/v2/community/recipes?q=` | Published recipes for everyone, newest first, as summaries; the newest 200 |
+| `GET /api/v2/community/recipes?q=&category=` | Published recipes for everyone, newest first, as summaries; the newest 200; archived ones left out |
 | `POST /api/v2/admin/recipes` | Create a default recipe (admin key); its slug is unique among defaults |
 | `PUT /api/v2/admin/recipes/<id>` | Edit a default (admin key); the slug never changes, personal recipes → 404 |
+| `DELETE /api/v2/admin/recipes/<id>` | Archive a default (admin key); 204, and archiving again keeps the time. No unarchive endpoint |
 | `DELETE /api/v2/admin/recipes/<id>/publish` | Unpublish anyone's recipe (admin key) |
 
 v2 conventions (`backend/api_v2.py`):
@@ -217,14 +233,16 @@ v2 conventions (`backend/api_v2.py`):
   `ApiError(status, code, message)`. Unknown paths and wrong methods under `/api/v2` also return JSON.
   Validation errors can add `fields`, mapping each bad field to its message (e.g. `steps[0].text`).
 - Recipes are returned as `{recipe: …}` or `{recipes: […]}`, with `id`, `slug`, `path`, `scope`, `owner`,
-  `is_mine`, `source_recipe_id`, `published_at`, `detail_level`, `is_draft`, the descriptive fields,
-  `length_seconds`, `length_max_seconds`, timestamps, and steps (`id`, `position`, `text`, `note`, `then_wait`,
+  `is_mine`, `source_recipe_id`, `published_at`, `detail_level`, `is_draft`, `category`, `prerequisite_ids`,
+  `archived_at`, the descriptive fields,
+  `length_seconds`, `length_max_seconds`, timestamps, `prerequisites` (full recipes only: `id`, `name`, `path`, `category`), and steps (`id`, `position`, `text`, `note`, `then_wait`,
   `wait_min`, `wait_max`, `default_wait`, `active_seconds`, `needs_presence`, `warnings`). v1's `solve_for_start`/`start_time` aren't in v2.
   `scope` is `default` or `personal`; a published recipe is still `personal` (same owner, URL and edit
   rights) with `published_at` set.
 - Recipe bodies (create, update, admin) take the same fields. A step sends `then_wait` alone (simple), a range
   around it, or a range alone; missing fields mean simple, not a draft, and unknown. A draft skips only the
-  must-be-filled-in checks (name, step text). Admin bodies can't be drafts.
+  must-be-filled-in checks (name, step text). Admin bodies can't be drafts. `category` and `prerequisites`
+  (an ordered list of up to 10 recipe ids) are optional; copies keep both.
 - `POST`/`PUT`/`PATCH`/`DELETE` require `Content-Type: application/json` (415 `json_required`).
   Together with `SameSite=Lax` and the CORS allow-list, that's the CSRF protection.
 - Every response is `Cache-Control: no-store`. A database `OperationalError` becomes 503
@@ -247,6 +265,7 @@ command; `BREADSHEET_API` defaults to production):
 ```bash
 ADMIN_KEY=... python etc/admin_recipes.py export <slug-or-id> > recipe.json   # no key needed
 ADMIN_KEY=... python etc/admin_recipes.py update recipe.json
+ADMIN_KEY=... python etc/admin_recipes.py archive <slug-or-id>   # hide a default from every list
 ```
 
 `python etc/admin_recipes.py new-key` prints a new key and its hash. A full update re-validates the

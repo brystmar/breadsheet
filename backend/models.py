@@ -1,4 +1,4 @@
-"""SQLAlchemy models: recipes, recipe_steps, and replacements (M1); users, recipe scopes and detail (M2)."""
+"""SQLAlchemy models: recipes, recipe_steps, and replacements (M1); users, recipe scopes, detail, categories (M2)."""
 from backend.database import db
 from datetime import datetime, timezone
 from sqlalchemy import CheckConstraint, DateTime, ForeignKey, Index, LargeBinary, Text, UniqueConstraint, Uuid, func
@@ -93,6 +93,13 @@ class Recipe(UuidPrimaryKey, db.Model):
     #   pass validation to go live (breadsheet#30)
     is_draft: Mapped[bool] = mapped_column(default=False, server_default=sql_text("false"))
 
+    # `bread` (the default) or `prep`, such as reviving a starter (breadsheet#59). Validated by the API, not
+    #   the database, so adding a category needs no migration.
+    category: Mapped[str] = mapped_column(Text, default="bread", server_default="bread")
+
+    # Set when a default is retired: hidden from every recipe list, v1 and v2, but still opens by id or URL
+    archived_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
     ## Primary attributes ##
     # Title of the recipe
     name: Mapped[str] = mapped_column(Text)
@@ -123,6 +130,19 @@ class Recipe(UuidPrimaryKey, db.Model):
                                                      cascade="all, delete-orphan",
                                                      passive_deletes=True,
                                                      lazy="selectin")
+
+    # Prep recipes, any one of which gets you ready to start this one, in order (breadsheet#59)
+    prerequisite_links: Mapped[list["RecipePrerequisite"]] = relationship(
+        foreign_keys="RecipePrerequisite.recipe_id", order_by="RecipePrerequisite.position",
+        cascade="all, delete-orphan", passive_deletes=True, lazy="selectin")
+
+    def visible_to(self, viewer) -> bool:
+        """Drafts are visible only to their owner; everything else opens for anyone with the id or link."""
+        return not self.is_draft or (viewer is not None and self.owner_id == viewer.id)
+
+    def prerequisites_for(self, viewer) -> list["Recipe"]:
+        """This recipe's prerequisites in order, leaving out any the viewer can't see (someone else's draft)."""
+        return [link.prerequisite for link in self.prerequisite_links if link.prerequisite.visible_to(viewer)]
 
     @property
     def length(self) -> int:
@@ -223,6 +243,9 @@ class Recipe(UuidPrimaryKey, db.Model):
             "published_at":     self.published_at.astimezone(timezone.utc).isoformat() if self.published_at else None,
             "detail_level":     self.detail_level,
             "is_draft":         self.is_draft,
+            "category":         self.category,
+            "prerequisite_ids": [str(recipe.id) for recipe in self.prerequisites_for(viewer)],
+            "archived_at":      self.archived_at.astimezone(timezone.utc).isoformat() if self.archived_at else None,
             "name":             self.name,
             "author":           self.author or None,
             "source":           self.source or None,
@@ -237,7 +260,10 @@ class Recipe(UuidPrimaryKey, db.Model):
 
     def to_v2_dict(self, viewer=None) -> dict:
         """One recipe in v2, with its steps. Leaves out v1's plan-view state (solve_for_start, start_time)."""
-        return {**self.to_v2_summary(viewer), "steps": [step.to_v2_dict() for step in self.steps]}
+        return {**self.to_v2_summary(viewer),
+                "prerequisites": [{"id": str(recipe.id), "name": recipe.name, "path": recipe.path,
+                                   "category": recipe.category} for recipe in self.prerequisites_for(viewer)],
+                "steps": [step.to_v2_dict() for step in self.steps]}
 
     def __repr__(self) -> str:
         return f'<Recipe | id: {self.id}, name: {self.name}, length: {self.length}, ' \
@@ -334,6 +360,26 @@ class RecipeStep(UuidPrimaryKey, db.Model):
 
     def __repr__(self) -> str:
         return f'<Step #{self.position}, id: {self.id}, then_wait: {self.default_wait}>'
+
+
+class RecipePrerequisite(db.Model):
+    """
+    A prep recipe that gets you ready to start another recipe (breadsheet#59). A recipe's prerequisites are
+    alternatives: any one satisfies the requirement, listed in `position` order. They're a reminder before a
+    bake starts, never enforced. Every prerequisite is a prep recipe and prep recipes have none of their own
+    (the API checks both), so there are no chains or cycles. Deleting either recipe removes the link.
+    """
+    __tablename__ = 'recipe_prerequisites'
+    __table_args__ = (
+        CheckConstraint("recipe_id <> prerequisite_recipe_id", name="prerequisite_not_self"),
+    )
+
+    recipe_id: Mapped[UUID] = mapped_column(ForeignKey("recipes.id", ondelete="CASCADE"), primary_key=True)
+    prerequisite_recipe_id: Mapped[UUID] = mapped_column(ForeignKey("recipes.id", ondelete="CASCADE"),
+                                                         primary_key=True, index=True)
+    position: Mapped[int]
+
+    prerequisite: Mapped[Recipe] = relationship(foreign_keys=[prerequisite_recipe_id], lazy="selectin")
 
 
 class Replacement(UuidPrimaryKey, db.Model):
