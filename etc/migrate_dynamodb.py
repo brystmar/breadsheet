@@ -141,6 +141,7 @@ def to_recipe(item: dict) -> Recipe:
                                 position=position,
                                 text=step['text'],
                                 note=blank_to_none(step.get('note')),
+                                then_wait=then_wait,
                                 wait_min=then_wait,
                                 wait_max=then_wait))
 

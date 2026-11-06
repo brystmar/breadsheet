@@ -8,6 +8,10 @@ publishing to the community library (breadsheet#58).
   and copy one; only the owner can edit or delete it.
 - A published personal recipe is also listed in the community library for everyone. Publishing changes
   nothing else: same owner, URL, and edit rights. Copies made from it are unaffected by unpublishing.
+- Detail levels and drafts (breadsheet#30). Each step has a Then Wait (`then_wait`), the timing a bake runs
+  on, and optionally a range around it plus hands-on time and "needs you home". `detail_level` only
+  changes what the UI shows. A draft is visible only to its owner, can be saved incomplete, and must pass
+  validation to go live; drafts can't be published.
 - Writes need a signed-in browser.
 """
 import logging
@@ -32,6 +36,8 @@ MAX_STEP_TEXT = 1000
 MAX_NOTE = 5000
 MAX_WAIT_SECONDS = 30 * 24 * 60 * 60
 MAX_QUERY = 100
+DETAIL_LEVELS = ('simple', 'detailed')
+STEP_DETAIL_FIELDS = ('then_wait', 'wait_min', 'wait_max', 'active_seconds', 'needs_presence')
 COMMUNITY_LIMIT = 200  # newest first; paging can be added later without breaking clients
 
 
@@ -45,12 +51,20 @@ def require_user() -> User:
 
 
 def recipe_or_404(recipe_id) -> Recipe:
-    """Any recipe by id: defaults for everyone, personal recipes for anyone with the link."""
+    """Any recipe by id, drafts included; endpoints that show a recipe use visible_recipe_or_404."""
     try:
         recipe = db.session.get(Recipe, UUID(str(recipe_id)))
     except ValueError:
         recipe = None
     if recipe is None:
+        raise ApiError(404, 'not_found', "That recipe doesn't exist.")
+    return recipe
+
+
+def visible_recipe_or_404(recipe_id, user: User | None) -> Recipe:
+    """A recipe the caller may see: defaults for everyone, personal for anyone with the link, drafts for the owner."""
+    recipe = recipe_or_404(recipe_id)
+    if recipe.is_draft and (user is None or recipe.owner_id != user.id):
         raise ApiError(404, 'not_found', "That recipe doesn't exist.")
     return recipe
 
@@ -84,12 +98,54 @@ def wait_seconds(value, field: str, problems: dict) -> int:
     return value
 
 
-def validated_recipe(data: dict) -> dict:
-    """A create or full-update body, checked and cleaned; raises 400 `recipe_invalid` with per-field messages."""
+def optional_seconds(step: dict, field: str, prefix: str, problems: dict) -> int | None:
+    value = step.get(field)
+    return None if value is None else wait_seconds(value, f'{prefix}.{field}', problems)
+
+
+def validated_waits(step: dict, prefix: str, problems: dict) -> dict:
+    """
+    The Then Wait and its range. A step can send just `then_wait` (simple), a range around it, or a range
+    alone (then_wait null), e.g. an imported "2-4 hours". Sending nothing means a Then Wait of 0. A
+    zero-width range is just a Then Wait. A Then Wait outside its range is allowed; responses flag it.
+    """
+    then_wait = optional_seconds(step, 'then_wait', prefix, problems)
+    if 'wait_min' not in step and 'wait_max' not in step:
+        then_wait = then_wait or 0
+        return {'then_wait': then_wait, 'wait_min': then_wait, 'wait_max': then_wait}
+
+    wait_min = wait_seconds(step.get('wait_min', then_wait or 0), f'{prefix}.wait_min', problems)
+    wait_max = wait_seconds(step.get('wait_max', max(wait_min, then_wait or 0)), f'{prefix}.wait_max', problems)
+    if wait_min > wait_max:
+        problems[f'{prefix}.wait_max'] = "Can't be shorter than the minimum wait."
+    if then_wait is None and wait_min == wait_max:
+        then_wait = wait_min
+    return {'then_wait': then_wait, 'wait_min': wait_min, 'wait_max': wait_max}
+
+
+def validated_recipe(data: dict, drafts_allowed: bool = True) -> dict:
+    """
+    A create or full-update body, checked and cleaned; raises 400 `recipe_invalid` with per-field messages.
+    A draft (`is_draft: true`) skips only the must-be-filled-in checks (the name and step text); types,
+    limits and wait ranges always apply.
+    """
     problems = {}
 
+    is_draft = data.get('is_draft', False)
+    if not isinstance(is_draft, bool):
+        problems['is_draft'] = "Must be true or false."
+        is_draft = False
+    elif is_draft and not drafts_allowed:
+        problems['is_draft'] = "Default recipes can't be drafts."
+
+    detail_level = data.get('detail_level') or 'simple'
+    if detail_level not in DETAIL_LEVELS:
+        problems['detail_level'] = f"Must be one of: {', '.join(DETAIL_LEVELS)}."
+
     name = data.get('name')
-    if not isinstance(name, str) or not name.strip():
+    if name is None and is_draft:
+        name = ''
+    if not isinstance(name, str) or (not name.strip() and not is_draft):
         problems['name'] = "Give the recipe a name."
         name = ''
     elif len(name.strip()) > MAX_NAME:
@@ -117,7 +173,9 @@ def validated_recipe(data: dict) -> dict:
                 continue
 
             text = step.get('text')
-            if not isinstance(text, str) or not text.strip():
+            if text is None and is_draft:
+                text = ''
+            if not isinstance(text, str) or (not text.strip() and not is_draft):
                 problems[f'{prefix}.text'] = "Describe the step."
                 text = ''
             elif len(text.strip()) > MAX_STEP_TEXT:
@@ -127,14 +185,15 @@ def validated_recipe(data: dict) -> dict:
             if 'note' in problems:
                 problems[f'{prefix}.note'] = problems.pop('note')
 
-            # Simple steps send one wait (wait_min); wait_max defaults to it
-            wait_min = wait_seconds(step.get('wait_min', 0), f'{prefix}.wait_min', problems)
-            wait_max = wait_seconds(step.get('wait_max', wait_min), f'{prefix}.wait_max', problems)
-            if wait_min > wait_max:
-                problems[f'{prefix}.wait_max'] = "Can't be shorter than the minimum wait."
+            waits = validated_waits(step, prefix, problems)
+            active_seconds = optional_seconds(step, 'active_seconds', prefix, problems)
+            needs_presence = step.get('needs_presence')
+            if needs_presence is not None and not isinstance(needs_presence, bool):
+                problems[f'{prefix}.needs_presence'] = "Must be true, false, or null (unknown)."
+                needs_presence = None
 
-            steps.append({'id': step.get('id'), 'text': text.strip(), 'note': note,
-                          'wait_min': wait_min, 'wait_max': wait_max})
+            steps.append({'id': step.get('id'), 'text': text.strip(), 'note': note, **waits,
+                          'active_seconds': active_seconds, 'needs_presence': needs_presence})
 
     cleaned = {
         'name':       name.strip(),
@@ -142,6 +201,8 @@ def validated_recipe(data: dict) -> dict:
         'source':     optional_text(data, 'source', MAX_SHORT_TEXT, problems),
         'url':        url,
         'difficulty': difficulty,
+        'detail_level': detail_level,
+        'is_draft':   is_draft,
         'steps':      steps
     }
 
@@ -153,7 +214,7 @@ def validated_recipe(data: dict) -> dict:
 
 def apply_recipe(recipe: Recipe, values: dict):
     """Replaces a recipe's fields and steps. Steps whose id matches an existing step keep it."""
-    for field in ('name', 'author', 'source', 'url', 'difficulty'):
+    for field in ('name', 'author', 'source', 'url', 'difficulty', 'detail_level', 'is_draft'):
         setattr(recipe, field, values[field])
 
     existing = {str(step.id): step for step in recipe.steps}
@@ -163,8 +224,8 @@ def apply_recipe(recipe: Recipe, values: dict):
         step.position = position
         step.text = step_values['text']
         step.note = step_values['note']
-        step.wait_min = step_values['wait_min']
-        step.wait_max = step_values['wait_max']
+        for field in STEP_DETAIL_FIELDS:
+            setattr(step, field, step_values[field])
         new_steps.append(step)
     recipe.steps = new_steps
 
@@ -173,9 +234,9 @@ def recipe_body(recipe: Recipe) -> dict:
     """A recipe's current content as a create/update body, for copying and for validating before publish."""
     return {
         'name': recipe.name, 'author': recipe.author, 'source': recipe.source, 'url': recipe.url,
-        'difficulty': recipe.difficulty,
-        'steps': [{'id': None, 'text': s.text, 'note': s.note, 'wait_min': s.wait_min, 'wait_max': s.wait_max}
-                  for s in recipe.steps]
+        'difficulty': recipe.difficulty, 'detail_level': recipe.detail_level, 'is_draft': recipe.is_draft,
+        'steps': [{'id': None, 'text': s.text, 'note': s.note,
+                   **{field: getattr(s, field) for field in STEP_DETAIL_FIELDS}} for s in recipe.steps]
     }
 
 
@@ -231,7 +292,8 @@ def create_recipe():
 
 @api_v2.get('/recipes/<recipe_id>')
 def get_recipe(recipe_id):
-    return {'recipe': recipe_or_404(recipe_id).to_v2_dict(current_user())}, 200
+    user = current_user()
+    return {'recipe': visible_recipe_or_404(recipe_id, user).to_v2_dict(user)}, 200
 
 
 @api_v2.put('/recipes/<recipe_id>')
@@ -241,6 +303,8 @@ def update_recipe(recipe_id):
     recipe = recipe_or_404(recipe_id)
     require_owner(recipe, user)
     values = validated_recipe(json_body())
+    if values['is_draft'] and recipe.published_at is not None:
+        raise ApiError(409, 'recipe_published', "Published recipes can't go back to draft. Unpublish it first.")
 
     if values['name'] != recipe.name:
         recipe.slug = slugify(values['name'])
@@ -267,7 +331,7 @@ def delete_recipe(recipe_id):
 def copy_recipe(recipe_id):
     """Copy any visible recipe into a new, fully independent personal recipe ("Make it mine")."""
     user = require_user()
-    source = recipe_or_404(recipe_id)
+    source = visible_recipe_or_404(recipe_id, user)
 
     copy = new_personal_recipe(user, source.name)
     copy.source_recipe_id = source.id
@@ -293,9 +357,10 @@ def recipe_by_suffix(suffix):
     recipe = None
     if is_public_suffix(suffix):
         recipe = db.session.scalar(select(Recipe).where(Recipe.public_suffix == suffix))
-    if recipe is None:
+    user = current_user()
+    if recipe is None or (recipe.is_draft and (user is None or recipe.owner_id != user.id)):
         raise ApiError(404, 'not_found', "That recipe doesn't exist.")
-    return {'recipe': recipe.to_v2_dict(current_user())}, 200
+    return {'recipe': recipe.to_v2_dict(user)}, 200
 
 
 ## Community library (breadsheet#58) ##
@@ -306,6 +371,8 @@ def publish_recipe(recipe_id):
     user = require_user()
     recipe = recipe_or_404(recipe_id)
     require_owner(recipe, user)
+    if recipe.is_draft:
+        raise ApiError(409, 'recipe_is_draft', "Drafts can't be published. Save it as a finished recipe first.")
     validated_recipe(recipe_body(recipe))
 
     if recipe.published_at is None:

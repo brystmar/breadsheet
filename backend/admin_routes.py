@@ -66,7 +66,7 @@ def default_or_404(recipe_id) -> Recipe:
 def admin_create_recipe():
     """Create a default recipe. Its slug is unique among defaults and never changes."""
     require_admin()
-    values = validated_recipe(json_body())
+    values = validated_recipe(json_body(), drafts_allowed=False)
 
     now = utc_now()
     recipe = Recipe(name=values['name'], slug=unique_default_slug(db.session, values['name']),
@@ -83,7 +83,7 @@ def admin_update_recipe(recipe_id):
     """Replace a default recipe. Renaming keeps the slug, so its URL never changes."""
     require_admin()
     recipe = default_or_404(recipe_id)
-    values = validated_recipe(json_body())
+    values = validated_recipe(json_body(), drafts_allowed=False)
 
     apply_recipe(recipe, values)
     recipe.last_modified = utc_now()

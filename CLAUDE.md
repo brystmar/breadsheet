@@ -96,7 +96,8 @@ breadsheet/
 │   ├── api_v2.py            # /api/v2 blueprint: error bodies, JSON-only writes, no-store, 503s
 │   ├── identity.py          # Keys, usernames, session cookie helpers, current_user()
 │   ├── identity_routes.py   # /api/v2/users and /api/v2/session
-│   ├── recipe_routes_v2.py  # /api/v2/recipes: scopes, copy, lookups (breadsheet#29), publishing (breadsheet#58)
+│   ├── recipe_routes_v2.py  # /api/v2/recipes: scopes, copy, lookups (breadsheet#29), publishing (breadsheet#58),
+│   │                        #   detail levels, the Then Wait, drafts (breadsheet#30)
 │   ├── admin_routes.py      # /api/v2/admin/recipes: the admin key, create and edit defaults, unpublish (breadsheet#28)
 │   ├── slugs.py             # Recipe slugs and public suffixes for user-facing URLs
 │   ├── cache.py             # Shared memcache on App Engine, in-process dict locally
@@ -132,8 +133,11 @@ through new migrations (see the spec's "Schema by milestone").
 | `public_suffix` | text | 6 chars `a-z0-9`, personal recipes only (check constraint), unique |
 | `source_recipe_id` | uuid | Where a copy came from; set null if the source is deleted |
 | `published_at` | timestamptz | Set while the recipe is in the community library; personal recipes only (check constraint) |
+| `detail_level` | text | `simple` (default) or `detailed`; only changes which step fields the UI shows (breadsheet#30) |
+| `is_draft` | boolean | Owner-only, can be saved incomplete, can't be published or baked. Checks: personal only, never published |
 
-`length` (total seconds) is a computed property, the sum of the steps' `wait_min`; it isn't stored.
+`length` (total seconds) is a computed property, the sum of the steps' `default_wait`; `length_max` uses
+each step's `wait_max` instead. Neither is stored.
 
 ### `RecipeStep` (table `recipe_steps`)
 | Column | Type | Notes |
@@ -143,7 +147,15 @@ through new migrations (see the spec's "Schema by milestone").
 | `position` | integer | Step order from 1; v1's `number` |
 | `text` | text | Step directions |
 | `note` | text | Optional |
-| `wait_min`, `wait_max` | integer | Seconds. Simple steps have `wait_min = wait_max` = v1's `then_wait`. Check: `0 ≤ wait_min ≤ wait_max` |
+| `then_wait` | integer | The Then Wait, in seconds: the timing a bake runs on; v1's `then_wait`. Null only for a detailed step with a range and no Then Wait. Check: `≥ 0` |
+| `wait_min`, `wait_max` | integer | The range around the Then Wait. Simple steps have `wait_min = wait_max = then_wait`. Check: `0 ≤ wait_min ≤ wait_max`. A Then Wait outside its range is allowed and flagged |
+| `active_seconds` | integer | Hands-on time from the step's start; null = unknown (10 min, estimated). Check: `≥ 0` |
+| `needs_presence` | boolean | Must be home, not just awake; null = unknown (treated as needed) |
+
+`default_wait` (computed) is where a bake starts a step: `then_wait`, or the middle of the range rounded
+to the nearest minute. `hands_on()` applies the "unknown is not zero" defaults; `warnings` lists
+`then_wait_outside_range` and `hands_on_longer_than_wait`. Steps written by `m2h` have a null `then_wait`
+with `wait_min = wait_max`, so their default wait is unchanged.
 
 ### `Replacement` (table `replacements`)
 Convert-text substitutions. Unique on (`scope`, `old`). `old` uses `COLLATE "C"` (byte order),
@@ -188,12 +200,12 @@ Changes from the DynamoDB version: GET requests never write, and recipe writes a
 | `DELETE /api/v2/session` | Sign out this browser only |
 | `GET /api/v2/recipes?q=` | Defaults plus the caller's own recipes, as summaries (no steps) |
 | `POST /api/v2/recipes` | Create a personal recipe (signed in) |
-| `GET /api/v2/recipes/<id>` | One recipe with steps: defaults for anyone, personal for anyone with the link |
-| `PUT`/`DELETE /api/v2/recipes/<id>` | Owner only; defaults → 403 `default_read_only`, others → 403 `not_owner` |
+| `GET /api/v2/recipes/<id>` | One recipe with steps: defaults for anyone, personal for anyone with the link, drafts for the owner only (others get 404) |
+| `PUT`/`DELETE /api/v2/recipes/<id>` | Owner only; defaults → 403 `default_read_only`, others → 403 `not_owner`. `is_draft: false` runs full validation; a published recipe can't become a draft (409 `recipe_published`) |
 | `POST /api/v2/recipes/<id>/copy` | "Make it mine": an independent personal copy (signed in) |
 | `GET /api/v2/recipes/by-slug/<slug>` | Resolve a default's URL, `/recipes/<slug>` |
 | `GET /api/v2/recipes/by-suffix/<suffix>` | Resolve a personal URL, `/recipes/<slug>-<suffix>`, with the current slug |
-| `POST /api/v2/recipes/<id>/publish` | Publish to the community library (owner only; must pass validation); republishing keeps the original time |
+| `POST /api/v2/recipes/<id>/publish` | Publish to the community library (owner only; must pass validation; drafts → 409 `recipe_is_draft`); republishing keeps the original time |
 | `DELETE /api/v2/recipes/<id>/publish` | Unpublish (owner only); 204 even if it wasn't published |
 | `GET /api/v2/community/recipes?q=` | Published recipes for everyone, newest first, as summaries; the newest 200 |
 | `POST /api/v2/admin/recipes` | Create a default recipe (admin key); its slug is unique among defaults |
@@ -205,10 +217,14 @@ v2 conventions (`backend/api_v2.py`):
   `ApiError(status, code, message)`. Unknown paths and wrong methods under `/api/v2` also return JSON.
   Validation errors can add `fields`, mapping each bad field to its message (e.g. `steps[0].text`).
 - Recipes are returned as `{recipe: …}` or `{recipes: […]}`, with `id`, `slug`, `path`, `scope`, `owner`,
-  `is_mine`, `source_recipe_id`, `published_at`, the descriptive fields, `length_seconds`, timestamps, and steps
-  (`id`, `position`, `text`, `note`, `wait_min`, `wait_max`). v1's `solve_for_start`/`start_time` aren't in v2.
+  `is_mine`, `source_recipe_id`, `published_at`, `detail_level`, `is_draft`, the descriptive fields,
+  `length_seconds`, `length_max_seconds`, timestamps, and steps (`id`, `position`, `text`, `note`, `then_wait`,
+  `wait_min`, `wait_max`, `default_wait`, `active_seconds`, `needs_presence`, `warnings`). v1's `solve_for_start`/`start_time` aren't in v2.
   `scope` is `default` or `personal`; a published recipe is still `personal` (same owner, URL and edit
   rights) with `published_at` set.
+- Recipe bodies (create, update, admin) take the same fields. A step sends `then_wait` alone (simple), a range
+  around it, or a range alone; missing fields mean simple, not a draft, and unknown. A draft skips only the
+  must-be-filled-in checks (name, step text). Admin bodies can't be drafts.
 - `POST`/`PUT`/`PATCH`/`DELETE` require `Content-Type: application/json` (415 `json_required`).
   Together with `SameSite=Lax` and the CORS allow-list, that's the CSRF protection.
 - Every response is `Cache-Control: no-store`. A database `OperationalError` becomes 503

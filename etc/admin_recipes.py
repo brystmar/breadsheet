@@ -6,8 +6,9 @@ Manage default recipes with the admin key (breadsheet#28), until there's an admi
     python etc/admin_recipes.py update recipe.json          # replaces the default whose id is in the file
     python etc/admin_recipes.py create recipe.json          # a new default; any id in the file is ignored
 
-The file is the v2 recipe body (name, author, source, url, difficulty, steps), plus the recipe's `id`.
-Steps keep their `id`; drop it to add a new step, or delete the step to remove it.
+The file is the v2 recipe body (name, author, source, url, difficulty, detail_level, steps), plus the
+recipe's `id`. Steps keep their `id`; drop it to add a new step, or delete the step to remove it. Each step
+has its Then Wait (`then_wait`, in seconds), the range around it, and the optional detail fields.
 
 Set ADMIN_KEY for that one command, from your password manager; it never goes in .env. BREADSHEET_API
 picks the server, defaulting to production; use http://localhost:5050 against the local app.
@@ -24,8 +25,8 @@ from urllib.parse import quote
 from urllib.request import Request, urlopen
 
 DEFAULT_API = 'https://api.breadsheet.com'
-EDITABLE_FIELDS = ('name', 'author', 'source', 'url', 'difficulty')
-STEP_FIELDS = ('id', 'text', 'note', 'wait_min', 'wait_max')
+EDITABLE_FIELDS = ('name', 'author', 'source', 'url', 'difficulty', 'detail_level')
+STEP_FIELDS = ('id', 'text', 'note', 'then_wait', 'wait_min', 'wait_max', 'active_seconds', 'needs_presence')
 
 
 def new_key() -> tuple[str, str]:

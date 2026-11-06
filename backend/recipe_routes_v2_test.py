@@ -63,7 +63,8 @@ class TestCreate:
         suffix = recipe['path'].rsplit('-', 1)[1]
         assert is_public_suffix(suffix)
         assert recipe['path'] == f'/recipes/weekend-rye-{suffix}'
-        assert recipe['length_seconds'] == 1800 + 3600
+        assert recipe['length_seconds'] == 1800 + 4500  # Proof has a range and no Then Wait: the middle
+        assert recipe['length_max_seconds'] == 1800 + 5400
         assert [s['text'] for s in recipe['steps']] == ['Mix', 'Proof']
         assert recipe['steps'][0]['wait_max'] == 1800  # one wait means min == max
         assert recipe['steps'][1]['wait_max'] == 5400
@@ -143,7 +144,8 @@ class TestEditAndDelete:
         assert updated['slug'] == 'sunday-rye'
         assert updated['path'] == f'/recipes/sunday-rye-{suffix}'
         assert updated['steps'] == [{"id": mix_id, "position": 1, "text": "Mix well", "note": None,
-                                     "wait_min": 900, "wait_max": 900}]
+                                     "then_wait": 900, "wait_min": 900, "wait_max": 900, "default_wait": 900,
+                                     "active_seconds": None, "needs_presence": None, "warnings": []}]
 
     def test_others_cant_edit_or_delete(self, baker, other):
         recipe_id = create(baker).json['recipe']['id']

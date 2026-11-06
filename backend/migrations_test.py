@@ -34,6 +34,35 @@ def test_0003_backfills_default_slugs_oldest_first(app, database):
             upgrade()
 
 
+def test_0005_makes_every_existing_wait_a_then_wait(app, database):
+    with app.app_context():
+        db.session.execute(text("TRUNCATE recipes, recipe_steps, replacements, users"))
+        db.session.commit()
+        downgrade(revision='0004')
+        try:
+            db.session.execute(text("""
+                WITH recipe AS (INSERT INTO recipes (name, slug) VALUES ('Pain de Campagne', 'pain-de-campagne')
+                                RETURNING id)
+                INSERT INTO recipe_steps (recipe_id, position, text, wait_min, wait_max)
+                SELECT id, position, text, wait, wait FROM recipe,
+                       (VALUES (1, 'Feed the levain', 25200), (2, 'Bake', 0)) AS steps (position, text, wait)
+            """))
+            db.session.commit()
+            upgrade(revision='0005')
+
+            steps = db.session.execute(text(
+                "SELECT then_wait, wait_min, wait_max, active_seconds, needs_presence FROM recipe_steps ORDER BY position"
+            )).all()
+            assert [tuple(s) for s in steps] == [(25200, 25200, 25200, None, None), (0, 0, 0, None, None)]
+            recipe = db.session.execute(text("SELECT detail_level, is_draft FROM recipes")).one()
+            assert tuple(recipe) == ('simple', False)
+        finally:
+            db.session.rollback()
+            db.session.execute(text("TRUNCATE recipes, recipe_steps, replacements, users"))
+            db.session.commit()
+            upgrade()
+
+
 def test_migrations_match_the_models(app, database):
     """The schema the migrations build must be exactly what the models describe."""
     with app.app_context(), db.engine.connect() as connection:
