@@ -81,6 +81,7 @@ breadsheet/
 ├── migrations/              # Alembic (Flask-Migrate) env and versions
 ├── etc/
 │   ├── migrate_dynamodb.py  # One-time DynamoDB → Postgres load and verification (breadsheet#23)
+│   ├── admin_recipes.py     # Export, create and update default recipes with the admin key (breadsheet#28)
 │   └── backup_postgres.sh   # Weekly pg_dump to the NAS (breadsheet#25; see Backups)
 ├── backend/
 │   ├── __init__.py          # create_app() factory: db, migrations, CORS, v1 and v2 endpoints
@@ -94,10 +95,11 @@ breadsheet/
 │   ├── identity.py          # Keys, usernames, session cookie helpers, current_user()
 │   ├── identity_routes.py   # /api/v2/users and /api/v2/session
 │   ├── recipe_routes_v2.py  # /api/v2/recipes: scopes, copy, lookups (breadsheet#29)
+│   ├── admin_routes.py      # /api/v2/admin/recipes: the admin key, create and edit defaults (breadsheet#28)
 │   ├── slugs.py             # Recipe slugs and public suffixes for user-facing URLs
 │   ├── cache.py             # Shared memcache on App Engine, in-process dict locally
-│   ├── rate_limits.py       # Per-IP fixed-window limits (sign-in failures, signups)
-│   ├── recipe_routes.py     # RecipeCollectionApi, RecipeApi
+│   ├── rate_limits.py       # Per-IP fixed-window limits (sign-in and admin failures, signups)
+│   ├── recipe_routes.py     # RecipeCollectionApi, RecipeApi (read-only)
 │   ├── replacement_routes.py
 │   ├── meta_routes.py       # ReadmeApi
 │   └── *_test.py            # Co-located test files for each module
@@ -155,29 +157,24 @@ don't change it.
 
 ## API Endpoints
 ### v1
-**v1 only ever sees default recipes** (`owner_id IS NULL`): personal recipes never appear in the list and 404 by id. v1 writes stay open for defaults until the admin key (breadsheet#28) lands; v1 `POST` gives each new default a slug.
+**v1 only ever sees default recipes** (`owner_id IS NULL`): personal recipes never appear in the list and 404 by id. **v1 recipes are read-only** (breadsheet#28): `POST`/`PUT`/`DELETE` return 405, and defaults are managed with the admin key.
 
 All routes use `/api/v1/` prefix. Responses are `{'message': ..., 'data': ...}`, exactly as
 they were on DynamoDB.
 
 | Endpoint | Resource |
 |---|---|
-| `GET/POST /api/v1/recipes` | RecipeCollectionApi |
-| `GET/PUT/DELETE /api/v1/recipe/<recipe_id>` | RecipeApi |
+| `GET /api/v1/recipes` | RecipeCollectionApi |
+| `GET /api/v1/recipe/<recipe_id>` | RecipeApi |
 | `GET /api/v1/replacements/<scope>` | ReplacementCollectionApi (`all`, `ingredients`, `directions`) |
 | `PUT/DELETE /api/v1/replacements/<scope>/<old_value>` | ReplacementCollectionApi |
 | `GET /api/v1/readme` | ReadmeApi |
 
 v1 quirks kept on purpose, for identical responses:
-- POST returns ISO date strings; every other recipe response returns epoch milliseconds (floats).
-- Request bodies are parsed with `get_json(force=True)`: the UI sends JSON without a `Content-Type`.
-- PUT replaces the whole recipe: omitted fields reset to defaults. Steps whose `step_id` matches
-  an existing step keep their id; the rest get new ids.
+- Recipe responses return dates as epoch milliseconds (floats).
 - `GET /api/v1/replacements/<scope>/<old_value>` returns 500 (the handler takes no `old_value`).
 
-Changes from the DynamoDB version: the server assigns recipe and step ids (it ignores the UI's
-client-generated `id` on POST), PUT to an unknown id returns 404 instead of creating the recipe,
-and GET requests never write.
+Changes from the DynamoDB version: GET requests never write, and recipe writes are gone (above).
 
 ### v2 (growing by milestone; see the spec's API v2 table)
 | Endpoint | Purpose |
@@ -193,6 +190,8 @@ and GET requests never write.
 | `POST /api/v2/recipes/<id>/copy` | "Make it mine": an independent personal copy (signed in) |
 | `GET /api/v2/recipes/by-slug/<slug>` | Resolve a default's URL, `/recipes/<slug>` |
 | `GET /api/v2/recipes/by-suffix/<suffix>` | Resolve a personal URL, `/recipes/<slug>-<suffix>`, with the current slug |
+| `POST /api/v2/admin/recipes` | Create a default recipe (admin key); its slug is unique among defaults |
+| `PUT /api/v2/admin/recipes/<id>` | Edit a default (admin key); the slug never changes, personal recipes → 404 |
 
 v2 conventions (`backend/api_v2.py`):
 - Errors are `{code, message}` with a stable `code` and a message that says what to do next; raise
@@ -213,8 +212,24 @@ on use) holding the user id and a fingerprint of the key hash; there's no sessio
 rules: 3–30 ASCII letters, digits, `_` or `-`, starting with a letter, unique ignoring
 case, with a reserved list. Key links are `breadsheet.com/k#<key>` (the fragment never reaches a server).
 
-**Rate limits** (`backend/rate_limits.py`): per IP, 10 failed sign-ins per 15 minutes and 5 signups
-per hour, returning 429 `rate_limited` with `Retry-After`. The IP is App Engine's
+**Admin key** (`backend/admin_routes.py`): a separate secret, not a user role. Callers send
+`Authorization: Bearer <admin key>`; the server has only its SHA-256 (`ADMIN_KEY_HASH`) and compares
+in constant time. Wrong or missing keys get 401 `admin_key_invalid`; with no hash configured, every
+admin request is refused. Archiving defaults comes with breadsheet#59 and admin unpublish with
+breadsheet#58. Day to day, use the script (the key comes from the password manager, set for that one
+command; `BREADSHEET_API` defaults to production):
+
+```bash
+ADMIN_KEY=... python etc/admin_recipes.py export <slug-or-id> > recipe.json   # no key needed
+ADMIN_KEY=... python etc/admin_recipes.py update recipe.json
+```
+
+`python etc/admin_recipes.py new-key` prints a new key and its hash. A full update re-validates the
+recipe, which trims whitespace and turns blank notes into null, so the first save of an old default
+can show small diffs.
+
+**Rate limits** (`backend/rate_limits.py`): per IP, 10 failed sign-ins and 10 failed admin requests
+per 15 minutes and 5 signups per hour, returning 429 `rate_limited` with `Retry-After`. The IP is App Engine's
 `X-Appengine-User-Ip` (`api.breadsheet.com` is DNS-only in Cloudflare). Counters live in
 `backend/cache.py`; if the cache fails, requests go through.
 
@@ -235,6 +250,8 @@ Key values:
 - `SECRET_KEY` — signs session cookies, so anyone who has it can sign in as any user. Different in
   every environment (`.env` locally, `env_variables.yaml` in production); never log or commit it.
   `create_app()` refuses to start without one. Rotating it signs every browser out.
+- `ADMIN_KEY_HASH` — hex SHA-256 of the admin key (`etc/admin_recipes.py new-key`). Different in
+  every environment; the production key itself lives only in the password manager, never in `.env`.
 - `LOG_LEVEL` — `DEBUG` locally and `INFO` on App Engine by default
 - `LOG_FILE` — optional, local only: also write logs to this file (e.g. `logs/breadsheet.log`)
 
@@ -390,6 +407,8 @@ docker compose up -d breadsheet-db   # local Postgres 18 on port 5433 (data in t
   production `LOG_LEVEL` is `INFO`
 - Usernames must start with a letter (breadsheet#69, 2026-11-05)
 - Recipe scopes, copy-to-personal, slugs and suffixes (breadsheet#29) live since 2026-11-05
+- The reserved usernames `brystmar`, `breadsheet` and `tberg` are registered in production (inserted
+  directly, since signup refuses reserved names); their keys are with Thomas
 - App Engine version `m2f` serves all traffic; `m2e` is the rollback target, but it lists personal
   recipes on the v1 homepage, so delete any personal recipes before rolling back to it. `py314` (the DynamoDB
   version) is kept until DynamoDB is retired

@@ -33,6 +33,10 @@ class Config(object):
     #   without one. Never log it.
     SECRET_KEY = environ.get('SECRET_KEY')
 
+    # The admin key manages default recipes (breadsheet#28). Only its SHA-256 is configured, as hex: the
+    #   key itself lives with the admin. Each environment has its own; unset refuses every admin request.
+    ADMIN_KEY_HASH = environ.get('ADMIN_KEY_HASH')
+
     # Browser sessions (spec: Identity and ownership). Host-only on api.breadsheet.com, which is
     #   same-site with breadsheet.com, so the UI's credentialed fetches send it.
     SESSION_COOKIE_NAME = 'breadsheet_session'

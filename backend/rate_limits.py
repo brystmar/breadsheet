@@ -1,4 +1,5 @@
 """Per-IP fixed-window rate limits, counted in the shared cache. A cache outage lets requests through."""
+from backend.api_v2 import ApiError
 from backend.cache import cache
 from backend.environment import ON_APP_ENGINE
 from dataclasses import dataclass
@@ -16,6 +17,7 @@ class Limit:
 # From the spec's Identity and ownership: Security
 SIGN_IN_FAILURES = Limit('sign_in_failures', 10, 15 * 60)
 SIGNUPS = Limit('signups', 5, 60 * 60)
+ADMIN_FAILURES = Limit('admin_failures', 10, 15 * 60)
 
 
 def client_ip() -> str:
@@ -43,3 +45,10 @@ def retry_after(limit: Limit) -> int | None:
 def record(limit: Limit):
     key, remaining = _window(limit)
     cache.incr(key, ttl=remaining + 60)
+
+
+def enforce(limit: Limit, message: str):
+    """Raises 429 `rate_limited` with Retry-After when this client is over the limit."""
+    wait = retry_after(limit)
+    if wait is not None:
+        raise ApiError(429, 'rate_limited', message, {'Retry-After': str(wait)})

@@ -231,6 +231,4 @@ def test_personal_recipes_never_reach_v1(baker):
     names = [r['name'] for r in baker.get('/api/v1/recipes').json['data']]
     assert names == ['Country Sourdough']
     assert baker.get(f'/api/v1/recipe/{personal_id}').status_code == 404
-    assert baker.put(f'/api/v1/recipe/{personal_id}', data=dumps({"id": personal_id, "name": "x"})).status_code == 404
-    assert baker.delete(f'/api/v1/recipe/{personal_id}').status_code == 404
     assert db.session.scalar(select(Recipe).where(Recipe.name == 'Weekend Rye')) is not None

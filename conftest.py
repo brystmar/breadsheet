@@ -3,6 +3,7 @@ from backend import create_app
 from backend.config import Config
 from backend.database import db
 from flask_migrate import downgrade, upgrade
+from hashlib import sha256
 from os import environ
 from pytest import fixture, skip
 from sqlalchemy import create_engine, text
@@ -19,6 +20,7 @@ class TestConfig(Config):
     SQLALCHEMY_DATABASE_URI = TEST_DATABASE_URL
     MIGRATIONS_DATABASE_URI = TEST_DATABASE_URL
     SECRET_KEY = 'test-only-secret-key'
+    ADMIN_KEY_HASH = sha256(b'test-only-admin-key').hexdigest()
     SESSION_COOKIE_SECURE = False  # the test client uses plain http
 
 
@@ -60,3 +62,9 @@ def client(app, database):
 
     with app.test_client() as test_client:
         yield test_client
+
+
+@fixture
+def admin_headers() -> dict:
+    """Request headers carrying the test admin key (see TestConfig.ADMIN_KEY_HASH)."""
+    return {'Authorization': 'Bearer test-only-admin-key'}
