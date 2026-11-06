@@ -441,8 +441,11 @@ docker compose up -d breadsheet-db   # local Postgres 18 on port 5433 (data in t
 - Admin key and read-only v1 (breadsheet#28) live since 2026-11-05; the UI's v1 edit controls were
   removed first (breadsheet-ui#45)
 - Community recipes (breadsheet#58) live since 2026-11-05; the UI for them doesn't exist yet
-- App Engine version `m2h` serves all traffic; `m2g` is the rollback target (it ignores
-  `published_at`, so published recipes just stop appearing in the community list). `py314` (the DynamoDB version) is kept until DynamoDB is retired
+- Recipe detail levels, the Then Wait, and drafts (breadsheet#30) live since 2026-11-05; no UI yet
+  (breadsheet-ui#31)
+- App Engine version `m2i` serves all traffic; `m2h` is the rollback target (it ignores the detail and
+  draft columns; steps it writes get a null `then_wait`, whose default wait is the same). After a
+  rollback, any drafts would open for anyone with their link, since `m2h` doesn't hide them. `py314` (the DynamoDB version) is kept until DynamoDB is retired
 
 ## Second Rise spec
 The source of truth is `./docs/second-rise.md`, in this repo. Read it before planning or executing any Second Rise work. If it needs changes, say so and stop.
