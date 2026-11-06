@@ -462,9 +462,10 @@ docker compose up -d breadsheet-db   # local Postgres 18 on port 5433 (data in t
 - Community recipes (breadsheet#58) live since 2026-11-05; the UI for them doesn't exist yet
 - Recipe detail levels, the Then Wait, and drafts (breadsheet#30) live since 2026-11-05; no UI yet
   (breadsheet-ui#31)
-- App Engine version `m2i` serves all traffic; `m2h` is the rollback target (it ignores the detail and
-  draft columns; steps it writes get a null `then_wait`, whose default wait is the same). After a
-  rollback, any drafts would open for anyone with their link, since `m2h` doesn't hide them. `py314` (the DynamoDB version) is kept until DynamoDB is retired
+- Recipe categories, prerequisites and archiving (breadsheet#59) live since 2026-11-06; the starter recipe
+  is `prep` and the prerequisite of the two sourdough defaults
+- App Engine version `m2j` serves all traffic; `m2i` is the rollback target (it ignores categories,
+  prerequisites and `archived_at`, so archived defaults would show in lists again) `py314` (the DynamoDB version) is kept until DynamoDB is retired
 
 ## Second Rise spec
 The source of truth is `./docs/second-rise.md`, in this repo. Read it before planning or executing any Second Rise work. If it needs changes, say so and stop.
