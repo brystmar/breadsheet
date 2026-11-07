@@ -190,14 +190,15 @@ A recipe being baked: a snapshot of its steps, scheduled from a `start` or `fini
 | `anchor_type`, `anchor_time` | text, timestamptz | `start`: step 1 at the anchor. `finish`: the last step's wait ends at it |
 | `time_zone` | text | IANA zone from the browser; responses give times in UTC and in this zone |
 | `alert_mode` | text | `simple` (default) or `fancy` (refused with `fancy_requires_ha` until M3) |
-| `status` | text | `not_started` → `in_progress` (a step checked off or skipped) → `completed` |
+| `status` | text | `not_started` → `in_progress` (a step checked off, or started partway through; a mid-bake skip alone doesn't start a bake) → `completed` |
 | `outcome` | text | Set when completed: `finished` (every step done, or the owner completed it), `canceled` (one L), or `expired` (an hour past `projected_end`). Check: set exactly when completed |
 | `created_via` | text | `web`, `ha` or `agent`; `web` until M3 |
 | `idempotency_key` | text | From the `Idempotency-Key` header; unique per user |
 | `started_at`, `completed_at`, `projected_end` | timestamptz | `projected_end` is the last step's time plus its wait |
 
 `Bake.project()` recomputes the schedule: each step's time is the previous step's completion (or its
-scheduled time) plus that step's `wait_chosen`; the anchor applies to the first step that isn't skipped.
+scheduled time) plus that step's `wait_chosen`; the anchor applies to the first step that isn't skipped. Skipped
+steps get no time and their waits don't count.
 `Bake.refresh_status()` moves the status along and expires a bake an hour (`BAKE_GRACE`) past its
 projected end; every read calls it and saves the change (no scheduled job).
 
@@ -208,7 +209,8 @@ projected end; every read calls it and saves the change (no scheduled job).
 | `text_snapshot`, `note_snapshot` | text | The step's text and note at start |
 | `wait_min`, `wait_max`, `wait_chosen` | integer | The range at start and the wait this bake uses (default: the step's `default_wait`). Outside the range is flagged, not refused |
 | `active_seconds`, `needs_presence` | integer, boolean | Snapshotted detail; responses add `hands_on` with the "unknown is not zero" defaults |
-| `skipped` | boolean | Steps before `start_at_step`: no time, no alerts, count as done |
+| `skipped` | boolean | Steps before `start_at_step`, or skipped mid-bake: no time, no alerts, count as done |
+| `skipped_at` | timestamptz | Client-supplied time of a mid-bake skip (breadsheet#78); null for steps skipped at start |
 | `scheduled_at`, `completed_at` | timestamptz | `scheduled_at` is null for skipped steps. `completed_at` is the client-supplied check-off time; the first write wins |
 
 ### `User` (table `users`, M2)
@@ -268,6 +270,7 @@ Changes from the DynamoDB version: GET requests never write, and recipe writes a
 | `POST /api/v2/bakes/<id>/complete` | Finish it: remaining steps are checked off at `completed_at` (default now); outcome `finished`. Repeating changes nothing |
 | `POST /api/v2/bakes/<id>/cancel` | End it without finishing; unchecked steps stay unchecked; outcome `canceled`. Repeating changes nothing |
 | `POST /api/v2/bakes/<id>/steps/<position>/complete` | Check off with `completed_at`: not over five minutes ahead or before the bake started (400 `completed_at_invalid`); first write wins; re-projects later steps |
+| `POST /api/v2/bakes/<id>/steps/<position>/skip` | Skip a step that isn't done, with `skipped_at` (same rules; 400 `skipped_at_invalid`); first write wins; its wait drops out and later steps re-project; skipping the last steps left finishes the bake |
 
 Bake errors: drafts → 409 `recipe_is_draft`; no steps → 400 `recipe_has_no_steps`; a 4th active bake →
 409 `bake_limit_reached`; a wait outside 0–30 days → 400 `wait_out_of_range`; a schedule already over →

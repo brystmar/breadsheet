@@ -541,17 +541,20 @@ class Bake(UuidPrimaryKey, db.Model):
 
     def refresh_status(self, now: datetime) -> bool:
         """
-        Moves the status along: in progress once a step is done or skipped; finished once every step is;
-        expired an hour after the projected end. True if it changed.
+        Moves the status along: in progress once a step is checked off (or the bake started partway
+        through); finished once every step is done or skipped; expired an hour after the projected end.
+        Skipping a step mid-bake doesn't start a bake on its own. True if it changed.
         """
         if self.status == 'completed':
             return False
         if all(step.is_done for step in self.steps):
-            checked = [step.completed_at for step in self.steps if step.completed_at]
-            self.end('finished', max(checked) if checked else now)
+            # Finished at the last check-off or mid-bake skip
+            moments = [moment for step in self.steps for moment in (step.completed_at, step.skipped_at) if moment]
+            self.end('finished', max(moments) if moments else now)
         elif self.projected_end + BAKE_GRACE <= now:
             self.end('expired', self.projected_end + BAKE_GRACE)
-        elif any(step.is_done for step in self.steps) and self.status == 'not_started':
+        elif self.status == 'not_started' and any(step.completed_at or (step.skipped and not step.skipped_at)
+                                                  for step in self.steps):
             self.status = 'in_progress'
         else:
             return False
@@ -608,8 +611,10 @@ class BakeStep(UuidPrimaryKey, db.Model):
     active_seconds: Mapped[int | None]
     needs_presence: Mapped[bool | None]
 
-    # Steps before the one a bake started at (start partway through): no time, no alerts, count as done
+    # Skipped steps get no time or alerts, and count as done. Steps before the one a bake started at are
+    #   skipped with no `skipped_at`; a step skipped mid-bake (breadsheet#78) records the client-supplied time.
     skipped: Mapped[bool] = mapped_column(default=False, server_default=sql_text("false"))
+    skipped_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
     # Null for skipped steps
     scheduled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
@@ -634,6 +639,8 @@ class BakeStep(UuidPrimaryKey, db.Model):
             "needs_presence":     self.needs_presence,
             "hands_on":           {"seconds": seconds, "estimated": estimated, "needs_presence": presence},
             "skipped":            self.skipped,
+            "skipped_at":         iso(self.skipped_at),
+            "skipped_at_local":   iso(self.skipped_at, zone),
             "scheduled_at":       iso(self.scheduled_at),
             "scheduled_at_local": iso(self.scheduled_at, zone),
             "completed_at":       iso(self.completed_at),

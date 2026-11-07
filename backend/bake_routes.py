@@ -8,6 +8,8 @@ v2 bakes (breadsheet#31): start (optionally partway through), read, change, chec
   step is done, the owner completes or cancels it, or an hour passes after its projected end. `outcome`
   says which (finished, canceled, expired). Expiry is computed on read and written back.
 - Starting partway through (`start_at_step`) copies earlier steps as skipped: no time, no alerts.
+- Any step that isn't done can also be skipped mid-bake (breadsheet#78), at the client's `skipped_at`:
+  its wait drops out and later steps re-project. A mid-bake skip doesn't start a bake on its own.
 - Bakes are private: every endpoint is owner-only, and other people get 404.
 - Writes lock the bake's row, so simultaneous check-offs can't race.
 """
@@ -108,20 +110,22 @@ def parse_waits(value, positions: set[int], problems: dict) -> dict[int, int]:
     return waits
 
 
-def checked_completed_at(value, bake: Bake, now: datetime, required: bool = True) -> datetime:
-    """When the user did it: not more than five minutes ahead, and not before the bake started."""
+def checked_moment(value, bake: Bake, now: datetime, field: str = 'completed_at', done: str = 'done',
+                   required: bool = True) -> datetime:
+    """When the user did it (checked off or skipped a step): not more than five minutes ahead, and not
+    before the bake started. Errors use `<field>_invalid`."""
     if value is None and not required:
         return now
-    completed_at = parse_time(value)
-    if completed_at is None:
-        message = "Send completed_at: the ISO 8601 time the step was done, with a UTC offset."
-    elif completed_at > now + CLOCK_SKEW:
-        message = "completed_at is in the future. Send the time it was actually done."
-    elif completed_at < bake.started_at:
-        message = "completed_at is before this bake started."
+    moment = parse_time(value)
+    if moment is None:
+        message = f"Send {field}: the ISO 8601 time the step was {done}, with a UTC offset."
+    elif moment > now + CLOCK_SKEW:
+        message = f"{field} is in the future. Send the time it was actually {done}."
+    elif moment < bake.started_at:
+        message = f"{field} is before this bake started."
     else:
-        return completed_at
-    raise ApiError(400, 'completed_at_invalid', message)
+        return moment
+    raise ApiError(400, f'{field}_invalid', message)
 
 
 def raise_if(problems: dict):
@@ -324,7 +328,7 @@ def finish_bake(bake_id):
         return respond(bake)
     refuse_if_completed(bake)
 
-    completed_at = checked_completed_at(json_body().get('completed_at'), bake, now, required=False)
+    completed_at = checked_moment(json_body().get('completed_at'), bake, now, required=False)
     for step in bake.steps:
         if not step.is_done:
             step.completed_at = completed_at
@@ -370,9 +374,38 @@ def complete_step(bake_id, position):
     bake.refresh_status(now)
     refuse_if_completed(bake)
 
-    step.completed_at = checked_completed_at(json_body().get('completed_at'), bake, now)
+    step.completed_at = checked_moment(json_body().get('completed_at'), bake, now)
     bake.project()
     bake.refresh_status(now)
     db.session.commit()
     logger.info("User %s checked off step %s of bake %s", user.id, position, bake.id)
+    return respond(bake)
+
+
+@api_v2.post('/bakes/<bake_id>/steps/<int:position>/skip')
+def skip_step(bake_id, position):
+    """
+    Skip a step that isn't done, at the client's `skipped_at` (breadsheet#78). Its wait drops out and every
+    later step re-projects. The first write wins: skipping a step that's already checked off or skipped
+    returns the bake unchanged. Skipping the last steps left finishes the bake.
+    """
+    user = require_user()
+    bake = owned_bake_or_404(bake_id, user, lock=True)
+    step = next((s for s in bake.steps if s.position == position), None)
+    if step is None:
+        raise ApiError(404, 'not_found', "That step doesn't exist in this bake.")
+    if step.is_done:  # already checked off, or skipped: the first write wins
+        db.session.commit()  # releases the lock
+        return respond(bake)
+
+    now = utc_now()
+    bake.refresh_status(now)
+    refuse_if_completed(bake)
+
+    step.skipped = True
+    step.skipped_at = checked_moment(json_body().get('skipped_at'), bake, now, field='skipped_at', done='skipped')
+    bake.project()
+    bake.refresh_status(now)
+    db.session.commit()
+    logger.info("User %s skipped step %s of bake %s", user.id, position, bake.id)
     return respond(bake)
