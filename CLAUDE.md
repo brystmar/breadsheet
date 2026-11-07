@@ -510,8 +510,11 @@ docker compose up -d breadsheet-db   # local Postgres 18 on port 5433 (data in t
   (breadsheet-ui#31)
 - Recipe categories, prerequisites and archiving (breadsheet#59) live since 2026-11-06; the starter recipe
   is `prep` and the prerequisite of the two sourdough defaults
-- App Engine version `m2j` serves all traffic; `m2i` is the rollback target (it ignores categories,
-  prerequisites and `archived_at`, so archived defaults would show in lists again) `py314` (the DynamoDB version) is kept until DynamoDB is retired
+- Bakes (breadsheet#31) live since 2026-11-06: start (optionally partway through), check-off, complete,
+  cancel, expiry an hour past the projected end; no bake UI yet (breadsheet-ui#33). Doubled-slash URLs
+  return 404 (breadsheet#77)
+- App Engine version `m2k` serves all traffic; `m2j` is the rollback target (it has no bake endpoints,
+  so bakes started on `m2k` would be unreachable until traffic moves back) `py314` (the DynamoDB version) is kept until DynamoDB is retired
 
 ## Second Rise spec
 The source of truth is `./docs/second-rise.md`, in this repo. Read it before planning or executing any Second Rise work. If it needs changes, say so and stop.
