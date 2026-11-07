@@ -67,6 +67,7 @@ days after a release (security fixes come right away). When merging one, update 
 | psycopg[binary] | 3.3.7 |
 | python-dotenv | 1.2.4 |
 | Markdown | 3.11.2 |
+| tzdata | 2026.6 (IANA zones for bakes, so they don't depend on the host's zoneinfo) |
 | appengine-python-standard | 3.1.0 (App Engine shared memcache; pins `urllib3<2`) |
 | pytest (dev) | 9.2.0 |
 
@@ -98,6 +99,7 @@ breadsheet/
 │   ├── identity_routes.py   # /api/v2/users and /api/v2/session
 │   ├── recipe_routes_v2.py  # /api/v2/recipes: scopes, copy, lookups (breadsheet#29), publishing (breadsheet#58),
 │   │                        #   detail levels, the Then Wait, drafts (breadsheet#30), categories, prerequisites (breadsheet#59)
+│   ├── bake_routes.py       # /api/v2/bakes: start, read, change, cancel, check off (breadsheet#31)
 │   ├── admin_routes.py      # /api/v2/admin/recipes: the admin key, create, edit and archive defaults, unpublish (breadsheet#28)
 │   ├── slugs.py             # Recipe slugs and public suffixes for user-facing URLs
 │   ├── cache.py             # Shared memcache on App Engine, in-process dict locally
@@ -177,6 +179,38 @@ Convert-text substitutions. Unique on (`scope`, `old`). `old` uses `COLLATE "C"`
 which matches DynamoDB's range-key sort; convert-text applies replacements in this order, so
 don't change it.
 
+### `Bake` (table `bakes`, breadsheet#31)
+A recipe being baked: a snapshot of its steps, scheduled from a `start` or `finish` anchor.
+| Column | Type | Notes |
+|---|---|---|
+| `public_suffix` | text | `/bakes/<suffix>`, unique; owner only |
+| `user_id` | uuid | FK to `users` (restrict) |
+| `recipe_id` | uuid | FK to `recipes`, set null when the recipe is deleted; the bake runs from its snapshot |
+| `name_snapshot` | text | The recipe's name at start |
+| `anchor_type`, `anchor_time` | text, timestamptz | `start`: step 1 at the anchor. `finish`: the last step's wait ends at it |
+| `time_zone` | text | IANA zone from the browser; responses give times in UTC and in this zone |
+| `alert_mode` | text | `simple` (default) or `fancy` (refused with `fancy_requires_ha` until M3) |
+| `status` | text | `not_started` → `in_progress` (a step checked off or skipped) → `completed` |
+| `outcome` | text | Set when completed: `finished` (every step done, or the owner completed it), `canceled` (one L), or `expired` (an hour past `projected_end`). Check: set exactly when completed |
+| `created_via` | text | `web`, `ha` or `agent`; `web` until M3 |
+| `idempotency_key` | text | From the `Idempotency-Key` header; unique per user |
+| `started_at`, `completed_at`, `projected_end` | timestamptz | `projected_end` is the last step's time plus its wait |
+
+`Bake.project()` recomputes the schedule: each step's time is the previous step's completion (or its
+scheduled time) plus that step's `wait_chosen`; the anchor applies to the first step that isn't skipped.
+`Bake.refresh_status()` moves the status along and expires a bake an hour (`BAKE_GRACE`) past its
+projected end; every read calls it and saves the change (no scheduled job).
+
+### `BakeStep` (table `bake_steps`)
+| Column | Type | Notes |
+|---|---|---|
+| `bake_id`, `position` | uuid, integer | Unique together; cascade delete with the bake |
+| `text_snapshot`, `note_snapshot` | text | The step's text and note at start |
+| `wait_min`, `wait_max`, `wait_chosen` | integer | The range at start and the wait this bake uses (default: the step's `default_wait`). Outside the range is flagged, not refused |
+| `active_seconds`, `needs_presence` | integer, boolean | Snapshotted detail; responses add `hands_on` with the "unknown is not zero" defaults |
+| `skipped` | boolean | Steps before `start_at_step`: no time, no alerts, count as done |
+| `scheduled_at`, `completed_at` | timestamptz | `scheduled_at` is null for skipped steps. `completed_at` is the client-supplied check-off time; the first write wins |
+
 ### `User` (table `users`, M2)
 | Column | Type | Notes |
 |---|---|---|
@@ -227,6 +261,18 @@ Changes from the DynamoDB version: GET requests never write, and recipe writes a
 | `PUT /api/v2/admin/recipes/<id>` | Edit a default (admin key); the slug never changes, personal recipes → 404 |
 | `DELETE /api/v2/admin/recipes/<id>` | Archive a default (admin key); 204, and archiving again keeps the time. No unarchive endpoint |
 | `DELETE /api/v2/admin/recipes/<id>/publish` | Unpublish anyone's recipe (admin key) |
+| `POST /api/v2/bakes` | Start a bake: `recipe_id`, `anchor_type`, `anchor_time` (ISO 8601 with offset), `time_zone`, optional `alert_mode`, `waits` ([{position, wait_chosen}]) and `start_at_step` (start partway through; earlier steps are skipped). Honors `Idempotency-Key` (a repeat returns the original, 200) |
+| `GET /api/v2/bakes?status=active\|completed` | The caller's active bakes (default) or newest 50 completed, with schedules |
+| `GET /api/v2/bakes/<id>`, `/bakes/by-suffix/<suffix>` | One bake (owner only; others get 404) |
+| `PATCH /api/v2/bakes/<id>` | Change waits or alert mode; the anchor only before the first check-off (409 `bake_in_progress`) |
+| `POST /api/v2/bakes/<id>/complete` | Finish it: remaining steps are checked off at `completed_at` (default now); outcome `finished`. Repeating changes nothing |
+| `POST /api/v2/bakes/<id>/cancel` | End it without finishing; unchecked steps stay unchecked; outcome `canceled`. Repeating changes nothing |
+| `POST /api/v2/bakes/<id>/steps/<position>/complete` | Check off with `completed_at`: not over five minutes ahead or before the bake started (400 `completed_at_invalid`); first write wins; re-projects later steps |
+
+Bake errors: drafts → 409 `recipe_is_draft`; no steps → 400 `recipe_has_no_steps`; a 4th active bake →
+409 `bake_limit_reached`; a wait outside 0–30 days → 400 `wait_out_of_range`; a schedule already over →
+400 `bake_already_over`; new input on a completed bake → 409 `bake_completed`; other bad fields → 400
+`bake_invalid` with `fields`. Writes lock the bake row (`SELECT … FOR UPDATE`).
 
 v2 conventions (`backend/api_v2.py`):
 - Errors are `{code, message}` with a stable `code` and a message that says what to do next; raise
