@@ -74,6 +74,10 @@ def check_off(client, bake_id, position, when):
     return client.post(f'/api/v2/bakes/{bake_id}/steps/{position}/complete', json={"completed_at": when})
 
 
+def skip(client, bake_id, position, when):
+    return client.post(f'/api/v2/bakes/{bake_id}/steps/{position}/skip', json={"skipped_at": when})
+
+
 def times(bake) -> list[str]:
     return [step['scheduled_at'] for step in bake['steps']]
 
@@ -273,6 +277,83 @@ class TestCheckOff:
             after = check_off(baker, bake['id'], position, at(hours)).json['bake']
         assert (after['status'], after['outcome'], after['completed_at']) == ('completed', 'finished', utc(3))
         assert baker.get('/api/v2/bakes').json['bakes'] == []
+
+
+class TestSkip:
+    """Skipping a step mid-bake (breadsheet#78). The loaf: feed (7h), mix (2h), bake, starting at hour 1."""
+
+    def test_skipping_drops_the_wait_and_re_projects(self, baker, loaf, clock):
+        bake = started(baker, loaf['id'])
+        clock.advance(hours=2)
+        check_off(baker, bake['id'], 1, at(1))
+        after = skip(baker, bake['id'], 2, at(2)).json['bake']
+
+        mix = after['steps'][1]
+        assert (mix['skipped'], mix['skipped_at'], mix['completed_at']) == (True, utc(2), None)
+        assert mix['skipped_at_local'] == '2026-10-31T11:00:00-07:00'
+        assert times(after) == [utc(1), None, utc(8)]  # the bake follows the feed's 7 hours; mix's 2 drop out
+        assert after['projected_end'] == utc(8) and after['status'] == 'in_progress'
+
+    def test_skipping_doesnt_start_a_bake(self, baker, loaf, clock):
+        bake = started(baker, loaf['id'])
+        clock.advance(minutes=30)
+        after = skip(baker, bake['id'], 2, at(0.5)).json['bake']
+        assert after['status'] == 'not_started'
+        assert times(after) == [utc(1), None, utc(8)]
+
+        clock.advance(hours=1)
+        assert check_off(baker, bake['id'], 1, at(1)).json['bake']['status'] == 'in_progress'
+
+    def test_a_finish_anchor_keeps_its_finish_until_a_check_off(self, baker, loaf, clock):
+        bake = started(baker, loaf['id'], anchor_type='finish', anchor_time=at(12))
+        clock.advance(minutes=30)
+        after = skip(baker, bake['id'], 2, at(0.5)).json['bake']
+        assert times(after) == [utc(5), None, utc(12)]  # the start moves later; the finish stays put
+
+    def test_the_first_write_wins(self, baker, loaf, clock):
+        bake = started(baker, loaf['id'])
+        clock.advance(hours=2)
+        first = skip(baker, bake['id'], 2, at(1.5)).json['bake']
+        repeat = skip(baker, bake['id'], 2, at(2))
+        assert repeat.status_code == 200 and repeat.json['bake'] == first
+
+        checked = check_off(baker, bake['id'], 1, at(1)).json['bake']
+        assert skip(baker, bake['id'], 1, at(2)).json['bake'] == checked  # already checked off: unchanged
+        assert check_off(baker, bake['id'], 2, at(2)).json['bake'] == checked  # already skipped: unchanged
+
+    def test_skipped_at_rules(self, baker, other, loaf, clock):
+        bake = started(baker, loaf['id'])
+        for when in (at(minutes=6), at(-1), 'yesterday', '2026-10-31T16:00:00', None):
+            response = skip(baker, bake['id'], 2, when)
+            assert (response.status_code, response.json['code']) == (400, 'skipped_at_invalid'), when
+        assert skip(baker, bake['id'], 9, at(0)).status_code == 404
+        assert skip(other, bake['id'], 2, at(0)).status_code == 404
+        assert skip(baker, bake['id'], 2, at(minutes=4)).status_code == 200  # five minutes of clock skew is fine
+
+        baker.post(f"/api/v2/bakes/{bake['id']}/cancel", json={})
+        response = skip(baker, bake['id'], 3, at(minutes=4))
+        assert (response.status_code, response.json['code']) == (409, 'bake_completed')
+
+    def test_skipping_the_last_steps_finishes_the_bake(self, baker, loaf, clock):
+        bake = started(baker, loaf['id'])
+        clock.advance(hours=3)
+        check_off(baker, bake['id'], 1, at(1))
+        skip(baker, bake['id'], 2, at(2))
+        after = skip(baker, bake['id'], 3, at(2.5)).json['bake']
+        assert (after['status'], after['outcome'], after['completed_at']) == ('completed', 'finished', utc(2.5))
+
+    def test_complete_leaves_skipped_steps_skipped(self, baker, loaf, clock):
+        bake = started(baker, loaf['id'])
+        clock.advance(hours=2)
+        check_off(baker, bake['id'], 1, at(1))
+        skip(baker, bake['id'], 2, at(1.5))
+        done = baker.post(f"/api/v2/bakes/{bake['id']}/complete", json={}).json['bake']
+        assert [s['skipped'] for s in done['steps']] == [False, True, False]
+        assert [s['completed_at'] for s in done['steps']] == [utc(1), None, utc(2)]
+
+    def test_steps_skipped_at_start_have_no_skip_time(self, baker, loaf):
+        bake = started(baker, loaf['id'], start_at_step=2)
+        assert [(s['skipped'], s['skipped_at']) for s in bake['steps']] == [(True, None), (False, None), (False, None)]
 
 
 class TestCompletion:
