@@ -1,14 +1,34 @@
-"""SQLAlchemy models: recipes, recipe_steps, and replacements (M1); users, recipe scopes, detail, categories (M2)."""
+"""SQLAlchemy models: recipes, recipe_steps, and replacements (M1); users, recipe scopes, detail, categories, bakes (M2)."""
 from backend.database import db
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from sqlalchemy import CheckConstraint, DateTime, ForeignKey, Index, LargeBinary, Text, UniqueConstraint, Uuid, func
 from sqlalchemy import text as sql_text  # aliased: RecipeStep has a `text` column
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from uuid import UUID, uuid7
+from zoneinfo import ZoneInfo
 
 
 # Scheduling assumes this much hands-on time when a step's active_seconds is unknown (spec: unknown is not zero)
 UNKNOWN_HANDS_ON_SECONDS = 10 * 60
+
+# A bake stays active this long past its projected end, so late check-offs still count
+BAKE_GRACE = timedelta(hours=1)
+
+
+def hands_on(active_seconds: int | None, needs_presence: bool | None) -> tuple[int, bool, bool]:
+    """
+    (hands-on seconds, estimated, needs presence) for scheduling. Unknown is not zero: a null
+    active_seconds means 10 minutes, estimated; a null needs_presence means presence is needed.
+    """
+    estimated = active_seconds is None
+    return (UNKNOWN_HANDS_ON_SECONDS if estimated else active_seconds), estimated, needs_presence is not False
+
+
+def iso(value: datetime | None, zone: str | None = None) -> str | None:
+    """An ISO 8601 timestamp in UTC, or in an IANA time zone with its offset."""
+    if value is None:
+        return None
+    return value.astimezone(ZoneInfo(zone) if zone else timezone.utc).isoformat()
 
 
 def utc_now() -> datetime:
@@ -316,13 +336,8 @@ class RecipeStep(UuidPrimaryKey, db.Model):
         return min(max(rounded, self.wait_min), self.wait_max)
 
     def hands_on(self) -> tuple[int, bool, bool]:
-        """
-        (hands-on seconds, estimated, needs presence) for scheduling. Unknown is not zero: a null
-        active_seconds means 10 minutes, estimated; a null needs_presence means presence is needed.
-        """
-        estimated = self.active_seconds is None
-        seconds = UNKNOWN_HANDS_ON_SECONDS if estimated else self.active_seconds
-        return seconds, estimated, self.needs_presence is not False
+        """(hands-on seconds, estimated, needs presence), with the "unknown is not zero" defaults."""
+        return hands_on(self.active_seconds, self.needs_presence)
 
     @property
     def warnings(self) -> list[str]:
@@ -438,3 +453,189 @@ class User(UuidPrimaryKey, db.Model):
 
 # Usernames are unique regardless of case ("Thomas" and "thomas" can't both exist)
 Index('uq_users_username_lower', func.lower(User.username), unique=True)
+
+
+class Bake(UuidPrimaryKey, db.Model):
+    """
+    A recipe being baked (breadsheet#31): a snapshot of its steps with a schedule anchored to a start or
+    finish time. Status is not_started until a step is checked off or skipped, in_progress after, and
+    completed once every step is done, the owner completes or cancels it, or an hour passes after its
+    projected end. `outcome` records which: finished, canceled, or expired. Expiry is computed on read
+    (refresh_status) and written back lazily; no scheduled job.
+    """
+    __tablename__ = 'bakes'
+    __table_args__ = (
+        CheckConstraint("anchor_type IN ('start', 'finish')", name="anchor_type_valid"),
+        CheckConstraint("alert_mode IN ('simple', 'fancy')", name="alert_mode_valid"),
+        CheckConstraint("status IN ('not_started', 'in_progress', 'completed')", name="bake_status_valid"),
+        CheckConstraint("created_via IN ('web', 'ha', 'agent')", name="created_via_valid"),
+        CheckConstraint("outcome IN ('finished', 'canceled', 'expired')", name="bake_outcome_valid"),
+        CheckConstraint("(status = 'completed') = (outcome IS NOT NULL)", name="outcome_only_when_completed"),
+        UniqueConstraint("public_suffix", name="uq_bakes_public_suffix"),
+        # A repeated start with the same Idempotency-Key returns the original bake
+        UniqueConstraint("user_id", "idempotency_key", name="uq_bakes_user_idempotency_key"),
+        Index("ix_bakes_user_id_status", "user_id", "status"),
+    )
+
+    # /bakes/<public_suffix>; owner only
+    public_suffix: Mapped[str] = mapped_column(Text)
+    user_id: Mapped[UUID] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT", name="fk_bakes_user_id_users"))
+
+    # Null once the recipe is deleted; the bake keeps running from its snapshot
+    recipe_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("recipes.id", ondelete="SET NULL", name="fk_bakes_recipe_id_recipes"), index=True)
+    recipe: Mapped[Recipe | None] = relationship(lazy="selectin")
+    name_snapshot: Mapped[str] = mapped_column(Text)
+
+    # Step 1 starts at a `start` anchor; with a `finish` anchor, the last step's wait ends at it
+    anchor_type: Mapped[str] = mapped_column(Text)
+    anchor_time: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    time_zone: Mapped[str] = mapped_column(Text)  # IANA, e.g. America/Los_Angeles
+
+    alert_mode: Mapped[str] = mapped_column(Text, default="simple", server_default="simple")
+    status: Mapped[str] = mapped_column(Text, default="not_started", server_default="not_started")
+    created_via: Mapped[str] = mapped_column(Text)
+    idempotency_key: Mapped[str | None] = mapped_column(Text)
+
+    started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, server_default=func.now())
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    projected_end: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+
+    # How a completed bake ended: finished (every step done), canceled by the owner, or expired
+    outcome: Mapped[str | None] = mapped_column(Text)
+
+    steps: Mapped[list["BakeStep"]] = relationship(back_populates="bake", order_by="BakeStep.position",
+                                                   cascade="all, delete-orphan", passive_deletes=True,
+                                                   lazy="selectin")
+
+    @property
+    def path(self) -> str:
+        return f'/bakes/{self.public_suffix}'
+
+    @property
+    def is_active(self) -> bool:
+        return self.status != 'completed'
+
+    def project(self):
+        """
+        Recomputes every scheduled step's time and the projected end. The anchor applies to the first step
+        that isn't skipped; each later step's time is the previous step's completion (or its scheduled
+        time, if it isn't checked off) plus that step's chosen wait. Skipped steps have no time.
+        """
+        scheduled = [step for step in self.steps if not step.skipped]
+        if self.anchor_type == 'start':
+            time = self.anchor_time
+        else:
+            time = self.anchor_time - timedelta(seconds=sum(step.wait_chosen for step in scheduled))
+
+        for step in self.steps:
+            if step.skipped:
+                step.scheduled_at = None
+                continue
+            step.scheduled_at = time
+            time = (step.completed_at or step.scheduled_at) + timedelta(seconds=step.wait_chosen)
+        self.projected_end = time
+
+    def end(self, outcome: str, at: datetime):
+        self.status, self.outcome, self.completed_at = 'completed', outcome, at
+
+    def refresh_status(self, now: datetime) -> bool:
+        """
+        Moves the status along: in progress once a step is done or skipped; finished once every step is;
+        expired an hour after the projected end. True if it changed.
+        """
+        if self.status == 'completed':
+            return False
+        if all(step.is_done for step in self.steps):
+            checked = [step.completed_at for step in self.steps if step.completed_at]
+            self.end('finished', max(checked) if checked else now)
+        elif self.projected_end + BAKE_GRACE <= now:
+            self.end('expired', self.projected_end + BAKE_GRACE)
+        elif any(step.is_done for step in self.steps) and self.status == 'not_started':
+            self.status = 'in_progress'
+        else:
+            return False
+        return True
+
+    def to_v2_dict(self) -> dict:
+        recipe = self.recipe
+        zone = self.time_zone
+        return {
+            "id":             str(self.id),
+            "suffix":         self.public_suffix,
+            "path":           self.path,
+            "name":           self.name_snapshot,
+            "recipe_id":      str(self.recipe_id) if self.recipe_id else None,
+            "recipe_path":    recipe.path if recipe is not None and not recipe.is_draft else None,
+            "recipe_deleted": self.recipe_id is None,
+            "anchor_type":    self.anchor_type,
+            "anchor_time":    iso(self.anchor_time),
+            "time_zone":      zone,
+            "alert_mode":     self.alert_mode,
+            "status":         self.status,
+            "outcome":        self.outcome,
+            "created_via":    self.created_via,
+            "started_at":     iso(self.started_at),
+            "completed_at":   iso(self.completed_at),
+            "projected_end":  iso(self.projected_end),
+            "projected_end_local": iso(self.projected_end, zone),
+            "steps":          [step.to_v2_dict(zone) for step in self.steps]
+        }
+
+    def __repr__(self) -> str:
+        return f'<Bake | id: {self.id}, recipe: {self.name_snapshot}, status: {self.status}>'
+
+
+class BakeStep(UuidPrimaryKey, db.Model):
+    """One step of a bake: a snapshot of the recipe step at start, plus its schedule and check-off."""
+    __tablename__ = 'bake_steps'
+    __table_args__ = (
+        UniqueConstraint("bake_id", "position", name="uq_bake_steps_bake_id_position"),
+        CheckConstraint("wait_chosen >= 0", name="wait_chosen_valid"),
+    )
+
+    bake_id: Mapped[UUID] = mapped_column(ForeignKey("bakes.id", ondelete="CASCADE"))
+    bake: Mapped[Bake] = relationship(back_populates="steps")
+    position: Mapped[int]
+
+    text_snapshot: Mapped[str] = mapped_column(Text)
+    note_snapshot: Mapped[str | None] = mapped_column(Text)
+
+    # The recipe step's range at start, and the wait this bake uses (its Then Wait unless changed)
+    wait_min: Mapped[int]
+    wait_max: Mapped[int]
+    wait_chosen: Mapped[int]
+    active_seconds: Mapped[int | None]
+    needs_presence: Mapped[bool | None]
+
+    # Steps before the one a bake started at (start partway through): no time, no alerts, count as done
+    skipped: Mapped[bool] = mapped_column(default=False, server_default=sql_text("false"))
+
+    # Null for skipped steps
+    scheduled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    # The client-supplied moment the user marked it done; the first write wins
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    @property
+    def is_done(self) -> bool:
+        return self.skipped or self.completed_at is not None
+
+    def to_v2_dict(self, zone: str) -> dict:
+        seconds, estimated, presence = hands_on(self.active_seconds, self.needs_presence)
+        return {
+            "position":           self.position,
+            "text":               self.text_snapshot,
+            "note":               self.note_snapshot,
+            "wait_min":           self.wait_min,
+            "wait_max":           self.wait_max,
+            "wait_chosen":        self.wait_chosen,
+            "wait_outside_range": not self.wait_min <= self.wait_chosen <= self.wait_max,
+            "active_seconds":     self.active_seconds,
+            "needs_presence":     self.needs_presence,
+            "hands_on":           {"seconds": seconds, "estimated": estimated, "needs_presence": presence},
+            "skipped":            self.skipped,
+            "scheduled_at":       iso(self.scheduled_at),
+            "scheduled_at_local": iso(self.scheduled_at, zone),
+            "completed_at":       iso(self.completed_at),
+            "completed_at_local": iso(self.completed_at, zone)
+        }

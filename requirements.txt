@@ -11,5 +11,8 @@ psycopg[binary]==3.3.7
 python-dotenv==1.2.4
 Markdown==3.11.2
 
+# IANA time zones for bakes, independent of the host's zoneinfo files
+tzdata==2026.6
+
 # App Engine bundled services (shared memcache); pins urllib3<2
 appengine-python-standard==3.1.0

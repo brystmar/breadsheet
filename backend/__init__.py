@@ -56,6 +56,7 @@ def register_v2(app: Flask):
     import backend.identity_routes  # noqa: F401 (registers its routes on the blueprint)
     import backend.recipe_routes_v2  # noqa: F401
     import backend.admin_routes  # noqa: F401
+    import backend.bake_routes  # noqa: F401
 
     app.register_blueprint(api_v2)
     register_v2_http_errors(app)
