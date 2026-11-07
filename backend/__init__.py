@@ -16,6 +16,11 @@ def create_app(config_class=Config):
     configure_logging()
     breadapp = Flask(__name__)
     breadapp.config.from_object(config_class)
+
+    # A doubled slash (/api/v2/recipes//publish) is a 404, not a redirect to the merged path. Werkzeug's
+    #   merge-slashes redirect crashed Flask-RESTful's error router into a 500, and silently redirecting a
+    #   POST to a different endpoint is never what an API client meant anyway.
+    breadapp.url_map.merge_slashes = False
     if not breadapp.config.get('SECRET_KEY'):
         raise RuntimeError("SECRET_KEY isn't set; it signs session cookies, so the app won't start without it.")
 
