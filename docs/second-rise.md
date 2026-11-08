@@ -26,7 +26,7 @@ Four releases, each shippable on its own. The `/api/v2` contract only grows: end
 | --- | --- | --- |
 | M1: Database migration | Postgres on Neon, v1 reimplemented on it, `api.breadsheet.com`, backups | breadsheet.com runs on Postgres with v1 and convert-text behaving identically, and DynamoDB is kept as a fallback. Users see no change. |
 | M2: Collections, community, and Simple alerts | Key-based sign-in, personal collections, copying defaults, private recipes, community publishing and copying, bakes, plan and bake views, Simple alerts with ICS export, product events | A new user can sign up, build a collection, publish a recipe or copy a community one, start a bake, and download its steps as calendar events. |
-| M3: Home Assistant (Fancy alerts) | `breadsheet-hass`, pairing and connections, the Fancy option enabled at bake start, Live Activities | A user can pair HA, start a Fancy bake, and get phone notifications with a Done button. |
+| M3: Home Assistant (Fancy alerts) | `breadsheet-hass`, pairing and connections, the Fancy option enabled at bake start, Live Activities | A user can pair HA, start a Fancy bake, and get phone notifications with a Done button, and the same bake shows a Live Update on an Android 16 emulator, and the Live Update clears when the bake ends. |
 | M4: AI agents | The Breadsheet LLM API in `breadsheet-hass`, exposed through HA's MCP Server and Assist; recipe import; schedule preview | Claude and ChatGPT, connected through a user's Home Assistant, can plan, start, and manage a bake, and import a recipe as a draft. |
 
 **Schema by milestone.** Each milestone adds only its own tables and columns, through Alembic migrations.
@@ -68,7 +68,7 @@ Every question raised during scoping is settled; these are the answers the rest 
 | Abandonment | A bake auto-completes an hour after its latest projected end time, computed when read rather than by a scheduled job. |
 | Concurrent bakes | Allowed, soft cap of 3 active (not started or in progress) per user. |
 | Quiet hours | Out of scope. Phone-level Do Not Disturb and companion app settings already handle muting. |
-| Live Activities | Opt-in, step level. One activity updated across consecutive steps; ended for waits over 4 hours. |
+| Live Activities / Live Updates | Opt-in, step level, on iOS (Live Activities) and Android 16+ (Live Updates) from one payload. One activity is updated across consecutive steps and ended for waits over 4 hours. It is always cleared when a bake ends. |
 | Resilience | A running bake must survive a breadsheet outage of minutes to an hour. Clients keep running the bake from their last good copy and queue check-offs. Offline recipe editing is out of scope. |
 | Deploys | Versioned App Engine deploys without promotion, smoke-tested, then traffic migrated; rollback by moving traffic back. Alembic migrations are expand-then-contract, so the previous version always works against the current schema. No maintenance mode. |
 | Release | Trunk-based: each issue merges to `main` and ships when ready. The UI hides unfinished milestones behind a browser-only toggle in the footer (`m1` default, then `m2`, …); releasing a milestone means changing the default level. No milestone branches. |
@@ -280,6 +280,7 @@ Arrives in M3, with agent tools added in M4. The integration pulls active Fancy 
 - **Calendar:** one event per bake step at its scheduled time. Built-in calendar triggers with offsets handle "2 minutes before" and "now".
 - **Sensors:** per active bake, the current step, next step, next step time, and progress.
 - **Action:** `breadsheet.complete_step` (bake id, step position), calling the API and refreshing immediately.
+- **Event:** `breadsheet_bake_ended` (with `bake_id`, plus `outcome` when known). The coordinator fires it when a bake disappears from the active Fancy list for any reason: completed, canceled, expired, or switched to Simple. Without it, a finished bake's entities just vanish and the blueprint has nothing to trigger on. The coordinator persists the last known set of active bake ids (HA `Store`), so a bake that ends while HA is restarting still fires the event on the next successful poll.
 
 **Sidebar panel.** Registered at `/breadsheet`. It embeds the breadsheet bake view using a short-lived panel token in the URL. Live Activity taps open `/breadsheet/<bake_id>`.
 
@@ -289,15 +290,24 @@ Arrives in M3, with agent tools added in M4. The integration pulls active Fancy 
 - Sends one late reminder at +5 minutes, then nothing.
 - Sends same-minute steps as separate notifications, 1 to 2 seconds apart.
 
-**Live Activities (working name: Proof of Life; opt-in).** Driven by the blueprint through the companion app's `live_update` payload.
+**Live Activities and Live Updates (working name: Proof of Life; opt-in).** Driven by the blueprint through the companion app's `live_update` payload.
 
-- **`tag`:** the bake id, so concurrent bakes each get their own card.
+- **`tag`:** `breadsheet_<bake id>`, so concurrent bakes each get their own card. Tags may contain only letters, numbers, hyphens, and underscores, up to 64 characters. Bake ids are UUIDs (36 characters, letters, digits and hyphens), so tags are 47 characters.
 - **`title`:** the recipe name (fixed for the life of the activity).
 - **`message`:** the next step. **`chronometer` + `when`:** absolute countdown to it. **`progress`:** steps done of total.
-- **`url`:** `/breadsheet/<bake_id>`.
+- **`url`** (iOS) and **`clickAction`** (Android), both `/breadsheet/<bake_id>`. Whether a tap on an Android Live Update honors `clickAction` is unverified. If it doesn't, the tap opens the companion app's default view, which is acceptable.
 - One activity is updated across consecutive steps. It ends before any wait longer than 4 hours and restarts before the next step, keeping starts to two or three per bake (the 8-hour Apple limit and the push-to-start budget).
 - Zero-wait steps get no Live Activity update; the card skips to the next step with a real wait.
-- README note: Live Activities need HA reachable from the phone for the token handshake, and the companion app's current requirements (iOS 17.2+, HA Core 2026.7+).
+- **Platforms.** One payload drives both iOS Live Activities and Android Live Updates. Every update sends both platforms' fields, and each app ignores the other's, so the blueprint never branches by device.
+- **`title`** is sent on every update, not just the first. Android posts a standard banner instead of a Live Update when `title` is missing.
+- **`critical_text`:** a short step label, such as "Fold 3/8". Android shows it in the status bar chip (the timer replaces it when `chronometer` is set); iOS shows it in the compact Dynamic Island.
+- **Quiet updates:** `silent: true` (iOS) and `alert_once: true` (Android) on every update after the first, since the blueprint's step notifications already alert.
+- **Colors:** `notification_icon_color` (iOS) and `color` (Android).
+- **Ending:** when a bake ends for any reason, the blueprint sends `clear_notification` with the bake's tag, triggered by the `breadsheet_bake_ended` event (see Entities). This is required because the companion docs list no system expiry for Android Live Updates, while iOS caps activities at 8 hours. A missed clear on Android could leave a stale bake pinned to the lock screen.
+- The 4-hour end-and-restart rule applies on both platforms for simplicity, though only iOS needs it.
+- **README:** link the companion docs (https://companion.home-assistant.io/docs/notifications/live-activities) and list requirements per platform.
+  - **iOS:** iOS 17.2+, HA Core 2026.7+, and HA reachable from the phone for the token handshake.
+  - **Android:** Android 16+ and HA Core 2026.7+. On Samsung, enable "Live notifications for all apps" in developer options to get the status bar chip. Describe what older Android versions show, as verified in testing.
 
 ## AI agents (Breadsheet LLM API)
 
@@ -359,7 +369,7 @@ The current schedule table stays nearly untouched; new information goes into sep
   - **In progress:** the step in progress, its note, a progress bar with how long it's run and how long is left, and a large "Done, start next" button.
   - **Up next:** the next step, when it starts and how long it lasts, a countdown to its start (`hh:mm`, for example `00:10`), and "Skip this step". The text and countdown are centered vertically.
   - **Timeline:** every step with its time, marked done, in progress, skipped, or with its length. Steps skipped at the start show the bake's start time; steps skipped mid-bake show when they were skipped. On desktop, each upcoming step has its own Skip button.
-  - **Alerts:** a section heading, then Simple and Fancy as radio buttons side by side, each with a tooltip on hover, focus, or tap: "Optional ICS calendar alerts" and "Live Activities on your phone through Home Assistant" (plus "Coming soon!" until M3). Below them, "Export again" with "Calendar events do not update after export."
+  - **Alerts:** a section heading, then Simple and Fancy as radio buttons side by side, each with a tooltip on hover, focus, or tap: "Optional ICS calendar alerts" and "Lock-screen updates on your phone through Home Assistant" (plus "Coming soon!" until M3). Below them, "Export again" with "Calendar events do not update after export."
   - **End the bake:** Cancel bake (red) on the left and Complete (green) on the right. Complete with steps left asks to confirm, with Keep baking on the left and Complete bake (green) on the right. Cancel asks to confirm too.
   - In-tab browser notifications while it's open. Keeps running from its last fetched schedule if breadsheet is unreachable; Done and Skip taps record their time, queue, and retry, showing "Saved, will sync" until confirmed.
 - **Active bake bar (M2):** under the header on every page except the bake view, so it follows the baker around. It shows the bake's name, the step in progress with a progress bar and its time run and left, and the next step with its length (`15m`, `2h30m`). Clicking it opens the bake view; its own "Done, start next" button checks off the next step without leaving the page.
