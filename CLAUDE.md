@@ -538,8 +538,9 @@ docker compose up -d breadsheet-db   # local Postgres 18 on port 5433 (data in t
 - Product events and metrics (breadsheet#34) live since 2026-11-07; production Postgres is at migration
   `0009`. `flask --app main metrics` prints the spec's usage metrics, read-only (point `DATABASE_URL` at
   production for one command to read it)
-- App Engine version `m2m` serves all traffic; `m2l` is the rollback target (it records no events and has no
-  `POST /api/v2/events`, so the UI's export reports would 404 and be ignored).
+- The `/api/v2` contract is frozen and documented (breadsheet#32) since 2026-11-07: `docs/api-v2.md`
+- App Engine version `m2n` serves all traffic; `m2m` is the rollback target (same API, but its unexpected
+  errors are HTML 500s, it has no 1 MB body limit, and its 404/405 messages are Werkzeug's).
   `py314` (the DynamoDB version) is kept until DynamoDB is retired
 
 ## Second Rise spec
