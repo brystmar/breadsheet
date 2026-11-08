@@ -38,6 +38,10 @@ def create_app(config_class=Config):
     # `flask --app main metrics` prints the usage metrics (breadsheet#34)
     from backend.metrics import metrics_command
     breadapp.cli.add_command(metrics_command)
+
+    # `flask --app main test-users` creates, lists and deletes test users
+    from backend.smoke_users import users_command
+    breadapp.cli.add_command(users_command)
     logger.debug("App created")
 
     return breadapp

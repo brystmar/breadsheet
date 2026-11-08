@@ -33,6 +33,6 @@ def test_invalid_usernames(username):
     assert 'letters, numbers' in username_problem(username)
 
 
-@mark.parametrize('username', sorted(RESERVED_USERNAMES) + ['ADMIN', 'Breadsheet', 'TBerg'])
+@mark.parametrize('username', sorted(RESERVED_USERNAMES) + ['ADMIN', 'Breadsheet', 'TBerg', 'test-dev-01', 'Test-Prod-01', 'test-me'])
 def test_reserved_usernames(username):
     assert 'reserved' in username_problem(username)

@@ -22,6 +22,8 @@ KEY_BYTES = 16  # 128 bits, shown as 22 URL-safe characters
 USERNAME_PATTERN = r'[A-Za-z][A-Za-z0-9_-]{2,29}'
 RESERVED_USERNAMES = frozenset({'admin', 'breadsheet', 'api', 'bread', 'prep', 'root',
                                 'brystmar', 'thomas', 'tberg'})
+# Test users (test-dev-NN, test-prod-NN) are made only by `flask --app main test-users`, never by signup
+TEST_USERNAME_PREFIX = 'test-'
 
 # last_seen_at is a coarse activity marker, so it's written at most this often per user
 LAST_SEEN_RESOLUTION = timedelta(days=1)
@@ -45,7 +47,7 @@ def username_problem(username) -> str | None:
     if not isinstance(username, str) or not fullmatch(USERNAME_PATTERN, username):
         return ("Usernames are 3 to 30 characters: letters, numbers, underscores, and hyphens, "
                 "starting with a letter.")
-    if username.lower() in RESERVED_USERNAMES:
+    if username.lower() in RESERVED_USERNAMES or username.lower().startswith(TEST_USERNAME_PREFIX):
         return "That username is reserved. Please pick another."
     return None
 
