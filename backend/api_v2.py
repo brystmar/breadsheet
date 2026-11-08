@@ -5,7 +5,9 @@ The /api/v2 blueprint and its conventions, shared by every v2 endpoint:
 - State-changing requests must send `Content-Type: application/json`, which forces a CORS preflight;
   with SameSite=Lax cookies and the CORS allow-list, that's the CSRF protection.
 - Responses are never cached, since they're per-user.
-- A database outage returns 503 `service_unavailable` with Retry-After.
+- A database outage returns 503 `service_unavailable` with Retry-After; anything unexpected returns 500
+  `internal_error`. No v2 error is ever an HTML page.
+- The contract is frozen and documented in docs/api-v2.md (breadsheet#32): it only grows.
 
 Plain Flask views, not Flask-RESTful (unmaintained); v1 keeps Flask-RESTful.
 """
@@ -78,6 +80,32 @@ def handle_database_outage(e: OperationalError):
                           {'Retry-After': str(DB_RETRY_AFTER_SECONDS)})
 
 
+@api_v2.errorhandler(Exception)
+def handle_unexpected_error(e: Exception):
+    """Anything else a v2 view raises: HTTP errors keep their status; true surprises become a JSON 500."""
+    if isinstance(e, HTTPException):
+        return http_error_response(e)
+    logger.exception("Unexpected error in %s %s", request.method, request.path)
+    db.session.rollback()
+    return error_response(500, 'internal_error',
+                          "Something went wrong on breadsheet's side. Try again, and if it keeps happening, "
+                          "report it on GitHub (brystmar/breadsheet).")
+
+
+def http_error_response(e: HTTPException):
+    """A JSON body for an HTTP error (unknown path, wrong method, oversized body), with a next step."""
+    allowed = sorted(getattr(e, 'valid_methods', None) or [])
+    if e.code == 404:
+        code, message = 'not_found', "Nothing is at this address. Check the path against docs/api-v2.md."
+    elif e.code == 405:
+        code, message = 'method_not_allowed', f"This address doesn't accept {request.method}. Use {', '.join(allowed)}."
+    elif e.code == 413:
+        code, message = 'body_too_large', "The request body is too large. Send at most 1 MB."
+    else:
+        code, message = 'http_error', e.description or e.name
+    return error_response(e.code, code, message, {'Allow': ', '.join(allowed)} if allowed else None)
+
+
 def register_v2_http_errors(app):
     """JSON bodies for routing errors under /api/v2 (unknown paths and wrong methods), which happen
     before the blueprint is chosen, so the blueprint's own handlers can't catch them."""
@@ -86,7 +114,4 @@ def register_v2_http_errors(app):
     def handle_http_exception(e: HTTPException):
         if not request.path.startswith(api_v2.url_prefix + '/'):
             return e
-        code = {404: 'not_found', 405: 'method_not_allowed'}.get(e.code, 'http_error')
-        allowed = getattr(e, 'valid_methods', None)
-        return error_response(e.code, code, e.description or e.name,
-                              {'Allow': ', '.join(allowed)} if allowed else None)
+        return http_error_response(e)

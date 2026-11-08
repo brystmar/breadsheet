@@ -45,3 +45,7 @@ class Config(object):
     SESSION_COOKIE_SAMESITE = 'Lax'
     PERMANENT_SESSION_LIFETIME = timedelta(days=365)
     SESSION_REFRESH_EACH_REQUEST = True
+
+    # Request bodies over 1 MB are refused (413 `body_too_large` under /api/v2); the largest real recipe
+    #   is a few kilobytes (breadsheet#32)
+    MAX_CONTENT_LENGTH = 1024 * 1024

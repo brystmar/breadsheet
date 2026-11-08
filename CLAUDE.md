@@ -292,8 +292,12 @@ Bake errors: drafts → 409 `recipe_is_draft`; no steps → 400 `recipe_has_no_s
 `bake_invalid` with `fields`. Writes lock the bake row (`SELECT … FOR UPDATE`).
 
 v2 conventions (`backend/api_v2.py`):
+- **The contract is frozen** (breadsheet#32): `docs/api-v2.md` documents every route, error code, and object
+  field, and `backend/contract_test.py` fails when the code and the doc disagree. Changes may only add
+  (new endpoints, optional fields, response fields, error codes); update the doc in the same change.
 - Errors are `{code, message}` with a stable `code` and a message that says what to do next; raise
-  `ApiError(status, code, message)`. Unknown paths and wrong methods under `/api/v2` also return JSON.
+  `ApiError(status, code, message)`. Unknown paths, wrong methods, and bodies over 1 MB (`body_too_large`)
+  under `/api/v2` also return JSON, and anything unexpected is a JSON 500 `internal_error`.
   Validation errors can add `fields`, mapping each bad field to its message (e.g. `steps[0].text`).
 - Recipes are returned as `{recipe: …}` or `{recipes: […]}`, with `id`, `slug`, `path`, `scope`, `owner`,
   `is_mine`, `source_recipe_id`, `published_at`, `detail_level`, `is_draft`, `category`, `prerequisite_ids`,
