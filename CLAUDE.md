@@ -530,11 +530,12 @@ docker compose up -d breadsheet-db   # local Postgres 18 on port 5433 (data in t
 - Bakes (breadsheet#31) live since 2026-11-06: start (optionally partway through), check-off, complete,
   cancel, expiry an hour past the projected end; no bake UI yet (breadsheet-ui#33). Doubled-slash URLs
   return 404 (breadsheet#77)
-- Skipping a step mid-bake (breadsheet#78) live since 2026-11-07; production Postgres is at migration `0008`
-- Product events and metrics (breadsheet#34) built; migration `0009` adds `events`. `flask --app main metrics`
-  prints the spec's usage metrics, read-only (point `DATABASE_URL` at production for one command to read it)
-- App Engine version `m2l` serves all traffic; `m2k` is the rollback target (it has no skip endpoint and
-  ignores `skipped_at`, so a mid-bake skip would read as a skip from the start until traffic moves back).
+- Skipping a step mid-bake (breadsheet#78) live since 2026-11-07
+- Product events and metrics (breadsheet#34) live since 2026-11-07; production Postgres is at migration
+  `0009`. `flask --app main metrics` prints the spec's usage metrics, read-only (point `DATABASE_URL` at
+  production for one command to read it)
+- App Engine version `m2m` serves all traffic; `m2l` is the rollback target (it records no events and has no
+  `POST /api/v2/events`, so the UI's export reports would 404 and be ignored).
   `py314` (the DynamoDB version) is kept until DynamoDB is retired
 
 ## Second Rise spec
