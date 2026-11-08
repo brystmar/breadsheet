@@ -92,10 +92,17 @@ A user is a username plus a secret key; whoever holds the key is that user. Ther
 
 **Signup**
 
-1. The user picks a username: unique, case-insensitive, display only.
+1. The user picks a username: unique, case-insensitive, display only. The form says whether it's available while they type (see Usernames).
 2. Breadsheet generates a 128-bit random key and shows it once as a copyable string, a QR code, and a link (`breadsheet.com/k#<key>`).
 3. The user must copy, download, or scan it before continuing. Copy states plainly that the key is the only way back in.
 4. The server sets a first-party session cookie so the browser stays signed in: `HttpOnly`, `Secure`, `SameSite=Lax`, one-year lifetime refreshed on use. Losing the cookie costs nothing if the key was saved.
+
+**Usernames.** 3 to 30 ASCII letters, digits, `_` or `-`, starting with a letter. ASCII only, so there are no look-alike characters from other alphabets. Rules apply to new signups; existing users keep their names.
+
+- **Uniqueness** ignores case and treats `-` and `_` as the same, so `bread_head` and `bread-head` can't both exist.
+- **Reserved names**, matched ignoring case, `-` and `_` (so `sign_in` and `t-berg` count): `admin`, `administrator`, `api`, `bread`, `breadsheet`, `prep`, `root`, `brystmar`, `thomas`, `tberg`; authority words (`mod`, `moderator`, `staff`, `support`, `help`, `official`, `team`, `system`, `security`, `owner`, `contact`); placeholders (`null`, `undefined`, `none`, `anonymous`, `deleted`, `guest`, `user`); and site words (`community`, `recipes`, `bakes`, `privacy`, `signin`, `register`, `profile`). **Reserved prefixes:** `test-` (test users, made only by the backend's `test-users` command; `test_` too), and `breadsheet` and `admin` (ignoring `-` and `_`, so `bread-sheet-team` counts).
+- **Word filter.** A short list kept in the repo, compared after lowercasing, dropping `-` and `_`, and undoing common digit swaps (0→o, 1→i, 3→e, 4→a, 5→s, 7→t). Slurs are refused anywhere in the name; milder words only as the whole name or a whole `-`/`_`-separated part, to avoid false positives like "Scunthorpe", "assessment", "peacock", or a dough "retarder". The message is a generic "That username isn't available," so the filter is hard to probe. Look-alike letters ("rn" vs "m") and large third-party word lists are out of scope.
+- **Availability check.** `GET /api/v2/usernames/<username>` runs exactly the same checks as signup and answers available or not, with signup's error code and message. The browser asks about one name at a time and never gets a list of usernames, hashed or otherwise (hashes of short, guessable names are easy to reverse). A per-IP rate limit blunts anyone guessing names; signup already reveals taken names through its 409, so the check exposes nothing new.
 
 **Other devices.** Opening the key link on any other browser signs that browser in and sets the same session cookie, exactly as signup does. The key never needs to be retyped.
 
@@ -106,7 +113,7 @@ A user is a username plus a secret key; whoever holds the key is that user. Ther
 - **Key hashing.** Keys are 128-bit random values from Python's `secrets` module, so they don't need a slow password hash like bcrypt or Argon2 (those exist to protect weak, human-chosen passwords). Store SHA-256 of the key (`hashlib`, standard library), look users up by that hash, and compare with `hmac.compare_digest`. Device tokens (256-bit) and panel tokens use the same scheme. The same practice is used for API tokens generally.
 - **Session cookies.** Signed with the server's `SECRET_KEY` (Flask's signed cookie, no sessions table). The cookie holds the user id and a short fingerprint of the key hash, so a future key reset would end every existing session. Signing out clears only that browser; a lost device stays signed in until its cookie expires, which is accepted, since a leaked key is the bigger risk and also has no recovery in v1. `SECRET_KEY` is different in every environment and is never in the repo.
 - **Pairing codes (M3).** 8 characters from Crockford base32 (no I, L, O, or U), shown as `XXXX-XXXX`. They expire after 10 minutes, work once, and each user has at most one live code; issuing a new one voids the old one.
-- **Rate limits.** Per client IP, returning HTTP 429 when exceeded: 10 failed key sign-ins per 15 minutes on `POST /session`, 5 signups per hour on `POST /users`, and (from M3) 5 failed pairing attempts per 15 minutes on `POST /devices`. Counters live in the same cache as idle polls.
+- **Rate limits.** Per client IP, returning HTTP 429 when exceeded: 10 failed key sign-ins per 15 minutes on `POST /session`, 5 signups per hour on `POST /users`, 60 username checks per minute on `GET /usernames/<username>`, and (from M3) 5 failed pairing attempts per 15 minutes on `POST /devices`. Counters live in the same cache as idle polls.
 - **CSRF.** `SameSite=Lax` cookies, the restricted CORS origin list, and requiring `Content-Type: application/json` on every state-changing request (which forces a CORS preflight) together cover it; no CSRF tokens needed.
 
 **Home Assistant (M3).** Breadsheet shows a short pairing code; the integration's config flow exchanges it for a separate device token tied to the user, carrying all four scopes. The master key never enters HA, and HA access can be revoked from breadsheet.
@@ -202,6 +209,7 @@ All new functionality lives under `/api/v2` on `api.breadsheet.com`. Each milest
 | Method and path | Purpose | Caller | Milestone |
 | --- | --- | --- | --- |
 | `POST /api/v2/users` | Create user; returns key once | Browser | M2 |
+| `GET /api/v2/usernames/<username>` | Whether a username is available, with signup's error code and message when it isn't | Browser | M2 |
 | `POST /api/v2/session` | Exchange key for session cookie | Browser | M2 |
 | `GET /api/v2/session` | Who am I: the signed-in user, or 401 | Browser | M2 |
 | `DELETE /api/v2/session` | Sign out this browser (clears the cookie) | Browser | M2 |
@@ -373,7 +381,7 @@ The current schedule table stays nearly untouched; new information goes into sep
   - **End the bake:** Cancel bake (red) on the left and Complete (green) on the right. Complete with steps left asks to confirm, with Keep baking on the left and Complete bake (green) on the right. Cancel asks to confirm too.
   - In-tab browser notifications while it's open. Keeps running from its last fetched schedule if breadsheet is unreachable; Done and Skip taps record their time, queue, and retry, showing "Saved, will sync" until confirmed.
 - **Active bake bar (M2):** under the header on every page except the bake view, so it follows the baker around. It shows the bake's name, the step in progress with a progress bar and its time run and left, and the next step with its length (`15m`, `2h30m`). Clicking it opens the bake view; its own "Done, start next" button checks off the next step without leaving the page.
-- **Identity flows:** pick username, save-your-key screen (copy, QR, link), and a profile page (`/profile`, opened from the username in the header) showing who's signed in, with a Devices section on using breadsheet elsewhere (M2); pair Home Assistant (pairing code) and a connections list of paired HA instances with revoke (M3). Revoking notes that it also disconnects any assistants using that Home Assistant.
+- **Identity flows:** pick username (with the rules as a live checklist and an availability check about half a second after typing stops and on blur: "Checking…", then "Available" or the server's reason; Register is disabled only once the answer is "not available," so a check still running never swallows a click and a failed check never blocks; signup has the final say), save-your-key screen (copy, QR, link), and a profile page (`/profile`, opened from the username in the header) showing who's signed in, with a Devices section on using breadsheet elsewhere (M2); pair Home Assistant (pairing code) and a connections list of paired HA instances with revoke (M3). Revoking notes that it also disconnects any assistants using that Home Assistant.
 - **Active bakes list (M2):** up to three, above the recipe list on the home page, each linking to its bake view.
 
 The plan, start bake, and bake views were mocked up at phone and desktop sizes before implementation ([breadsheet-ui#30](https://github.com/brystmar/breadsheet-ui/issues/30)); the choices above came from that review.
@@ -472,6 +480,8 @@ Second Rise breaks into seven epics across four milestones. Rows are in rough bu
 | [breadsheet-ui#34](https://github.com/brystmar/breadsheet-ui/issues/34) | In-tab browser notifications | UI | M2 |
 | [breadsheet-ui#35](https://github.com/brystmar/breadsheet-ui/issues/35) | Start bake alert options: plain Simple radio (default) with the ICS checkbox; sparkly Fancy radio, disabled with a "Coming soon!" tooltip | UI | M2 |
 | [breadsheet#34](https://github.com/brystmar/breadsheet/issues/34) | Product events table (including self-reported agent attribution), metrics queries, and privacy page | Metrics | M2 |
+| [breadsheet#83](https://github.com/brystmar/breadsheet/issues/83) | Username availability check endpoint and stricter username rules: `-`/`_` uniqueness, more reserved names and prefixes, a light word filter | Identity | M2 |
+| [breadsheet-ui#62](https://github.com/brystmar/breadsheet-ui/issues/62) | Live username availability on the registration page | UI | M2 |
 | [breadsheet#27](https://github.com/brystmar/breadsheet/issues/27) | Pairing codes, connections table (HA device tokens with scopes, all four issued at pairing), connections list, revoke, pairing rate limits | Identity | M3 |
 | [breadsheet-ui#29](https://github.com/brystmar/breadsheet-ui/issues/29) | Pair HA and connections list screens; revoke notes that it also disconnects assistants using that HA | Identity | M3 |
 | [breadsheet#33](https://github.com/brystmar/breadsheet/issues/33) | Idle-poll cache (using the memcache from [breadsheet#26](https://github.com/brystmar/breadsheet/issues/26)), suggested poll interval, and the `alert=fancy` filter | Recipes and bakes | M3 |
