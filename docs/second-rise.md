@@ -140,6 +140,7 @@ Nine Postgres tables replace every DynamoDB model (`Recipe`, `Step`, and `Replac
 | `bakes` | id, public\_suffix, user\_id, recipe\_id, name\_snapshot, anchor\_type (start or finish), anchor\_time, time\_zone (IANA, e.g. `America/Los_Angeles`), alert\_mode (simple or fancy), status, created\_via (web, ha, or agent), idempotency\_key (nullable, unique per user), started\_at, completed\_at, projected\_end, outcome (nullable: finished, canceled, or expired) | M2. Status: not\_started, in\_progress, completed. `outcome` is set when a bake completes. Stored status may lag; reads treat any bake more than an hour past `projected_end` as completed (expired) and write that back lazily. `recipe_id` becomes null if the recipe is deleted; the bake keeps its snapshot (`name_snapshot` and `bake_steps`). |
 | `bake_steps` | id, bake\_id, position, text\_snapshot, note\_snapshot, wait\_min, wait\_max, wait\_chosen, active\_seconds, needs\_presence, skipped, skipped\_at (nullable), scheduled\_at (null for skipped steps), completed\_at | M2. Snapshot of the recipe at bake start, so later recipe edits never change a running bake. The note travels with the step text, since it often says what to watch for mid-bake. `completed_at` is the client-supplied time the step was done. `skipped` marks steps before the one a bake started at, and steps skipped mid-bake; `skipped_at` is the client-supplied time of a mid-bake skip (null for steps skipped at start). |
 | `replacements` | id, scope, old, new | M1. Convert-text substitutions; unique on (scope, old), matching the DynamoDB hash and range keys. Migrated as is. |
+| `events` | id, type, occurred\_at, user\_id (nullable), recipe\_id (nullable), bake\_id (nullable), value (nullable integer), client (web, ha, or agent), agent\_name (nullable) | M2. Product events (see Usage metrics). `recipe_id` and `bake_id` are plain ids, not foreign keys, so events outlive deleted recipes and bakes; deleting a user sets `user_id` to null. `value` is a number some event types carry, such as how late a check-off was. |
 
 **Recipe detail levels.**
 
@@ -221,6 +222,7 @@ All new functionality lives under `/api/v2` on `api.breadsheet.com`. Each milest
 | `POST /api/v2/bakes/<id>/cancel` | End a bake without finishing it; outcome canceled | All | M2 |
 | `POST /api/v2/bakes/<id>/steps/<pos>/complete` | Check off a step at the client-supplied `completed_at`; idempotent, first write wins | All | M2 |
 | `POST /api/v2/bakes/<id>/steps/<pos>/skip` | Skip a step that isn't done, at the client-supplied `skipped_at`; idempotent, first write wins | All | M2 |
+| `POST /api/v2/events` | Record a product event that happens only in the browser, from an allow-list (M2: `ics_exported` for one of the caller's bakes) | Browser | M2 |
 | `POST /api/v2/admin/recipes` | Create a default recipe (admin key) | Admin | M2 |
 | `PUT/DELETE /api/v2/admin/recipes/<id>` | Edit or archive a default recipe (admin key); slug never changes | Admin | M2 |
 | `DELETE /api/v2/admin/recipes/<id>/publish` | Unpublish any community recipe (admin key) | Admin | M2 |
@@ -242,7 +244,7 @@ All new functionality lives under `/api/v2` on `api.breadsheet.com`. Each milest
 
 Each bake picks its alerts when it starts, with two radio options on the Start bake screen. A bake uses one mode at a time; the mode can be changed from the bake view.
 
-**Simple (M2, the default).** Selected by default, with a checkbox beside it: "Export calendar events as ICS". When checked, starting the bake downloads an `.ics` file, built in the browser from the schedule it already has. No server endpoint is involved.
+**Simple (M2, the default).** Selected by default, with a checkbox beside it: "Export calendar events as ICS". When checked, starting the bake downloads an `.ics` file, built in the browser from the schedule it already has. No server endpoint is involved in building it; the browser records each export as an `ics_exported` event for Usage metrics.
 
 - One event per step, titled with the bake and step (for example "Country Sourdough · Fold #2"), starting at the step's scheduled time, with a reminder at the start.
 - Each event lasts for the step's hands-on time (10 minutes when unknown), so a busy calendar shows when you're actually tied up.
@@ -401,7 +403,12 @@ GoatCounter site: `brystmar.goatcounter.com`. Add this to `index.html` in breads
 
 The script counts the initial page load only. Because React route changes don't reload the page, the router must also call `window.goatcounter.count()` on each navigation, guarded in case the script is blocked or hasn't loaded.
 
-**Product events (M2).** An `events` table: event type, timestamp, pseudonymous user id, and related recipe or bake id, plus client (web, HA, or agent, with the agent's self-reported name when known). No IP addresses, user agents, or free text. Much of it can also be derived from existing tables.
+**Product events (M2).** An `events` table: event type, timestamp, pseudonymous user id, and related recipe or bake id, plus client (web, HA, or agent, with the agent's self-reported name when known), and a number for event types that need one. No IP addresses, user agents, or free text. Much of it can also be derived from existing tables.
+
+- **Recorded by the server** as things happen, in the same transaction: signing up and in, creating, copying, publishing, unpublishing, and deleting recipes, starting and ending bakes, and checking off or skipping steps.
+- **On-time check-offs.** A check-off's `value` is how many seconds after the step's scheduled time it was tapped (negative when early), measured against the schedule just before the tap. Later re-projection moves `scheduled_at`, so this can't be worked out afterwards.
+- **Browser-only events.** ICS exports happen entirely in the browser, so the UI reports them with `POST /api/v2/events`, which takes only types on an allow-list (M2: `ics_exported`).
+- **Deletion.** Events keep their recipe and bake ids after those are deleted, so history like most-copied recipes survives. Deleting a user clears their id from their events.
 
 | Metric | Question it answers |
 | --- | --- |
