@@ -49,8 +49,9 @@ COMMUNITY_LIMIT = 200  # newest first; paging can be added later without breakin
 
 ## Loading and permissions ##
 
-def require_user() -> User:
-    user = current_user()
+def require_user(scope: str | None = None) -> User:
+    """The signed-in user, or 401. `scope` is what a device token needs here; None means browser-only."""
+    user = current_user(scope)
     if user is None:
         raise ApiError(401, 'not_signed_in', "Sign in to do that.")
     return user
@@ -353,7 +354,7 @@ def listed(query):
 @api_v2.get('/recipes')
 def list_recipes():
     """Defaults plus the caller's own personal recipes, as summaries; `q` and `category` filter it."""
-    user = current_user()
+    user = current_user('recipes:read')
     query = select(Recipe)
 
     visible = Recipe.owner_id.is_(None)
@@ -369,7 +370,7 @@ def list_recipes():
 @api_v2.post('/recipes')
 def create_recipe():
     """Create a personal recipe from scratch."""
-    user = require_user()
+    user = require_user('recipes:write')
     values = validated_recipe(json_body())
     check_prerequisites(values, user)
 
@@ -384,14 +385,14 @@ def create_recipe():
 
 @api_v2.get('/recipes/<recipe_id>')
 def get_recipe(recipe_id):
-    user = current_user()
+    user = current_user('recipes:read')
     return {'recipe': visible_recipe_or_404(recipe_id, user).to_v2_dict(user)}, 200
 
 
 @api_v2.put('/recipes/<recipe_id>')
 def update_recipe(recipe_id):
     """Replace a personal recipe (owner only). Renaming regenerates the slug; the suffix stays."""
-    user = require_user()
+    user = require_user('recipes:write')
     recipe = recipe_or_404(recipe_id)
     require_owner(recipe, user)
     values = validated_recipe(json_body())
@@ -411,7 +412,7 @@ def update_recipe(recipe_id):
 @api_v2.delete('/recipes/<recipe_id>')
 def delete_recipe(recipe_id):
     """Delete a personal recipe (owner only). Copies made from it keep working."""
-    user = require_user()
+    user = require_user('recipes:write')
     recipe = recipe_or_404(recipe_id)
     require_owner(recipe, user)
     events.record(events.RECIPE_DELETED, user, recipe_id=recipe.id)
@@ -424,7 +425,7 @@ def delete_recipe(recipe_id):
 @api_v2.post('/recipes/<recipe_id>/copy')
 def copy_recipe(recipe_id):
     """Copy any visible recipe into a new, fully independent personal recipe ("Make it mine")."""
-    user = require_user()
+    user = require_user('recipes:write')
     source = visible_recipe_or_404(recipe_id, user)
 
     copy = new_personal_recipe(user, source.name)
@@ -443,7 +444,7 @@ def recipe_by_slug(slug):
     recipe = db.session.scalar(select(Recipe).where(Recipe.owner_id.is_(None), Recipe.slug == slug))
     if recipe is None:
         raise ApiError(404, 'not_found', "That recipe doesn't exist.")
-    return {'recipe': recipe.to_v2_dict(current_user())}, 200
+    return {'recipe': recipe.to_v2_dict(current_user('recipes:read'))}, 200
 
 
 @api_v2.get('/recipes/by-suffix/<suffix>')
@@ -452,7 +453,7 @@ def recipe_by_suffix(suffix):
     recipe = None
     if is_public_suffix(suffix):
         recipe = db.session.scalar(select(Recipe).where(Recipe.public_suffix == suffix))
-    user = current_user()
+    user = current_user('recipes:read')
     if recipe is None or (recipe.is_draft and (user is None or recipe.owner_id != user.id)):
         raise ApiError(404, 'not_found', "That recipe doesn't exist.")
     return {'recipe': recipe.to_v2_dict(user)}, 200
@@ -463,7 +464,7 @@ def recipe_by_suffix(suffix):
 @api_v2.post('/recipes/<recipe_id>/publish')
 def publish_recipe(recipe_id):
     """Publish a personal recipe to the community library (owner only). It must pass validation as it stands."""
-    user = require_user()
+    user = require_user('recipes:write')
     recipe = recipe_or_404(recipe_id)
     require_owner(recipe, user)
     if recipe.is_draft:
@@ -481,7 +482,7 @@ def publish_recipe(recipe_id):
 @api_v2.delete('/recipes/<recipe_id>/publish')
 def unpublish_recipe(recipe_id):
     """Take a recipe out of the community library (owner only). Copies people made are unaffected."""
-    user = require_user()
+    user = require_user('recipes:write')
     recipe = recipe_or_404(recipe_id)
     require_owner(recipe, user)
 
@@ -498,5 +499,5 @@ def community_recipes():
     """Published recipes for everyone, newest first, as summaries with the publisher's username; `q` and `category` filter it."""
     query = listed(select(Recipe).where(Recipe.published_at.is_not(None)))
     query = query.order_by(Recipe.published_at.desc(), Recipe.id).limit(COMMUNITY_LIMIT)
-    user = current_user()
+    user = current_user('recipes:read')
     return {'recipes': [recipe.to_v2_summary(user) for recipe in db.session.scalars(query)]}, 200

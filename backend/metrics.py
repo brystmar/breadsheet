@@ -49,9 +49,14 @@ METRICS = [
                                               WHERE e.type = 'ics_exported' AND e.bake_id = b.id)) AS exported
         FROM bakes b WHERE {real('b.user_id')} GROUP BY 1 ORDER BY 1"""),
 
-    ('bakes_with_ha', "Is the integration the reason people come back? (M3: HA pairing)", f"""
-        SELECT count(*) FILTER (WHERE alert_mode = 'fancy') AS fancy_bakes, count(*) AS bakes
-        FROM bakes WHERE {real('user_id')}"""),
+    ('bakes_with_ha', "Is the integration the reason people come back? (bakes started while HA was paired)", f"""
+        SELECT count(*) FILTER (WHERE EXISTS (
+                   SELECT 1 FROM connections c
+                   WHERE c.user_id = b.user_id AND c.created_at <= b.started_at
+                     AND (c.revoked_at IS NULL OR c.revoked_at > b.started_at))) AS with_ha_paired,
+               count(*) FILTER (WHERE b.alert_mode = 'fancy') AS fancy_bakes,
+               count(*) AS bakes
+        FROM bakes b WHERE {real('b.user_id')}"""),
 
     ('community', "Is the community library pulling its weight?", f"""
         SELECT (SELECT count(*) FROM recipes WHERE published_at IS NOT NULL AND {real('owner_id')}) AS published_now,

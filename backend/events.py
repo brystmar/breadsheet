@@ -6,7 +6,7 @@ Pseudonymous by design: a user id, never an IP address, user agent, or free text
 import re
 from backend.database import db
 from backend.models import Event
-from flask import has_request_context, request
+from flask import g, has_request_context, request
 
 # What the server records as it happens
 USER_REGISTERED = 'user_registered'
@@ -38,11 +38,13 @@ def agent_name(value: str | None) -> str | None:
 
 
 def request_client() -> tuple[str, str | None]:
-    """Who made this request: ('agent', name) for agent tool calls (X-Breadsheet-Via: agent), else ('web', None).
-    HA device tokens (M3) will report 'ha'."""
-    if has_request_context() and request.headers.get('X-Breadsheet-Via', '').strip().lower() == 'agent':
+    """Who made this request: ('agent', name) for agent tool calls (X-Breadsheet-Via: agent), ('ha', None) for
+    other calls with a Home Assistant device token, else ('web', None)."""
+    if not has_request_context():
+        return 'web', None
+    if request.headers.get('X-Breadsheet-Via', '').strip().lower() == 'agent':
         return 'agent', agent_name(request.headers.get('X-Breadsheet-Agent'))
-    return 'web', None
+    return ('ha', None) if g.get('connection') is not None else ('web', None)
 
 
 def record(event_type: str, user=None, recipe_id=None, bake_id=None, value: int | None = None) -> Event:

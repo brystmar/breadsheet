@@ -19,6 +19,7 @@ SIGN_IN_FAILURES = Limit('sign_in_failures', 10, 15 * 60)
 SIGNUPS = Limit('signups', 5, 60 * 60)
 USERNAME_CHECKS = Limit('username_checks', 60, 60)
 ADMIN_FAILURES = Limit('admin_failures', 10, 15 * 60)
+PAIRING_FAILURES = Limit('pairing_failures', 5, 15 * 60)
 
 
 def client_ip() -> str:

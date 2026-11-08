@@ -236,6 +236,21 @@ projected end; every read calls it and saves the change (no scheduled job).
 Routes record events with `events.record()` inside their own transaction, only when something changed (a
 first-write-wins repeat records nothing). No IP addresses, user agents, or free text.
 
+### `Connection` and `PairingCode` (tables `connections`, `pairing_codes`, M3, breadsheet#27)
+| Column | Type | Notes |
+|---|---|---|
+| `connections.user_id`, `label` | uuid, text | FK to `users` (cascade); the label HA sent at pairing, or "Home Assistant" |
+| `connections.scopes` | text[] | All four at pairing: `recipes:read`, `recipes:write`, `bakes:read`, `bakes:write` |
+| `connections.token_hash` | bytea(32) | SHA-256 of the 256-bit device token, unique; the token is shown once |
+| `connections.created_at`, `last_used_at`, `revoked_at` | timestamptz | `last_used_at` written at most daily; revoked tokens stop working at once |
+| `pairing_codes.code_hash` | bytea(32) | Primary key: SHA-256 of the normalized code (8 Crockford base32 characters, shown `XXXX-XXXX`) |
+| `pairing_codes.user_id`, `expires_at`, `used_at` | uuid, timestamptz | Ten minutes, single use; issuing a new code deletes the user's unused ones |
+
+Device tokens (`backend/devices.py`): `current_user(scope)` accepts `Authorization: Bearer <token>`, which wins
+over the session cookie, and refuses it (403 `scope_missing`) when the token lacks `scope` or the route passes no
+scope (browser-only: session, pairing, connections, events). Unknown or revoked tokens are 401 `token_invalid`.
+Calls with a token count as client `ha` (bakes get `created_via: ha`; events get `client: ha`).
+
 ## API Endpoints
 ### v1
 **v1 only ever sees default recipes** (`owner_id IS NULL`): personal recipes never appear in the list and 404 by id. **v1 recipes are read-only** (breadsheet#28): `POST`/`PUT`/`DELETE` return 405, and defaults are managed with the admin key.
@@ -287,6 +302,10 @@ Changes from the DynamoDB version: GET requests never write, and recipe writes a
 | `POST /api/v2/bakes/<id>/steps/<position>/complete` | Check off with `completed_at`: not over five minutes ahead or before the bake started (400 `completed_at_invalid`); first write wins; re-projects later steps |
 | `POST /api/v2/bakes/<id>/steps/<position>/skip` | Skip a step that isn't done, with `skipped_at` (same rules; 400 `skipped_at_invalid`); first write wins; its wait drops out and later steps re-project; skipping the last steps left finishes the bake |
 | `POST /api/v2/events` | Record a browser-only event from the allow-list (`ics_exported` with one of the caller's `bake_id`s); 204. Other types → 400 `event_type_invalid` |
+| `POST /api/v2/pairing-codes` | Browser session: a new HA pairing code `{code, expires_at}` (201); voids the user's unused codes |
+| `POST /api/v2/devices` | HA's config flow: `{code, label?}` → 201 `{token, connection}`. Bad, used, or expired codes → 400 `pairing_code_invalid`; 5 failures per 15 minutes per IP → 429 |
+| `GET /api/v2/connections` | Browser session: the user's live connections, newest first |
+| `DELETE /api/v2/connections/<id>` | Browser session: revoke (204); unknown, someone else's, or already revoked → 404 |
 
 Bake errors: drafts → 409 `recipe_is_draft`; no steps → 400 `recipe_has_no_steps`; a 4th active bake →
 409 `bake_limit_reached`; a wait outside 0–30 days → 400 `wait_out_of_range`; a schedule already over →

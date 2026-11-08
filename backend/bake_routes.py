@@ -175,7 +175,7 @@ def refuse_if_completed(bake: Bake):
 @api_v2.post('/bakes')
 def start_bake():
     """Start a bake from any recipe the user can see. A repeated Idempotency-Key returns the original bake."""
-    user = require_user()
+    user = require_user('bakes:write')
 
     key = request.headers.get('Idempotency-Key')
     if key is not None:
@@ -216,7 +216,7 @@ def start_bake():
 
     bake = Bake(user_id=user.id, recipe_id=recipe.id, name_snapshot=recipe.name,
                 public_suffix=new_public_suffix(db.session, Bake), anchor_type=anchor_type, anchor_time=anchor_time,
-                time_zone=time_zone, alert_mode=alert_mode, status='not_started', created_via='web',
+                time_zone=time_zone, alert_mode=alert_mode, status='not_started', created_via=events.request_client()[0],
                 idempotency_key=key, started_at=utc_now())
     bake.steps = [BakeStep(position=step.position, text_snapshot=step.text, note_snapshot=step.note or None,
                            wait_min=step.wait_min, wait_max=step.wait_max,
@@ -248,7 +248,7 @@ def start_bake():
 @api_v2.get('/bakes')
 def list_bakes():
     """The caller's active bakes (default), or their newest completed ones (`status=completed`), with schedules."""
-    user = require_user()
+    user = require_user('bakes:read')
     status = request.args.get('status', 'active')
     if status not in ('active', 'completed'):
         raise ApiError(400, 'status_invalid', "Pick a status: active or completed.")
@@ -265,13 +265,13 @@ def list_bakes():
 
 @api_v2.get('/bakes/<bake_id>')
 def get_bake(bake_id):
-    return respond(refreshed([owned_bake_or_404(bake_id, require_user())])[0])
+    return respond(refreshed([owned_bake_or_404(bake_id, require_user('bakes:read'))])[0])
 
 
 @api_v2.get('/bakes/by-suffix/<suffix>')
 def bake_by_suffix(suffix):
     """Resolve a bake URL (/bakes/<suffix>) for its owner, with the bake's internal id."""
-    user = require_user()
+    user = require_user('bakes:read')
     bake = db.session.scalar(select(Bake).where(Bake.public_suffix == suffix, Bake.user_id == user.id)) \
         if is_public_suffix(suffix) else None
     if bake is None:
@@ -282,7 +282,7 @@ def bake_by_suffix(suffix):
 @api_v2.patch('/bakes/<bake_id>')
 def update_bake(bake_id):
     """Change the anchor (before the first check-off), chosen waits, or alert mode; re-projects the schedule."""
-    user = require_user()
+    user = require_user('bakes:write')
     bake = owned_bake_or_404(bake_id, user, lock=True)
     bake.refresh_status(utc_now())
     refuse_if_completed(bake)
@@ -321,7 +321,7 @@ def finish_bake(bake_id):
     `completed_at` (default now), taking the baker's word for it. Outcome: finished. Repeating changes
     nothing; a canceled or expired bake can't be finished.
     """
-    user = require_user()
+    user = require_user('bakes:write')
     bake = owned_bake_or_404(bake_id, user, lock=True)
     now = utc_now()
     bake.refresh_status(now)
@@ -346,7 +346,7 @@ def finish_bake(bake_id):
 def cancel_bake(bake_id):
     """End a bake without finishing it: steps not yet done stay unchecked. Outcome: canceled. Repeating, or
     canceling a bake that's already completed, changes nothing."""
-    user = require_user()
+    user = require_user('bakes:write')
     bake = owned_bake_or_404(bake_id, user, lock=True)
     now = utc_now()
     bake.refresh_status(now)
@@ -365,7 +365,7 @@ def complete_step(bake_id, position):
     skipped step) returns the bake unchanged. Early and out-of-order check-offs are fine; every later step
     re-projects.
     """
-    user = require_user()
+    user = require_user('bakes:write')
     bake = owned_bake_or_404(bake_id, user, lock=True)
     step = next((s for s in bake.steps if s.position == position), None)
     if step is None:
@@ -396,7 +396,7 @@ def skip_step(bake_id, position):
     later step re-projects. The first write wins: skipping a step that's already checked off or skipped
     returns the bake unchanged. Skipping the last steps left finishes the bake.
     """
-    user = require_user()
+    user = require_user('bakes:write')
     bake = owned_bake_or_404(bake_id, user, lock=True)
     step = next((s for s in bake.steps if s.position == position), None)
     if step is None:
