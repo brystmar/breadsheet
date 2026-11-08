@@ -195,6 +195,8 @@ Bakes run for twelve hours or more, so a running bake will eventually overlap a 
 
 ## API v2
 
+The frozen contract, with every shipped endpoint's request, response, and error codes, is [`docs/api-v2.md`](api-v2.md) ([breadsheet#32](https://github.com/brystmar/breadsheet/issues/32)).
+
 All new functionality lives under `/api/v2` on `api.breadsheet.com`. Each milestone adds its endpoints without changing ones already shipped; what HA needs is frozen before `breadsheet-hass` ships, and what agent tools need before M4 ships. v1 keeps its exact request and response shapes, reimplemented on Postgres. Browser calls authenticate with the session cookie; HA calls send the device token as a bearer header, and each endpoint checks the token's scopes. Agent tool calls arrive from HA with the same device token, marked with `X-Breadsheet-Via: agent` and, when known, `X-Breadsheet-Agent: <name>`. Paths use internal ids (`<id>`), never the public URL suffixes or slugs, which exist only for user-facing URLs. "All" in the Caller column means browser and HA, as each arrives.
 
 | Method and path | Purpose | Caller | Milestone |
