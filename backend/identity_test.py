@@ -33,6 +33,29 @@ def test_invalid_usernames(username):
     assert 'letters, numbers' in username_problem(username)
 
 
-@mark.parametrize('username', sorted(RESERVED_USERNAMES) + ['ADMIN', 'Breadsheet', 'TBerg', 'test-dev-01', 'Test-Prod-01', 'test-me'])
+@mark.parametrize('username', sorted(RESERVED_USERNAMES) + [
+    'ADMIN', 'Breadsheet', 'TBerg', 'test-dev-01', 'Test-Prod-01', 'test-me', 'test_me',
+    # Separators don't help (breadsheet#83)
+    'sign_in', 'Sign-In', 'T-Berg', 'bry_st_mar', 'Admin_Kitchen', 'administrator9', 'breadsheet-team', 'Bread_Sheet_Official'])
 def test_reserved_usernames(username):
     assert 'reserved' in username_problem(username)
+
+
+# breadsheet#83
+@mark.parametrize('username', ['tester', 'testy-baker', 'my-test', 'adam', 'bready', 'teamwork', 'helper', 'Thomas_B',
+                               'madmin', 'contactless'])
+def test_near_misses_are_fine(username):
+    assert username_problem(username) is None
+
+
+@mark.parametrize('username', ['fuckbread', 'f-u-c-k', 'Sh1tLoaf', 'BIGBITCH', 'ass', 'Ass_Baker', 'baker-asses',
+                               'crusty-d1ck', 'hell', 'retard', 'cum-bread', 'spic'])
+def test_the_word_filter(username):
+    assert username_problem(username) == "That username isn't available. Please pick another."
+
+
+@mark.parametrize('username', ['Scunthorpe_x', 'assessment', 'Peacock', 'hello', 'analysis', 'spicebread',
+                               'dough-retarder', 'Dickens', 'cucumber', 'Sussex', 'grapes', 'shellfish', 'cocktail',
+                               'raccoon', 'Hancock', 'title', 'classy', 'bass-baker', 'Pakistani', 'fagioli'])
+def test_the_word_filter_leaves_innocent_names_alone(username):
+    assert username_problem(username) is None

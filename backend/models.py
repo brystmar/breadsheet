@@ -452,7 +452,13 @@ class User(UuidPrimaryKey, db.Model):
 
 
 # Usernames are unique regardless of case ("Thomas" and "thomas" can't both exist)
-Index('uq_users_username_lower', func.lower(User.username), unique=True)
+# Unique ignoring case, with `-` and `_` treated as the same (breadsheet#83); see normalized_username()
+Index('uq_users_username_normalized', func.replace(func.lower(User.username), '-', '_'), unique=True)
+
+
+def normalized_username(username: str) -> str:
+    """How usernames are compared: lowercase, with `-` as `_`, so bread-head and Bread_Head are the same name."""
+    return username.lower().replace('-', '_')
 
 
 class Bake(UuidPrimaryKey, db.Model):

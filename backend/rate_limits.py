@@ -17,6 +17,7 @@ class Limit:
 # From the spec's Identity and ownership: Security
 SIGN_IN_FAILURES = Limit('sign_in_failures', 10, 15 * 60)
 SIGNUPS = Limit('signups', 5, 60 * 60)
+USERNAME_CHECKS = Limit('username_checks', 60, 60)
 ADMIN_FAILURES = Limit('admin_failures', 10, 15 * 60)
 
 

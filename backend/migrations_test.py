@@ -3,6 +3,7 @@ from alembic.autogenerate import compare_metadata
 from alembic.migration import MigrationContext
 from backend.database import db
 from flask_migrate import downgrade, upgrade
+from pytest import raises
 from sqlalchemy import text
 
 
@@ -104,3 +105,31 @@ def test_migrations_match_the_models(app, database):
         context = MigrationContext.configure(connection, opts={'compare_type': True})
         differences = compare_metadata(context, db.metadata)
     assert differences == [], "The models and migrations differ; add a migration (flask db migrate)"
+
+
+def test_0010_stops_when_existing_usernames_would_collide(app, database, capfd):
+    """breadsheet#83: `-` and `_` count as the same, so existing look-alikes must be renamed first."""
+    with app.app_context():
+        db.session.execute(text("TRUNCATE recipes, recipe_steps, replacements, users CASCADE"))
+        db.session.commit()
+        downgrade(revision='0009')
+        try:
+            db.session.execute(text("""
+                INSERT INTO users (username, key_hash) VALUES
+                    ('bread-head', '\\x01'), ('Bread_Head', '\\x02'), ('loner', '\\x03')
+            """))
+            db.session.commit()
+            with raises(SystemExit):  # flask-migrate logs the RuntimeError and exits
+                upgrade(revision='0010')
+            assert 'bread-head, Bread_Head' in capfd.readouterr().err
+            assert db.session.scalar(text("SELECT version_num FROM alembic_version")) == '0009'
+            db.session.rollback()
+
+            db.session.execute(text("UPDATE users SET username = 'bread-head-2' WHERE username = 'Bread_Head'"))
+            db.session.commit()
+            upgrade(revision='0010')
+        finally:
+            db.session.rollback()
+            db.session.execute(text("TRUNCATE recipes, recipe_steps, replacements, users CASCADE"))
+            db.session.commit()
+            upgrade()
