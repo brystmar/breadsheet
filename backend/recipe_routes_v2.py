@@ -18,6 +18,7 @@ publishing to the community library (breadsheet#58).
 - Writes need a signed-in browser.
 """
 import logging
+from backend import events
 from backend.api_v2 import ApiError, api_v2, json_body
 from backend.database import db
 from backend.identity import current_user
@@ -375,6 +376,7 @@ def create_recipe():
     recipe = new_personal_recipe(user, values['name'])
     apply_recipe(recipe, values)
     db.session.add(recipe)
+    events.record(events.RECIPE_CREATED, user, recipe_id=recipe.id)
     db.session.commit()
     logger.info("User %s created recipe %s", user.id, recipe.id)
     return {'recipe': recipe.to_v2_dict(user)}, 201
@@ -412,6 +414,7 @@ def delete_recipe(recipe_id):
     user = require_user()
     recipe = recipe_or_404(recipe_id)
     require_owner(recipe, user)
+    events.record(events.RECIPE_DELETED, user, recipe_id=recipe.id)
     db.session.delete(recipe)
     db.session.commit()
     logger.info("User %s deleted recipe %s", user.id, recipe_id)
@@ -428,6 +431,7 @@ def copy_recipe(recipe_id):
     copy.source_recipe_id = source.id
     apply_recipe(copy, recipe_body(source))
     db.session.add(copy)
+    events.record(events.RECIPE_COPIED, user, recipe_id=source.id)
     db.session.commit()
     logger.info("User %s copied recipe %s to %s", user.id, source.id, copy.id)
     return {'recipe': copy.to_v2_dict(user)}, 201
@@ -468,6 +472,7 @@ def publish_recipe(recipe_id):
 
     if recipe.published_at is None:
         recipe.published_at = utc_now()
+        events.record(events.RECIPE_PUBLISHED, user, recipe_id=recipe.id)
         db.session.commit()
         logger.info("User %s published recipe %s", user.id, recipe.id)
     return {'recipe': recipe.to_v2_dict(user)}, 200
@@ -482,6 +487,7 @@ def unpublish_recipe(recipe_id):
 
     if recipe.published_at is not None:
         recipe.published_at = None
+        events.record(events.RECIPE_UNPUBLISHED, user, recipe_id=recipe.id)
         db.session.commit()
         logger.info("User %s unpublished recipe %s", user.id, recipe.id)
     return '', 204

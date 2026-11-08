@@ -14,6 +14,7 @@ v2 bakes (breadsheet#31): start (optionally partway through), read, change, chec
 - Writes lock the bake's row, so simultaneous check-offs can't race.
 """
 import logging
+from backend import events
 from backend.api_v2 import ApiError, api_v2, json_body
 from backend.database import db
 from backend.models import Bake, BakeStep, User, utc_now
@@ -228,6 +229,7 @@ def start_bake():
     bake.refresh_status(bake.started_at)  # starting partway through is already in progress
 
     db.session.add(bake)
+    events.record(events.BAKE_STARTED, user, recipe_id=recipe.id, bake_id=bake.id)
     try:
         db.session.commit()
     except IntegrityError:
@@ -334,6 +336,7 @@ def finish_bake(bake_id):
             step.completed_at = completed_at
     bake.project()
     bake.end('finished', completed_at)
+    events.record(events.BAKE_COMPLETED, user, recipe_id=bake.recipe_id, bake_id=bake.id)
     db.session.commit()
     logger.info("User %s completed bake %s", user.id, bake.id)
     return respond(bake)
@@ -349,6 +352,7 @@ def cancel_bake(bake_id):
     bake.refresh_status(now)
     if bake.status != 'completed':
         bake.end('canceled', now)
+        events.record(events.BAKE_CANCELED, user, recipe_id=bake.recipe_id, bake_id=bake.id)
         logger.info("User %s canceled bake %s", user.id, bake.id)
     db.session.commit()
     return respond(bake)
@@ -375,6 +379,9 @@ def complete_step(bake_id, position):
     refuse_if_completed(bake)
 
     step.completed_at = checked_moment(json_body().get('completed_at'), bake, now)
+    # Lateness against the schedule as it stood before this tap; re-projection moves it afterwards
+    events.record(events.STEP_COMPLETED, user, recipe_id=bake.recipe_id, bake_id=bake.id,
+                  value=events.seconds_late(step.scheduled_at, step.completed_at))
     bake.project()
     bake.refresh_status(now)
     db.session.commit()
@@ -404,6 +411,7 @@ def skip_step(bake_id, position):
 
     step.skipped = True
     step.skipped_at = checked_moment(json_body().get('skipped_at'), bake, now, field='skipped_at', done='skipped')
+    events.record(events.STEP_SKIPPED, user, recipe_id=bake.recipe_id, bake_id=bake.id)
     bake.project()
     bake.refresh_status(now)
     db.session.commit()

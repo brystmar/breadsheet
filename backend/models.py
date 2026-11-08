@@ -646,3 +646,32 @@ class BakeStep(UuidPrimaryKey, db.Model):
             "completed_at":       iso(self.completed_at),
             "completed_at_local": iso(self.completed_at, zone)
         }
+
+
+class Event(UuidPrimaryKey, db.Model):
+    """
+    A product event for usage metrics (breadsheet#34; spec: Usage metrics). Pseudonymous: a user id, never
+    an IP address, user agent, or free text. `recipe_id` and `bake_id` are plain ids, not foreign keys, so
+    events outlive deleted recipes and bakes; deleting a user clears `user_id`. `value` is a number some
+    types carry, such as how many seconds late a check-off was.
+    """
+    __tablename__ = 'events'
+    __table_args__ = (
+        CheckConstraint("client IN ('web', 'ha', 'agent')", name="event_client_valid"),
+        Index('ix_events_type_occurred_at', 'type', 'occurred_at'),
+    )
+
+    type: Mapped[str] = mapped_column(Text)
+    occurred_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, server_default=func.now())
+    user_id: Mapped[UUID | None] = mapped_column(ForeignKey('users.id', ondelete='SET NULL'), index=True)
+    # Lets an event be recorded alongside a brand-new user (signup) and saved after it
+    user: Mapped[User | None] = relationship()
+    recipe_id: Mapped[UUID | None] = mapped_column(Uuid)
+    bake_id: Mapped[UUID | None] = mapped_column(Uuid)
+    value: Mapped[int | None] = mapped_column()
+    client: Mapped[str] = mapped_column(Text, default='web', server_default='web')
+    # The agent's self-reported name (X-Breadsheet-Agent), when an agent made the call
+    agent_name: Mapped[str | None] = mapped_column(Text)
+
+    def __repr__(self) -> str:
+        return f'<Event | {self.type} at {self.occurred_at}>'
