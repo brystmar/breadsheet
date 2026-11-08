@@ -90,6 +90,13 @@ class TestObjects:
         assert set(create(baker, {"steps": [{}]}).json) == documented
 
 
+class TestConnectionObject:
+    def test_connection(self, app, baker):
+        code = baker.post('/api/v2/pairing-codes', json={}).json['code']
+        connection = app.test_client().post('/api/v2/devices', json={'code': code}).json['connection']
+        assert set(connection) == documented_fields('connection')
+
+
 class TestErrorsAreAlwaysJson:
     def test_an_unexpected_error_is_a_json_500(self, client, monkeypatch):
         def broken(*args, **kwargs):

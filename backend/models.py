@@ -3,6 +3,7 @@ from backend.database import db
 from datetime import datetime, timedelta, timezone
 from sqlalchemy import CheckConstraint, DateTime, ForeignKey, Index, LargeBinary, Text, UniqueConstraint, Uuid, func
 from sqlalchemy import text as sql_text  # aliased: RecipeStep has a `text` column
+from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from uuid import UUID, uuid7
 from zoneinfo import ZoneInfo
@@ -681,3 +682,50 @@ class Event(UuidPrimaryKey, db.Model):
 
     def __repr__(self) -> str:
         return f'<Event | {self.type} at {self.occurred_at}>'
+
+
+class Connection(UuidPrimaryKey, db.Model):
+    """
+    A paired Home Assistant instance (breadsheet#27): a device token tied to a user, with scopes. Only the
+    token's SHA-256 is stored. Tokens don't expire; revoking sets `revoked_at`, which also cuts off every
+    agent calling through that HA (M4).
+    """
+    __tablename__ = 'connections'
+
+    user_id: Mapped[UUID] = mapped_column(ForeignKey('users.id', ondelete='CASCADE'), index=True)
+    user: Mapped[User] = relationship()
+    # What the user sees in their connections list, e.g. the HA instance's name
+    label: Mapped[str] = mapped_column(Text)
+    # Every pairing grants all four (spec: Decisions, Device token scopes)
+    scopes: Mapped[list[str]] = mapped_column(ARRAY(Text))
+    token_hash: Mapped[bytes] = mapped_column(LargeBinary(32), unique=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, server_default=func.now())
+    # Refreshed at most daily while the token is used
+    last_used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    def to_v2_dict(self) -> dict:
+        return {
+            "id":           str(self.id),
+            "label":        self.label,
+            "scopes":       list(self.scopes),
+            "created_at":   iso(self.created_at),
+            "last_used_at": iso(self.last_used_at)
+        }
+
+    def __repr__(self) -> str:
+        return f'<Connection | id: {self.id}, user: {self.user_id}, revoked: {self.revoked_at is not None}>'
+
+
+class PairingCode(db.Model):
+    """
+    A short-lived code for pairing Home Assistant (breadsheet#27): 8 Crockford base32 characters, shown as
+    XXXX-XXXX. Ten minutes, single use, one live code per user. Only its SHA-256 is stored.
+    """
+    __tablename__ = 'pairing_codes'
+
+    code_hash: Mapped[bytes] = mapped_column(LargeBinary(32), primary_key=True)
+    user_id: Mapped[UUID] = mapped_column(ForeignKey('users.id', ondelete='CASCADE'), index=True)
+    user: Mapped[User] = relationship()
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
