@@ -221,6 +221,19 @@ projected end; every read calls it and saves the change (no scheduled job).
 | `key_hash` | bytea(32) | SHA-256 of the user's key, unique; the key itself is never stored |
 | `created_at`, `last_seen_at` | timestamptz | `last_seen_at` is written at most once a day |
 
+### `Event` (table `events`, M2, breadsheet#34)
+| Column | Type | Notes |
+|---|---|---|
+| `type` | text | See `backend/events.py`: signup and sign-in, recipe create/copy/publish/unpublish/delete, bake start/complete/cancel, step check-off and skip, and browser-only `ics_exported` |
+| `occurred_at` | timestamptz | Indexed with `type` |
+| `user_id` | uuid | FK to `users`, `ON DELETE SET NULL` |
+| `recipe_id`, `bake_id` | uuid | Plain ids, not foreign keys, so events outlive deleted recipes and bakes. A copy records the recipe that was copied |
+| `value` | integer | `step_completed`: seconds after the step's scheduled time (negative when early), measured before re-projection |
+| `client`, `agent_name` | text | `web`, `ha`, or `agent` (from `X-Breadsheet-Via: agent`); the agent's self-reported name, cleaned to a 40-character label |
+
+Routes record events with `events.record()` inside their own transaction, only when something changed (a
+first-write-wins repeat records nothing). No IP addresses, user agents, or free text.
+
 ## API Endpoints
 ### v1
 **v1 only ever sees default recipes** (`owner_id IS NULL`): personal recipes never appear in the list and 404 by id. **v1 recipes are read-only** (breadsheet#28): `POST`/`PUT`/`DELETE` return 405, and defaults are managed with the admin key.
@@ -271,6 +284,7 @@ Changes from the DynamoDB version: GET requests never write, and recipe writes a
 | `POST /api/v2/bakes/<id>/cancel` | End it without finishing; unchecked steps stay unchecked; outcome `canceled`. Repeating changes nothing |
 | `POST /api/v2/bakes/<id>/steps/<position>/complete` | Check off with `completed_at`: not over five minutes ahead or before the bake started (400 `completed_at_invalid`); first write wins; re-projects later steps |
 | `POST /api/v2/bakes/<id>/steps/<position>/skip` | Skip a step that isn't done, with `skipped_at` (same rules; 400 `skipped_at_invalid`); first write wins; its wait drops out and later steps re-project; skipping the last steps left finishes the bake |
+| `POST /api/v2/events` | Record a browser-only event from the allow-list (`ics_exported` with one of the caller's `bake_id`s); 204. Other types → 400 `event_type_invalid` |
 
 Bake errors: drafts → 409 `recipe_is_draft`; no steps → 400 `recipe_has_no_steps`; a 4th active bake →
 409 `bake_limit_reached`; a wait outside 0–30 days → 400 `wait_out_of_range`; a schedule already over →
@@ -517,6 +531,8 @@ docker compose up -d breadsheet-db   # local Postgres 18 on port 5433 (data in t
   cancel, expiry an hour past the projected end; no bake UI yet (breadsheet-ui#33). Doubled-slash URLs
   return 404 (breadsheet#77)
 - Skipping a step mid-bake (breadsheet#78) live since 2026-11-07; production Postgres is at migration `0008`
+- Product events and metrics (breadsheet#34) built; migration `0009` adds `events`. `flask --app main metrics`
+  prints the spec's usage metrics, read-only (point `DATABASE_URL` at production for one command to read it)
 - App Engine version `m2l` serves all traffic; `m2k` is the rollback target (it has no skip endpoint and
   ignores `skipped_at`, so a mid-bake skip would read as a skip from the start until traffic moves back).
   `py314` (the DynamoDB version) is kept until DynamoDB is retired

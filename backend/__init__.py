@@ -34,6 +34,10 @@ def create_app(config_class=Config):
 
     register_endpoints(Api(breadapp))
     register_v2(breadapp)
+
+    # `flask --app main metrics` prints the usage metrics (breadsheet#34)
+    from backend.metrics import metrics_command
+    breadapp.cli.add_command(metrics_command)
     logger.debug("App created")
 
     return breadapp
@@ -62,6 +66,7 @@ def register_v2(app: Flask):
     import backend.recipe_routes_v2  # noqa: F401
     import backend.admin_routes  # noqa: F401
     import backend.bake_routes  # noqa: F401
+    import backend.event_routes  # noqa: F401
 
     app.register_blueprint(api_v2)
     register_v2_http_errors(app)

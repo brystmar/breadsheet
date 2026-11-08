@@ -1,6 +1,6 @@
 """Signup and browser sessions: /api/v2/users and /api/v2/session (breadsheet#26)."""
 import logging
-from backend import rate_limits
+from backend import events, rate_limits
 from backend.api_v2 import ApiError, api_v2, json_body
 from backend.database import db
 from backend.identity import (current_user, end_session, find_user_by_key, generate_key, hash_key,
@@ -29,6 +29,7 @@ def create_user():
     key = generate_key()
     user = User(username=username, key_hash=hash_key(key))
     db.session.add(user)
+    events.record(events.USER_REGISTERED, user)
     try:
         db.session.commit()
     except IntegrityError:
@@ -53,6 +54,8 @@ def sign_in():
         raise ApiError(401, 'key_invalid', "That key doesn't match any account. Check it and try again.")
 
     start_session(user)
+    events.record(events.SIGNED_IN, user)
+    db.session.commit()
     return {'user': user.to_dict()}, 200
 
 
