@@ -96,7 +96,8 @@ breadsheet/
 │   ├── models.py            # SQLAlchemy models: Recipe, RecipeStep, Replacement, User
 │   ├── api_v2.py            # /api/v2 blueprint: error bodies, JSON-only writes, no-store, 503s
 │   ├── identity.py          # Keys, usernames, session cookie helpers, current_user()
-│   ├── identity_routes.py   # /api/v2/users and /api/v2/session
+│   ├── identity_routes.py   # /api/v2/users, /api/v2/usernames/<username> (availability) and /api/v2/session
+│   ├── username_words.py    # The short username word filter (breadsheet#83)
 │   ├── recipe_routes_v2.py  # /api/v2/recipes: scopes, copy, lookups (breadsheet#29), publishing (breadsheet#58),
 │   │                        #   detail levels, the Then Wait, drafts (breadsheet#30), categories, prerequisites (breadsheet#59)
 │   ├── bake_routes.py       # /api/v2/bakes: start, read, change, cancel, check off (breadsheet#31)
@@ -321,7 +322,11 @@ SHA-256 and compared with `hmac.compare_digest`. The session is Flask's signed c
 (`breadsheet_session`: `HttpOnly`, `Secure` except locally, `SameSite=Lax`, one year, refreshed
 on use) holding the user id and a fingerprint of the key hash; there's no sessions table. Username
 rules: 3–30 ASCII letters, digits, `_` or `-`, starting with a letter, unique ignoring
-case, with a reserved list. Signup also refuses anything starting with `test-`. Key links are
+case with `-` and `_` treated as the same (index `uq_users_username_normalized`, migration `0010`).
+Reserved names and the `breadsheet`/`admin` prefixes match ignoring `-` and `_`; signup also refuses
+`test-`, and `backend/username_words.py` is a short word filter (breadsheet#83). New rules apply to new
+signups only. `GET /api/v2/usernames/<username>` runs the same checks one name at a time for the
+registration form. Key links are
 `breadsheet.com/k#<key>` (the fragment never reaches a server).
 
 **Test users** (`backend/smoke_users.py`): `test-dev-NN` on the Neon `dev` branch and `test-prod-NN` in
@@ -357,7 +362,7 @@ recipe, which trims whitespace and turns blank notes into null, so the first sav
 can show small diffs.
 
 **Rate limits** (`backend/rate_limits.py`): per IP, 10 failed sign-ins and 10 failed admin requests
-per 15 minutes and 5 signups per hour, returning 429 `rate_limited` with `Retry-After`. The IP is App Engine's
+per 15 minutes, 5 signups per hour, and 60 username checks per minute, returning 429 `rate_limited` with `Retry-After`. The IP is App Engine's
 `X-Appengine-User-Ip` (`api.breadsheet.com` is DNS-only in Cloudflare). Counters live in
 `backend/cache.py`; if the cache fails, requests go through.
 

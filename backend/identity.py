@@ -7,7 +7,8 @@ passwords). Browsers stay signed in with Flask's signed session cookie, which ho
 a short fingerprint of the key hash, so a future key reset would end every existing session.
 """
 from backend.database import db
-from backend.models import User, utc_now
+from backend.models import User, normalized_username, utc_now
+from backend.username_words import has_blocked_word
 from datetime import timedelta
 from flask import session
 from hashlib import sha256
@@ -20,10 +21,25 @@ from uuid import UUID
 KEY_BYTES = 16  # 128 bits, shown as 22 URL-safe characters
 
 USERNAME_PATTERN = r'[A-Za-z][A-Za-z0-9_-]{2,29}'
-RESERVED_USERNAMES = frozenset({'admin', 'breadsheet', 'api', 'bread', 'prep', 'root',
-                                'brystmar', 'thomas', 'tberg'})
+
+# Matched in lowercase with `-` and `_` removed, so sign_in and t-berg count too (breadsheet#83)
+RESERVED_USERNAMES = frozenset({
+    'admin', 'administrator', 'api', 'bread', 'breadsheet', 'prep', 'root', 'brystmar', 'thomas', 'tberg',
+    # Authority, so nobody looks official
+    'mod', 'moderator', 'staff', 'support', 'help', 'official', 'team', 'system', 'security', 'owner', 'contact',
+    # Placeholders
+    'null', 'undefined', 'none', 'anonymous', 'deleted', 'guest', 'user',
+    # Site words
+    'community', 'recipes', 'bakes', 'privacy', 'signin', 'register', 'profile',
+})
+
 # Test users (test-dev-NN, test-prod-NN) are made only by `flask --app main test-users`, never by signup
 TEST_USERNAME_PREFIX = 'test-'
+# Prefixes matched with separators removed, so bread-sheet-team counts too
+RESERVED_PREFIXES = ('breadsheet', 'admin')
+
+RESERVED = "That username is reserved. Please pick another."
+NOT_AVAILABLE = "That username isn't available. Please pick another."
 
 # last_seen_at is a coarse activity marker, so it's written at most this often per user
 LAST_SEEN_RESOLUTION = timedelta(days=1)
@@ -47,13 +63,24 @@ def username_problem(username) -> str | None:
     if not isinstance(username, str) or not fullmatch(USERNAME_PATTERN, username):
         return ("Usernames are 3 to 30 characters: letters, numbers, underscores, and hyphens, "
                 "starting with a letter.")
-    if username.lower() in RESERVED_USERNAMES or username.lower().startswith(TEST_USERNAME_PREFIX):
-        return "That username is reserved. Please pick another."
+    compact = username.lower().replace('-', '').replace('_', '')
+    if (compact in RESERVED_USERNAMES or compact.startswith(RESERVED_PREFIXES)
+            or normalized_username(username).startswith(normalized_username(TEST_USERNAME_PREFIX))):
+        return RESERVED
+    if has_blocked_word(username):
+        return NOT_AVAILABLE
     return None
 
 
 def username_taken(username: str) -> bool:
-    return db.session.scalar(select(User.id).where(func.lower(User.username) == username.lower())) is not None
+    """Whether someone has this name, ignoring case and treating `-` and `_` as the same."""
+    match = normalized_username_column() == normalized_username(username)
+    return db.session.scalar(select(User.id).where(match)) is not None
+
+
+def normalized_username_column():
+    """The SQL twin of normalized_username(), matching the unique index on users."""
+    return func.replace(func.lower(User.username), '-', '_')
 
 
 def find_user_by_key(key) -> User | None:

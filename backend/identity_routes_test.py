@@ -62,6 +62,12 @@ class TestSignup:
         assert response.status_code == 409
         assert response.json['code'] == 'username_taken'
 
+    def test_hyphens_and_underscores_count_as_the_same(self, client):
+        signup(client, 'bread-head')
+        response = signup(app_client(client), 'Bread_Head')
+        assert response.status_code == 409
+        assert response.json['code'] == 'username_taken'
+
     def test_invalid_username(self, client):
         response = signup(client, 'no spaces')
         assert response.status_code == 400
@@ -257,3 +263,49 @@ class TestNothingSecretIsLogged:
 
         assert key not in caplog.text
         assert 'y' * 22 not in caplog.text
+
+
+def app_client(client):
+    """A second browser, so a signup doesn't reuse the first one's session."""
+    return client.application.test_client()
+
+
+def check(client, username):
+    return client.get(f'/api/v2/usernames/{username}')
+
+
+class TestUsernameCheck:
+    """GET /api/v2/usernames/<username> (breadsheet#83)"""
+
+    def test_available(self, client):
+        response = check(client, 'Bread_Head')
+        assert response.status_code == 200
+        assert response.json == {'username': 'Bread_Head', 'available': True}
+        assert response.headers['Cache-Control'].startswith('no-store')
+
+    def test_taken_ignoring_case_and_separators(self, client):
+        signup(client, 'bread-head')
+        response = check(app_client(client), 'BREAD_HEAD')
+        assert response.json == {'username': 'BREAD_HEAD', 'available': False, 'code': 'username_taken',
+                                 'message': "That username is taken. Please pick another."}
+
+    def test_gives_the_same_answer_as_signup(self, client):
+        for name in ['ab', '9lives', 'Support', 'test-dev-07', 'bread-sheet-team', 'fuckbread', 'has%20space']:
+            checked = check(client, name).json
+            assert checked['available'] is False
+            signed_up = signup(app_client(client), checked['username'])
+            assert signed_up.status_code == 400
+            assert (checked['code'], checked['message']) == (signed_up.json['code'], signed_up.json['message'])
+
+    def test_needs_no_session_and_creates_nothing(self, client):
+        response = check(client, 'newbaker')
+        assert 'Set-Cookie' not in response.headers
+        assert db.session.scalar(select(User)) is None
+
+    def test_rate_limit_sixty_a_minute(self, client):
+        for i in range(60):
+            assert check(client, f'baker{i}').status_code == 200
+        response = check(client, 'baker60')
+        assert response.status_code == 429
+        assert response.json['code'] == 'rate_limited'
+        assert 0 < int(response.headers['Retry-After']) <= 60

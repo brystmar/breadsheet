@@ -1,4 +1,4 @@
-"""Signup and browser sessions: /api/v2/users and /api/v2/session (breadsheet#26)."""
+"""Signup, username checks, and browser sessions: /api/v2/users, /api/v2/usernames, /api/v2/session (breadsheet#26)."""
 import logging
 from backend import events, rate_limits
 from backend.api_v2 import ApiError, api_v2, json_body
@@ -41,6 +41,21 @@ def create_user():
     start_session(user)
     logger.info("New user %s", user.id)
     return {'user': user.to_dict(), 'key': key}, 201
+
+
+@api_v2.get('/usernames/<username>')
+def check_username(username):
+    """Whether signup would accept this username right now, with signup's code and message if not (breadsheet#83)."""
+    rate_limits.enforce(rate_limits.USERNAME_CHECKS, "Too many username checks from this network. Wait a minute.")
+    rate_limits.record(rate_limits.USERNAME_CHECKS)
+
+    username = username.strip()
+    problem = username_problem(username)
+    if problem:
+        return {'username': username, 'available': False, 'code': 'username_invalid', 'message': problem}, 200
+    if username_taken(username):
+        return {'username': username, 'available': False, 'code': 'username_taken', 'message': USERNAME_TAKEN}, 200
+    return {'username': username, 'available': True}, 200
 
 
 @api_v2.post('/session')

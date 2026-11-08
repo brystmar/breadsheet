@@ -30,7 +30,7 @@ Nothing that has shipped is renamed, removed, or changes meaning. Clients must i
 - **Agent attribution.** Calls made for an agent send `X-Breadsheet-Via: agent`, plus `X-Breadsheet-Agent: <name>` when known. Used only for metrics.
 - **Idempotency.** `POST /api/v2/bakes` honors `Idempotency-Key` (1 to 200 characters, unique per user): a repeat returns the original bake with 200 instead of 201.
 - **Check-offs and skips.** The client sends the moment it happened (`completed_at`, `skipped_at`): no more than five minutes in the future, and not before the bake started. Repeating one, or acting on a step that's already done, returns the bake unchanged: the first write wins. So clients can queue taps while offline and retry them with backoff, and a late retry lands exactly as an on-time one would have.
-- **Rate limits.** Sign-up (5 an hour), failed sign-ins (10 per 15 minutes), and failed admin keys (10 per 15 minutes) are limited per network. Over the limit: 429 `rate_limited` with `Retry-After` (seconds).
+- **Rate limits.** Sign-up (5 an hour), username checks (60 a minute), failed sign-ins (10 per 15 minutes), and failed admin keys (10 per 15 minutes) are limited per network. Over the limit: 429 `rate_limited` with `Retry-After` (seconds).
 - **Outages.** If breadsheet can't reach its database: 503 `service_unavailable` with `Retry-After` (seconds). Clients keep using what they last fetched and retry after that long. Anything unexpected is 500 `internal_error`. Responses from App Engine itself (before breadsheet runs) may not be JSON; treat any 5xx or network failure as worth retrying.
 
 ## Errors
@@ -78,8 +78,8 @@ Every error is JSON with a stable `code` and a plain-language `message` that say
 | `service_unavailable` | 503 | The database is unreachable; see `Retry-After` |
 | `skipped_at_invalid` | 400 | `skipped_at` is missing, malformed, in the future, or before the bake started |
 | `status_invalid` | 400 | Unknown `status` filter |
-| `username_invalid` | 400 | Usernames are 3 to 30 letters, digits, `_` or `-`, starting with a letter, and not reserved |
-| `username_taken` | 409 | Someone has that username (in any case) |
+| `username_invalid` | 400 | Usernames are 3 to 30 letters, digits, `_` or `-`, starting with a letter, not reserved, and not refused by the word filter |
+| `username_taken` | 409 | Someone has that username, ignoring case and treating `-` and `_` as the same |
 | `wait_out_of_range` | 400 | A wait isn't 0 seconds to 30 days |
 
 ## Objects
@@ -198,6 +198,9 @@ Each step that isn't skipped is due when the step before it was checked off (or 
 
 ### `POST /api/v2/users`
 Sign up and sign this browser in. **Auth:** none. **Body:** `{"username"}`. **201:** `{"user", "key"}`; the key is shown this once and never again. **Errors:** `username_invalid`, `username_taken`, `rate_limited`, `body_invalid`.
+
+### `GET /api/v2/usernames/<username>`
+Whether signup would accept this username right now: the same format, reserved-name, word-filter, and taken checks, one name at a time. **Auth:** none. **200:** `{"username", "available": true}`, or `{"username", "available": false, "code", "message"}` where `code` and `message` are what signup would return (`username_invalid` or `username_taken`). A name can still be taken between the check and signup. **Errors:** `rate_limited` (60 checks a minute per IP).
 
 ### `POST /api/v2/session`
 Sign in with a key. **Auth:** none. **Body:** `{"key"}`. **200:** `{"user"}` and the session cookie. **Errors:** `key_invalid`, `rate_limited`, `body_invalid`.
