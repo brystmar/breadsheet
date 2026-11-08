@@ -563,7 +563,10 @@ docker compose up -d breadsheet-db   # local Postgres 18 on port 5433 (data in t
 - The `/api/v2` contract is frozen and documented (breadsheet#32) since 2026-11-07: `docs/api-v2.md`
 - Test users (`test-dev-NN`, `test-prod-NN`) and the reserved `test-` prefix live since 2026-11-08;
   `test-dev-01`–`05` and `test-prod-01`–`05` exist, keys with Thomas
-- App Engine version `m2o` serves all traffic (since 2026-11-08); `m2n` is the rollback target (same API).
+- Username availability check and stricter username rules (breadsheet#83) live since 2026-11-08;
+  production Postgres is at migration `0010`
+- App Engine version `m2p` serves all traffic (since 2026-11-08); `m2o` is the rollback target (same API,
+  without the username check endpoint or the new rules). `m2n` is older.
   `m2m` is older (its unexpected errors are HTML 500s, it has no 1 MB body limit, and its 404/405
   messages are Werkzeug's).
   `py314` (the DynamoDB version) is kept until DynamoDB is retired
