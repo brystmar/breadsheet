@@ -104,6 +104,7 @@ breadsheet/
 │   ├── slugs.py             # Recipe slugs and public suffixes for user-facing URLs
 │   ├── cache.py             # Shared memcache on App Engine, in-process dict locally
 │   ├── rate_limits.py       # Per-IP fixed-window limits (sign-in and admin failures, signups)
+│   ├── smoke_users.py       # `flask --app main test-users`: create, list and delete test users
 │   ├── recipe_routes.py     # RecipeCollectionApi, RecipeApi (read-only)
 │   ├── replacement_routes.py
 │   ├── meta_routes.py       # ReadmeApi
@@ -320,7 +321,23 @@ SHA-256 and compared with `hmac.compare_digest`. The session is Flask's signed c
 (`breadsheet_session`: `HttpOnly`, `Secure` except locally, `SameSite=Lax`, one year, refreshed
 on use) holding the user id and a fingerprint of the key hash; there's no sessions table. Username
 rules: 3–30 ASCII letters, digits, `_` or `-`, starting with a letter, unique ignoring
-case, with a reserved list. Key links are `breadsheet.com/k#<key>` (the fragment never reaches a server).
+case, with a reserved list. Signup also refuses anything starting with `test-`. Key links are
+`breadsheet.com/k#<key>` (the fragment never reaches a server).
+
+**Test users** (`backend/smoke_users.py`): `test-dev-NN` on the Neon `dev` branch and `test-prod-NN` in
+production, for manual and smoke testing. Only this command makes them (no signup rate limit, no events),
+and every usage metric leaves them out. Keys go to a new file only you can read, never the terminal: move
+them to the password manager and delete the file. Keep the file out of the repo.
+
+```bash
+.venv/bin/flask --app main test-users create --env dev --count 5 --keys-file ~/Desktop/test-dev-keys.txt
+.venv/bin/flask --app main test-users list
+.venv/bin/flask --app main test-users delete test-dev-03   # also deletes their recipes, bakes and events
+```
+
+For production, set `DATABASE_URL` to production for that one command, the same way as a migration.
+In production, test users may bake and keep personal recipes, but never publish to the community
+library: smoke tests must not create publicly visible data.
 
 **Admin key** (`backend/admin_routes.py`): a separate secret, not a user role. Callers send
 `Authorization: Bearer <admin key>`; the server has only its SHA-256 (`ADMIN_KEY_HASH`) and compares
