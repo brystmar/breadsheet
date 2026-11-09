@@ -633,8 +633,10 @@ docker compose up -d breadsheet-db   # local Postgres 18 on port 5433 (data in t
   no migration
 - Fancy alerts for users with a paired HA, the `alert` filter, ETags, poll intervals, and idle polls from the
   cache (breadsheet#33) live since 2026-11-09; no migration. Idle polls suggest 2 minutes (breadsheet#92)
-- App Engine versions use an `m3` prefix from M3 on. `m3g` serves all traffic (since 2026-11-09); `m3f` is
-  kept as the rollback (`m3d` and `m3e` are still deployed too). Every version before `m3d`, including `py314` (the DynamoDB version), was deleted on
+- Webhook nudges to Home Assistant (breadsheet#93) live since 2026-11-09; production Postgres is at migration
+  `0013`. Nothing registers a webhook until breadsheet-hass#13 ships
+- App Engine versions use an `m3` prefix from M3 on. `m3h` serves all traffic (since 2026-11-09); `m3g` is
+  kept as the rollback (`m3d` to `m3f` are still deployed too). Every version before `m3d`, including `py314` (the DynamoDB version), was deleted on
   2026-11-09 because their uploads included local secrets. Keep the previous version as the rollback
 - Deploys honor `.gitignore` since 2026-11-09 (`.gcloudignore` had `!include:.gitignore` instead of
   `#!include:.gitignore`, so `.env`, `env_variables.yaml`, `.aws/` and other local files were uploaded).
