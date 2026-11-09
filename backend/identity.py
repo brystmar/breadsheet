@@ -59,13 +59,16 @@ def key_fingerprint(key_hash: bytes) -> str:
     return sha256(b'session:' + key_hash).hexdigest()[:16]
 
 
-def username_problem(username) -> str | None:
-    """Returns why a username isn't allowed, in words a person can act on, or None if it's fine."""
+def username_problem(username, allow_reserved: bool = False) -> str | None:
+    """
+    Returns why a username isn't allowed, in words a person can act on, or None if it's fine. Admins renaming
+    someone (breadsheet#87) pass `allow_reserved`; the format and word filter still apply.
+    """
     if not isinstance(username, str) or not fullmatch(USERNAME_PATTERN, username):
         return ("Usernames are 3 to 30 characters: letters, numbers, underscores, and hyphens, "
                 "starting with a letter.")
     compact = username.lower().replace('-', '').replace('_', '')
-    if (compact in RESERVED_USERNAMES or compact.startswith(RESERVED_PREFIXES)
+    if not allow_reserved and (compact in RESERVED_USERNAMES or compact.startswith(RESERVED_PREFIXES)
             or normalized_username(username).startswith(normalized_username(TEST_USERNAME_PREFIX))):
         return RESERVED
     if has_blocked_word(username):

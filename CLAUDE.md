@@ -102,6 +102,7 @@ breadsheet/
 │   │                        #   detail levels, the Then Wait, drafts (breadsheet#30), categories, prerequisites (breadsheet#59)
 │   ├── bake_routes.py       # /api/v2/bakes: start, read, change, cancel, check off (breadsheet#31)
 │   ├── admin_routes.py      # /api/v2/admin/recipes: admin sessions or the admin key; list, create, edit and archive defaults, unpublish (breadsheet#28, #86)
+│   ├── admin_user_routes.py # /api/v2/admin/users (list, key reset, rename) and /admin/metrics (breadsheet#87)
 │   ├── admin_users.py       # `flask --app main admins`: grant, revoke, list admins; create users signup refuses (breadsheet#86)
 │   ├── slugs.py             # Recipe slugs and public suffixes for user-facing URLs
 │   ├── cache.py             # Shared memcache on App Engine, in-process dict locally
@@ -376,6 +377,11 @@ command for production):
 .venv/bin/flask --app main admins list
 .venv/bin/flask --app main admins create admin --admin --keys-file ~/Desktop/admin-key.txt   # reserved names allowed
 ```
+
+Admins can also list users (`GET /api/v2/admin/users`), reset someone's key (`POST .../users/<id>/key`:
+the old key and every session stop working; never your own, 403 `own_key_reset`; records `key_reset`),
+rename a user (`PATCH .../users/<id>`: signup's rules, reserved names allowed), and read the metrics
+(`GET /api/v2/admin/metrics`). Admin status itself is never changed through the API.
 
 **Admin key**: a separate secret for scripts. Callers send `Authorization: Bearer <admin key>`; the
 server has only its SHA-256 (`ADMIN_KEY_HASH`) and compares in constant time. Wrong keys (and malformed

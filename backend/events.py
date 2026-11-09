@@ -21,6 +21,7 @@ BAKE_COMPLETED = 'bake_completed'        # the owner finished it early with Comp
 BAKE_CANCELED = 'bake_canceled'
 STEP_COMPLETED = 'step_completed'        # value: seconds after the step's scheduled time (negative when early)
 STEP_SKIPPED = 'step_skipped'
+KEY_RESET = 'key_reset'                  # user: whose key an admin reset (breadsheet#87)
 
 # What only the browser knows about; POST /api/v2/events takes these and nothing else
 ICS_EXPORTED = 'ics_exported'            # bake_id: the bake whose schedule was downloaded

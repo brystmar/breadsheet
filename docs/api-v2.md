@@ -70,6 +70,7 @@ Every error is JSON with a stable `code` and a plain-language `message` that say
 | `method_not_allowed` | 405 | The path doesn't take that method; see `Allow` |
 | `not_found` | 404 | No such path, recipe, bake, or step (or not visible to the caller) |
 | `not_owner` | 403 | Only the recipe's owner can change it |
+| `own_key_reset` | 403 | Admins can't reset their own key from the admin endpoints |
 | `not_signed_in` | 401 | The request needs a session |
 | `pairing_code_invalid` | 400 | The pairing code is wrong, expired, or already used |
 | `rate_limited` | 429 | Too many attempts; see `Retry-After` |
@@ -199,6 +200,18 @@ A bake is `completed` once every step is checked off or skipped, its owner compl
 
 Each step that isn't skipped is due when the step before it was checked off (or was due) plus that step's `wait_chosen`. Checking off or skipping a step re-projects every later step.
 
+### `admin user`
+
+A user as admins see them (M3, breadsheet#87): every `user` field, plus:
+
+| Field | Type | Notes |
+| --- | --- | --- |
+| `last_seen_at` | time | Updated at most daily |
+| `is_active` | boolean | Seen in the last 30 days |
+| `is_test` | boolean | A `test-` user, made by the `test-users` command |
+| `recipe_count`, `published_count` | integer | Personal recipes they own, and how many are published |
+| `bake_count`, `active_bake_count` | integer | Every bake, and those not yet completed or expired |
+
 ### `connection`
 
 A paired Home Assistant instance (M3).
@@ -319,3 +332,15 @@ Archive a default: it leaves every list but still opens by id or URL. **Auth:** 
 
 ### `DELETE /api/v2/admin/recipes/<recipe_id>/publish`
 Unpublish any community recipe. **Auth:** admin. **204.** **Errors:** `admin_key_invalid`, `admin_required`, `not_signed_in`, `scope_missing`, `rate_limited`, `not_found`.
+
+### `GET /api/v2/admin/users`
+Users, newest first, up to 500. **Auth:** admin. **Query:** `q` (name contains, ignoring case, `-` and `_`), `active=1` (seen in the last 30 days), `tests=0` (leave out test users). **200:** `{"users": [admin user]}`. **Errors:** `admin_key_invalid`, `admin_required`, `not_signed_in`, `scope_missing`, `rate_limited`.
+
+### `POST /api/v2/admin/users/<user_id>/key`
+Reset a user's key, for someone the admin can verify personally. The new key is returned this once; the old key stops working and every session for that user ends. Records a `key_reset` event. Admins can't reset their own key here. **Auth:** admin. **200:** `{"user", "key"}`. **Errors:** `own_key_reset`, `not_found`, `admin_key_invalid`, `admin_required`, `not_signed_in`, `scope_missing`, `rate_limited`.
+
+### `PATCH /api/v2/admin/users/<user_id>`
+Rename a user. Signup's rules apply, except reserved names are allowed. **Auth:** admin. **Body:** `{"username"}`. **200:** `{"user"}`. **Errors:** `username_invalid`, `username_taken`, `body_invalid`, `not_found`, `admin_key_invalid`, `admin_required`, `not_signed_in`, `scope_missing`, `rate_limited`.
+
+### `GET /api/v2/admin/metrics`
+The usage metrics, as `flask --app main metrics` prints them: read-only, with test users left out. **Auth:** admin. **200:** `{"metrics": [{"name", "question", "columns", "rows": [object]}]}`; each row's fields depend on the metric and are listed in order in `columns` (empty when there are no rows), and dates are ISO 8601. **Errors:** `admin_key_invalid`, `admin_required`, `not_signed_in`, `scope_missing`, `rate_limited`.
