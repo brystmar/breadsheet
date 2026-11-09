@@ -64,6 +64,7 @@ class TestPairing:
         connection = response.json['connection']
         assert connection['label'] == 'Kitchen HA'
         assert connection['scopes'] == ['recipes:read', 'recipes:write', 'bakes:read', 'bakes:write']
+        assert response.json['user']['username'] == 'baker'  # HA keys its config entry on the user id
         with app.app_context():
             stored = db.session.scalars(select(Connection)).one()
             assert response.json['token'].encode() not in stored.token_hash

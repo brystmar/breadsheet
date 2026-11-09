@@ -306,7 +306,7 @@ Changes from the DynamoDB version: GET requests never write, and recipe writes a
 | `POST /api/v2/bakes/<id>/steps/<position>/skip` | Skip a step that isn't done, with `skipped_at` (same rules; 400 `skipped_at_invalid`); first write wins; its wait drops out and later steps re-project; skipping the last steps left finishes the bake |
 | `POST /api/v2/events` | Record a browser-only event from the allow-list (`ics_exported` with one of the caller's `bake_id`s); 204. Other types → 400 `event_type_invalid` |
 | `POST /api/v2/pairing-codes` | Browser session: a new HA pairing code `{code, expires_at}` (201); voids the user's unused codes |
-| `POST /api/v2/devices` | HA's config flow: `{code, label?}` → 201 `{token, connection}`. Bad, used, or expired codes → 400 `pairing_code_invalid`; 5 failures per 15 minutes per IP → 429 |
+| `POST /api/v2/devices` | HA's config flow: `{code, label?}` → 201 `{token, connection, user}` (the user, since a token can't call `GET /session`). Bad, used, or expired codes → 400 `pairing_code_invalid`; 5 failures per 15 minutes per IP → 429 |
 | `GET /api/v2/connections` | Browser session: the user's live connections, newest first |
 | `DELETE /api/v2/connections/<id>` | Browser session: revoke (204); unknown, someone else's, or already revoked → 404 |
 
