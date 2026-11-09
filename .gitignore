@@ -9,6 +9,8 @@ __pycache__/
 *.env
 .env
 env_variables.yaml
+# Test-user and admin keys for local checks; never committed or deployed (.gcloudignore includes this file)
+local-keys.md
 breadsheet.py
 breadsheet-prod.json
 breadsheet-prod.json.old
