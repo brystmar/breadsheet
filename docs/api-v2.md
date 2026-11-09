@@ -24,7 +24,7 @@ Nothing that has shipped is renamed, removed, or changes meaning. Clients must i
 - **Caching.** Every response has `Cache-Control: no-store`.
 - **Authentication.**
   - *Session:* browsers send the `breadsheet_session` cookie, set by signing up or signing in (credentialed CORS from `breadsheet.com` origins only).
-  - *Admin key:* `Authorization: Bearer <admin key>`, for managing default recipes.
+  - *Admin* (breadsheet#86): a session for a user with `is_admin`, or the admin key (`Authorization: Bearer <admin key>`) for scripts. Admin endpoints say **Auth:** admin. A signed-in non-admin gets 403 `admin_required`; a device token gets 403 `scope_missing`, even an admin's own; a wrong key gets 401 `admin_key_invalid`.
   - *None:* readable by anyone; a session, if present, adds the caller's own recipes and `is_mine`.
   - *Device token* (M3, breadsheet#27): Home Assistant sends `Authorization: Bearer <device token>`, from pairing. A token acts as its user and carries scopes (`recipes:read`, `recipes:write`, `bakes:read`, `bakes:write`; pairing grants all four). Each endpoint's **Auth** names the scope a token needs; endpoints whose Auth is a session alone are browser-only, and a token there gets 403 `scope_missing`. A revoked or unknown token gets 401 `token_invalid`. A token wins over any session cookie.
 - **Agent attribution.** Calls made for an agent send `X-Breadsheet-Via: agent`, plus `X-Breadsheet-Agent: <name>` when known. Used only for metrics.
@@ -48,6 +48,7 @@ Every error is JSON with a stable `code` and a plain-language `message` that say
 | Code | Status | When |
 | --- | --- | --- |
 | `admin_key_invalid` | 401 | Missing or wrong admin key |
+| `admin_required` | 403 | Signed in, but not an admin |
 | `bake_already_over` | 400 | The schedule would already be over |
 | `bake_completed` | 409 | The bake has ended, so it can't change |
 | `bake_id_invalid` | 400 | An event needs a `bake_id` |
@@ -94,6 +95,7 @@ Every error is JSON with a stable `code` and a plain-language `message` that say
 | `id` | uuid | |
 | `username` | string | As typed; unique regardless of case |
 | `created_at` | time | |
+| `is_admin` | boolean | Admins see admin tools (M3, breadsheet#86) |
 
 ### `recipe summary`
 
@@ -303,14 +305,17 @@ Your paired Home Assistant instances, newest first; revoked ones are left out. *
 ### `DELETE /api/v2/connections/<connection_id>`
 Revoke a connection: its token stops working at once, along with every agent calling through it. **Auth:** session; owner. **204.** **Errors:** `not_found` (including one already revoked), `not_signed_in`.
 
+### `GET /api/v2/admin/recipes`
+Every default recipe for curation, archived ones included (last), by name. **Auth:** admin. **200:** `{"recipes": [recipe summary]}`. **Errors:** `admin_key_invalid`, `admin_required`, `not_signed_in`, `scope_missing`, `rate_limited`.
+
 ### `POST /api/v2/admin/recipes`
-Create a default recipe. **Auth:** admin key. **Body:** a recipe body (no drafts; prerequisites must be defaults). **201:** `{"recipe"}`. **Errors:** `admin_key_invalid`, `rate_limited`, `recipe_invalid`, `wait_out_of_range`.
+Create a default recipe. **Auth:** admin. **Body:** a recipe body (no drafts; prerequisites must be defaults). **201:** `{"recipe"}`. **Errors:** `admin_key_invalid`, `admin_required`, `not_signed_in`, `scope_missing`, `rate_limited`, `recipe_invalid`, `wait_out_of_range`.
 
 ### `PUT /api/v2/admin/recipes/<recipe_id>`
-Replace a default recipe; its slug never changes. **Auth:** admin key. **Body:** a recipe body. **200:** `{"recipe"}`. **Errors:** `admin_key_invalid`, `rate_limited`, `recipe_invalid`, `wait_out_of_range`, `not_found`.
+Replace a default recipe; its slug never changes. **Auth:** admin. **Body:** a recipe body. **200:** `{"recipe"}`. **Errors:** `admin_key_invalid`, `admin_required`, `not_signed_in`, `scope_missing`, `rate_limited`, `recipe_invalid`, `wait_out_of_range`, `not_found`.
 
 ### `DELETE /api/v2/admin/recipes/<recipe_id>`
-Archive a default: it leaves every list but still opens by id or URL. **Auth:** admin key. **204.** **Errors:** `admin_key_invalid`, `rate_limited`, `not_found`.
+Archive a default: it leaves every list but still opens by id or URL. **Auth:** admin. **204.** **Errors:** `admin_key_invalid`, `admin_required`, `not_signed_in`, `scope_missing`, `rate_limited`, `not_found`.
 
 ### `DELETE /api/v2/admin/recipes/<recipe_id>/publish`
-Unpublish any community recipe. **Auth:** admin key. **204.** **Errors:** `admin_key_invalid`, `rate_limited`, `not_found`.
+Unpublish any community recipe. **Auth:** admin. **204.** **Errors:** `admin_key_invalid`, `admin_required`, `not_signed_in`, `scope_missing`, `rate_limited`, `not_found`.

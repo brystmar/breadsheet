@@ -158,7 +158,7 @@ class TestAdminUnpublish:
         recipe_id = create(baker).json['recipe']['id']
         publish(baker, recipe_id)
         response = baker.delete(f'/api/v2/admin/recipes/{recipe_id}/publish', json={})
-        assert response.status_code == 401
+        assert response.status_code == 403  # baker isn't an admin (breadsheet#86)
         assert len(library(baker)) == 1
 
     def test_unknown_ids(self, client, admin_headers):

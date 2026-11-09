@@ -1,7 +1,8 @@
 """Tests for the admin endpoints (breadsheet#28): the admin key, and creating and editing defaults."""
 import logging
 from backend.database import db
-from backend.models import Recipe
+from backend.connections_test import as_device, paired_token
+from backend.models import Recipe, User
 from backend.recipe_routes_v2_test import RECIPE, create, register
 from sqlalchemy import select
 
@@ -12,16 +13,19 @@ def admin_create(client, headers, body=None):
 
 class TestAdminKey:
     def test_requests_without_the_key_are_refused(self, client):
-        for headers in ({}, {'Authorization': 'Bearer wrong-key'}, {'Authorization': 'test-only-admin-key'},
+        for headers in ({'Authorization': 'Bearer wrong-key'}, {'Authorization': 'test-only-admin-key'},
                         {'Authorization': 'Basic test-only-admin-key'}, {'Authorization': 'Bearer '}):
             response = admin_create(client, headers)
             assert response.status_code == 401, headers
             assert response.json['code'] == 'admin_key_invalid'
+        response = admin_create(client, {})  # no key and no session (breadsheet#86)
+        assert (response.status_code, response.json['code']) == (401, 'not_signed_in')
         assert db.session.scalar(select(Recipe)) is None
 
     def test_a_signed_in_user_is_not_an_admin(self, client):
         register(client, 'baker')
-        assert admin_create(client, {}).status_code == 401
+        response = admin_create(client, {})
+        assert (response.status_code, response.json['code']) == (403, 'admin_required')
 
     def test_unconfigured_or_malformed_hash_refuses_everything(self, app, client, admin_headers, monkeypatch, caplog):
         monkeypatch.setitem(app.config, 'ADMIN_KEY_HASH', None)
@@ -105,3 +109,62 @@ class TestEditDefault:
     def test_needs_the_key(self, client, admin_headers):
         recipe_id = admin_create(client, admin_headers).json['recipe']['id']
         assert client.put(f'/api/v2/admin/recipes/{recipe_id}', json=RECIPE).status_code == 401
+
+
+# breadsheet#86: admins are users with is_admin, signed in like anyone else
+def make_admin(app, username):
+    with app.app_context():
+        user = db.session.scalar(select(User).where(User.username == username))
+        user.is_admin = True
+        db.session.commit()
+
+
+class TestAdminSessions:
+    def test_a_signed_in_admin_can_curate_defaults(self, app, client):
+        register(client, 'chief')
+        make_admin(app, 'chief')
+
+        created = admin_create(client, {})
+        assert created.status_code == 201, created.json
+        recipe_id = created.json['recipe']['id']
+        assert created.json['recipe']['scope'] == 'default'
+        assert client.put(f'/api/v2/admin/recipes/{recipe_id}', json=RECIPE).status_code == 200
+        assert client.delete(f'/api/v2/admin/recipes/{recipe_id}', json={}).status_code == 204
+
+    def test_the_session_says_who_is_an_admin(self, app, client):
+        register(client, 'chief')
+        assert client.get('/api/v2/session').json['user']['is_admin'] is False
+        make_admin(app, 'chief')
+        assert client.get('/api/v2/session').json['user']['is_admin'] is True
+
+    def test_signup_never_makes_an_admin(self, client):
+        response = client.post('/api/v2/users', json={'username': 'hopeful', 'is_admin': True})
+        assert response.json['user']['is_admin'] is False
+
+    def test_an_admins_own_device_token_is_not_an_admin(self, app, client):
+        register(client, 'chief')
+        make_admin(app, 'chief')
+        token = paired_token(app, client)
+        device, headers = as_device(app, token)
+        response = device.post('/api/v2/admin/recipes', json=RECIPE, headers=headers)
+        assert (response.status_code, response.json['code']) == (403, 'scope_missing')
+        with app.app_context():
+            assert db.session.scalar(select(Recipe)) is None
+
+    def test_the_admin_list_has_every_default_archived_last(self, app, client, admin_headers):
+        register(client, 'chief')
+        make_admin(app, 'chief')
+        ids = {name: admin_create(client, {}, {**RECIPE, 'name': name}).json['recipe']['id']
+               for name in ['Bagels', 'Ciabatta', 'Anadama']}
+        client.delete(f"/api/v2/admin/recipes/{ids['Anadama']}", json={})
+        create(client)  # a personal recipe never shows here
+
+        listed = client.get('/api/v2/admin/recipes').json['recipes']
+        assert [(r['name'], r['archived_at'] is not None) for r in listed] == [
+            ('Bagels', False), ('Ciabatta', False), ('Anadama', True)]
+        assert app.test_client().get('/api/v2/admin/recipes', headers=admin_headers).status_code == 200
+
+    def test_the_admin_list_is_for_admins_only(self, app, client):
+        assert app.test_client().get('/api/v2/admin/recipes').json['code'] == 'not_signed_in'
+        register(client, 'baker')
+        assert client.get('/api/v2/admin/recipes').json['code'] == 'admin_required'

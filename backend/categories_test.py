@@ -196,7 +196,7 @@ class TestArchiving:
 
     def test_needs_the_key_and_only_touches_defaults(self, baker, client, admin_headers):
         default_id = admin_create(client, admin_headers, RECIPE)['id']
-        assert client.delete(f'/api/v2/admin/recipes/{default_id}', json={}).status_code == 401
+        assert client.delete(f'/api/v2/admin/recipes/{default_id}', json={}).status_code == 403  # baker isn't an admin
 
         personal_id = create(baker).json['recipe']['id']
         assert client.delete(f'/api/v2/admin/recipes/{personal_id}', json={}, headers=admin_headers).status_code == 404
