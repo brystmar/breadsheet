@@ -311,6 +311,7 @@ Arrives in M3, with agent tools added in M4. The integration pulls active Fancy 
   - `breadsheet_step_upcoming`: a lead time before each step. The lead time is an integration option (default 2 minutes).
   - `breadsheet_step_due`: when the step is due.
   - `breadsheet_step_late`: once, 5 minutes after it's due, if it still isn't done.
+- **Event:** `breadsheet_bake_changed`, when a bake first appears or its next step, that step's time, or its progress changes (a check-off or skip from HA or the website, or changed waits). It carries the bake id and name, the next step's position, text and time, and steps done and total. The blueprint moves the Live Activity on with it, since the timed step events don't fire on check-offs.
 - **Action:** `breadsheet.complete_step` (bake id, step position), calling the API and refreshing immediately.
 - **Event:** `breadsheet_bake_ended` (with `bake_id`, plus `outcome` when known). The coordinator fires it when a bake disappears from the active Fancy list for any reason: completed, canceled, expired, or switched to Simple. Without it, a finished bake's entities just vanish and the blueprint has nothing to trigger on. The coordinator persists the last known set of active bake ids (HA `Store`), so a bake that ends while HA is restarting still fires the event on the next successful poll.
 
