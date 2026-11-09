@@ -707,6 +707,8 @@ class Connection(UuidPrimaryKey, db.Model):
     # Refreshed at most daily while the token is used
     last_used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    # Where breadsheet sends "poll now" nudges (breadsheet#93). A secret, like a password: never logged or returned
+    webhook_url: Mapped[str | None] = mapped_column(Text)
 
     def to_v2_dict(self) -> dict:
         return {

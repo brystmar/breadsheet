@@ -106,6 +106,7 @@ breadsheet/
 │   ├── admin_users.py       # `flask --app main admins`: grant, revoke, list admins; create users signup refuses (breadsheet#86)
 │   ├── slugs.py             # Recipe slugs and public suffixes for user-facing URLs
 │   ├── cache.py             # Shared memcache on App Engine, in-process dict locally
+│   ├── nudges.py            # Webhook nudges to HA after Fancy bake changes: SSRF checks, pinned send, background thread (breadsheet#93)
 │   ├── poll_cache.py        # HA's idle polls without Postgres: cached device tokens and "no Fancy bakes" notes (breadsheet#33)
 │   ├── rate_limits.py       # Per-IP fixed-window limits (sign-in and admin failures, signups)
 │   ├── smoke_users.py       # `flask --app main test-users`: create, list and delete test users
@@ -247,6 +248,7 @@ first-write-wins repeat records nothing). No IP addresses, user agents, or free 
 | `connections.scopes` | text[] | All four at pairing: `recipes:read`, `recipes:write`, `bakes:read`, `bakes:write` |
 | `connections.token_hash` | bytea(32) | SHA-256 of the 256-bit device token, unique; the token is shown once |
 | `connections.created_at`, `last_used_at`, `revoked_at` | timestamptz | `last_used_at` written at most daily; revoked tokens stop working at once |
+| `connections.webhook_url` | text | Where this HA gets "poll now" nudges (migration `0013`, breadsheet#93); null for none. A secret: never log or return it. Cleared on revoke |
 | `pairing_codes.code_hash` | bytea(32) | Primary key: SHA-256 of the normalized code (8 Crockford base32 characters, shown `XXXX-XXXX`) |
 | `pairing_codes.user_id`, `expires_at`, `used_at` | uuid, timestamptz | Ten minutes, single use; issuing a new code deletes the user's unused ones |
 
@@ -310,6 +312,7 @@ Changes from the DynamoDB version: GET requests never write, and recipe writes a
 | `POST /api/v2/devices` | HA's config flow: `{code, label?}` → 201 `{token, connection, user}` (the user, since a token can't call `GET /session`). Bad, used, or expired codes → 400 `pairing_code_invalid`; 5 failures per 15 minutes per IP → 429 |
 | `GET /api/v2/connections` | Browser session: the user's live connections, newest first |
 | `DELETE /api/v2/connections/<id>` | Browser session: revoke (204); unknown, someone else's, or already revoked → 404 |
+| `PUT`/`DELETE /api/v2/device/webhook` | Device token only: set (`{url}`) or clear this HA's nudge webhook (204). Bad URLs → 400 `webhook_url_invalid`; browser sessions → 403 `scope_missing` |
 
 Bake errors: drafts → 409 `recipe_is_draft`; no steps → 400 `recipe_has_no_steps`; a 4th active bake →
 409 `bake_limit_reached`; a wait outside 0–30 days → 400 `wait_out_of_range`; a schedule already over →
@@ -412,6 +415,14 @@ note tagged with the user's Fancy generation, a random value replaced after a Fa
 to Fancy (after the commit). The next poll from that token, with that note still current, gets `{"bakes": []}`
 without a query; `polling_test.py` counts statements to keep it that way. A missing cache entry just means a
 query. The daily token check is also what keeps `last_used_at` current.
+
+**Webhook nudges** (`backend/nudges.py`, breadsheet#93): after any saved change to a Fancy bake (start, switch
+to or from Fancy, waits or anchor, check-off, skip, complete, cancel), the bake routes call
+`nudges.nudge_home_assistants(user.id)` after the commit. It POSTs `{}` to each of the user's webhooks except the
+calling HA's own, from a background thread, with a 2-second timeout and no retries; 404 or 410 clears the URL.
+URLs must be https on port 443, without credentials, resolving only to public addresses; `vet()` checks at
+registration and again before each send, and the send dials the checked address (`PinnedConnection`), so DNS
+can't change in between. Redirects aren't followed. Tests replace `resolve`, `send` and `run_in_background`.
 
 ## Config & Environment
 `backend/environment.py` decides where the app is running, once: `local` is `True` when

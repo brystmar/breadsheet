@@ -16,7 +16,7 @@ v2 bakes (breadsheet#31): start (optionally partway through), read, change, chec
   answered from the cache without Postgres, with an ETag and a suggested poll interval (breadsheet#33).
 """
 import logging
-from backend import events, poll_cache
+from backend import events, nudges, poll_cache
 from backend.api_v2 import ApiError, api_v2, json_body
 from backend.database import db
 from backend.devices import bearer_token, hash_secret
@@ -169,6 +169,12 @@ def refreshed(bakes: list[Bake]) -> list[Bake]:
     return bakes
 
 
+def nudge_if_fancy(bake: Bake, user: User):
+    """After a saved change to a Fancy bake, tell the user's other Home Assistants to poll now (breadsheet#93)."""
+    if bake.alert_mode == 'fancy':
+        nudges.nudge_home_assistants(user.id)
+
+
 def respond(bake: Bake, status: int = 200):
     return {'bake': bake.to_v2_dict()}, status
 
@@ -256,6 +262,7 @@ def start_bake():
 
     if bake.alert_mode == 'fancy':
         poll_cache.fancy_changed(user.id)  # after the commit, so a racing idle poll can't hide this bake
+        nudges.nudge_home_assistants(user.id)
     logger.info("User %s started bake %s from recipe %s", user.id, bake.id, recipe.id)
     return respond(bake, 201)
 
@@ -360,6 +367,7 @@ def update_bake(bake_id):
         if step.position in waits:
             step.wait_chosen = waits[step.position]
     became_fancy = alert_mode == 'fancy' and bake.alert_mode != 'fancy'
+    was_fancy = bake.alert_mode == 'fancy'
     if alert_mode is not None:
         bake.alert_mode = alert_mode
 
@@ -368,6 +376,8 @@ def update_bake(bake_id):
     db.session.commit()
     if became_fancy:
         poll_cache.fancy_changed(user.id)  # after the commit, so a racing idle poll can't hide this bake
+    if was_fancy or bake.alert_mode == 'fancy':
+        nudges.nudge_home_assistants(user.id)
     logger.info("User %s updated bake %s", user.id, bake.id)
     return respond(bake)
 
@@ -396,6 +406,7 @@ def finish_bake(bake_id):
     bake.end('finished', completed_at)
     events.record(events.BAKE_COMPLETED, user, recipe_id=bake.recipe_id, bake_id=bake.id)
     db.session.commit()
+    nudge_if_fancy(bake, user)
     logger.info("User %s completed bake %s", user.id, bake.id)
     return respond(bake)
 
@@ -408,11 +419,14 @@ def cancel_bake(bake_id):
     bake = owned_bake_or_404(bake_id, user, lock=True)
     now = utc_now()
     bake.refresh_status(now)
-    if bake.status != 'completed':
+    canceling = bake.status != 'completed'
+    if canceling:
         bake.end('canceled', now)
         events.record(events.BAKE_CANCELED, user, recipe_id=bake.recipe_id, bake_id=bake.id)
         logger.info("User %s canceled bake %s", user.id, bake.id)
     db.session.commit()
+    if canceling:
+        nudge_if_fancy(bake, user)
     return respond(bake)
 
 
@@ -443,6 +457,7 @@ def complete_step(bake_id, position):
     bake.project()
     bake.refresh_status(now)
     db.session.commit()
+    nudge_if_fancy(bake, user)
     logger.info("User %s checked off step %s of bake %s", user.id, position, bake.id)
     return respond(bake)
 
@@ -473,5 +488,6 @@ def skip_step(bake_id, position):
     bake.project()
     bake.refresh_status(now)
     db.session.commit()
+    nudge_if_fancy(bake, user)
     logger.info("User %s skipped step %s of bake %s", user.id, position, bake.id)
     return respond(bake)
