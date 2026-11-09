@@ -310,7 +310,7 @@ Record a product event that only the browser sees. **Auth:** session. **Body:** 
 Get a code for pairing Home Assistant: 8 Crockford base32 characters, shown as `XXXX-XXXX`. It works once, within ten minutes; issuing another voids the last. Only its hash is stored. **Auth:** session. **201:** `{"code", "expires_at"}`. **Errors:** `not_signed_in`.
 
 ### `POST /api/v2/devices`
-Home Assistant exchanges a pairing code for a device token, shown this once and never again. Codes are read forgivingly: any case, with or without the dash, and I, L, O as 1, 1, 0. Five failed attempts per network in 15 minutes, then 429. **Auth:** none. **Body:** `code`; optional `label` (up to 60 characters). **201:** `{"token", "connection"}`. **Errors:** `pairing_code_invalid`, `rate_limited`, `body_invalid`.
+Home Assistant exchanges a pairing code for a device token, shown this once and never again. Codes are read forgivingly: any case, with or without the dash, and I, L, O as 1, 1, 0. Five failed attempts per network in 15 minutes, then 429. **Auth:** none. **Body:** `code`; optional `label` (up to 60 characters). **201:** `{"token", "connection", "user"}`; `user` (M3) is who the token acts as, since a token can't call `GET /api/v2/session`. **Errors:** `pairing_code_invalid`, `rate_limited`, `body_invalid`.
 
 ### `GET /api/v2/connections`
 Your paired Home Assistant instances, newest first; revoked ones are left out. **Auth:** session. **200:** `{"connections": [connection]}`. **Errors:** `not_signed_in`.

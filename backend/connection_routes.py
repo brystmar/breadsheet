@@ -40,7 +40,9 @@ def issue_pairing_code():
 def pair_device():
     """
     Home Assistant's config flow exchanges a pairing code for a device token, shown once here and never again.
-    The code works once, within ten minutes. Failed attempts are rate limited per network.
+    The code works once, within ten minutes. Failed attempts are rate limited per network. The response names the
+    user, since a token can't call GET /session: HA keys its config entry on the user id, so pairing the same
+    account twice, or re-pairing with another account's code, can be caught.
     """
     rate_limits.enforce(rate_limits.PAIRING_FAILURES, "Too many pairing attempts from this network. Wait a bit and try again.")
     data = json_body()
@@ -60,7 +62,7 @@ def pair_device():
     db.session.add(connection)
     db.session.commit()
     logger.info("User %s paired connection %s", pairing.user_id, connection.id)
-    return {'token': token, 'connection': connection.to_v2_dict()}, 201
+    return {'token': token, 'connection': connection.to_v2_dict(), 'user': pairing.user.to_dict()}, 201
 
 
 @api_v2.get('/connections')

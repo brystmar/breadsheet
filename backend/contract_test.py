@@ -93,8 +93,10 @@ class TestObjects:
 class TestConnectionObject:
     def test_connection(self, app, baker):
         code = baker.post('/api/v2/pairing-codes', json={}).json['code']
-        connection = app.test_client().post('/api/v2/devices', json={'code': code}).json['connection']
-        assert set(connection) == documented_fields('connection')
+        paired = app.test_client().post('/api/v2/devices', json={'code': code}).json
+        assert set(paired) == {'token', 'connection', 'user'}
+        assert set(paired['connection']) == documented_fields('connection')
+        assert set(paired['user']) == documented_fields('user')
 
 
 class TestErrorsAreAlwaysJson:
