@@ -101,7 +101,8 @@ breadsheet/
 │   ├── recipe_routes_v2.py  # /api/v2/recipes: scopes, copy, lookups (breadsheet#29), publishing (breadsheet#58),
 │   │                        #   detail levels, the Then Wait, drafts (breadsheet#30), categories, prerequisites (breadsheet#59)
 │   ├── bake_routes.py       # /api/v2/bakes: start, read, change, cancel, check off (breadsheet#31)
-│   ├── admin_routes.py      # /api/v2/admin/recipes: the admin key, create, edit and archive defaults, unpublish (breadsheet#28)
+│   ├── admin_routes.py      # /api/v2/admin/recipes: admin sessions or the admin key; list, create, edit and archive defaults, unpublish (breadsheet#28, #86)
+│   ├── admin_users.py       # `flask --app main admins`: grant, revoke, list admins; create users signup refuses (breadsheet#86)
 │   ├── slugs.py             # Recipe slugs and public suffixes for user-facing URLs
 │   ├── cache.py             # Shared memcache on App Engine, in-process dict locally
 │   ├── rate_limits.py       # Per-IP fixed-window limits (sign-in and admin failures, signups)
@@ -221,6 +222,7 @@ projected end; every read calls it and saves the change (no scheduled job).
 | `id` | uuid | UUIDv7 |
 | `username` | text | Display case kept; unique on `lower(username)` |
 | `key_hash` | bytea(32) | SHA-256 of the user's key, unique; the key itself is never stored |
+| `is_admin` | boolean | Default false; set only by `flask --app main admins grant` (migration `0012`, breadsheet#86) |
 | `created_at`, `last_seen_at` | timestamptz | `last_seen_at` is written at most once a day |
 
 ### `Event` (table `events`, M2, breadsheet#34)
@@ -363,12 +365,23 @@ For production, set `DATABASE_URL` to production for that one command, the same 
 In production, test users may bake and keep personal recipes, but never publish to the community
 library: smoke tests must not create publicly visible data.
 
-**Admin key** (`backend/admin_routes.py`): a separate secret, not a user role. Callers send
-`Authorization: Bearer <admin key>`; the server has only its SHA-256 (`ADMIN_KEY_HASH`) and compares
-in constant time. Wrong or missing keys get 401 `admin_key_invalid`; with no hash configured, every
-admin request is refused. The key also unpublishes any community recipe; archiving defaults comes with
-breadsheet#59. Day to day, use the script (the key comes from the password manager, set for that one
-command; `BREADSHEET_API` defaults to production):
+**Admins** (`backend/admin_routes.py`, breadsheet#86): users with `is_admin`, signed in like anyone
+else. `require_admin()` accepts a signed-in admin's session, or the admin key for scripts. Signed out
+gets 401 `not_signed_in`, a non-admin 403 `admin_required`, and a device token 403 `scope_missing` (even
+an admin's own). Grant admin only from the command line, like a migration (`DATABASE_URL` set for that one
+command for production):
+
+```bash
+.venv/bin/flask --app main admins grant tberg brystmar     # unknown names change nothing
+.venv/bin/flask --app main admins list
+.venv/bin/flask --app main admins create admin --admin --keys-file ~/Desktop/admin-key.txt   # reserved names allowed
+```
+
+**Admin key**: a separate secret for scripts. Callers send `Authorization: Bearer <admin key>`; the
+server has only its SHA-256 (`ADMIN_KEY_HASH`) and compares in constant time. Wrong keys (and malformed
+`Authorization` headers) get 401 `admin_key_invalid` and count toward the admin-failure rate limit;
+with no hash configured, the key never works. Use the script (the key comes from the password manager,
+set for that one command; `BREADSHEET_API` defaults to production):
 
 ```bash
 ADMIN_KEY=... python etc/admin_recipes.py export <slug-or-id> > recipe.json   # no key needed

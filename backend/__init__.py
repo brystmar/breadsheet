@@ -42,6 +42,10 @@ def create_app(config_class=Config):
     # `flask --app main test-users` creates, lists and deletes test users
     from backend.smoke_users import users_command
     breadapp.cli.add_command(users_command)
+
+    # `flask --app main admins` grants and revokes admin, and creates users signup refuses (breadsheet#86)
+    from backend.admin_users import admins_command
+    breadapp.cli.add_command(admins_command)
     logger.debug("App created")
 
     return breadapp

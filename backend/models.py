@@ -2,7 +2,7 @@
 from backend.database import db
 from datetime import datetime, timedelta, timezone
 from sqlalchemy import CheckConstraint, DateTime, ForeignKey, Index, LargeBinary, Text, UniqueConstraint, Uuid, func
-from sqlalchemy import text as sql_text  # aliased: RecipeStep has a `text` column
+from sqlalchemy import false as sql_false, text as sql_text  # aliased: RecipeStep has a `text` column
 from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from uuid import UUID, uuid7
@@ -441,11 +441,15 @@ class User(UuidPrimaryKey, db.Model):
     last_seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now,
                                                    server_default=func.now())
 
+    # Set only by `flask --app main admins grant` (breadsheet#86); never through the API
+    is_admin: Mapped[bool] = mapped_column(default=False, server_default=sql_false())
+
     def to_dict(self) -> dict:
         return {
             "id":         str(self.id),
             "username":   self.username,
-            "created_at": self.created_at.astimezone(timezone.utc).isoformat()
+            "created_at": self.created_at.astimezone(timezone.utc).isoformat(),
+            "is_admin":   bool(self.is_admin)
         }
 
     def __repr__(self) -> str:
