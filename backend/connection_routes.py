@@ -1,6 +1,6 @@
 """Pairing Home Assistant and managing its connections: /api/v2/pairing-codes, /devices, /connections (breadsheet#27)."""
 import logging
-from backend import rate_limits
+from backend import poll_cache, rate_limits
 from backend.api_v2 import ApiError, api_v2, json_body
 from backend.database import db
 from backend.devices import (CODE_LIFETIME, DEVICE_SCOPES, clean_label, hash_secret, new_device_token,
@@ -88,5 +88,6 @@ def revoke_connection(connection_id):
         raise ApiError(404, 'not_found', "That connection doesn't exist.")
     connection.revoked_at = utc_now()
     db.session.commit()
+    poll_cache.forget_token(connection.token_hash)  # so idle polls stop answering for it too
     logger.info("User %s revoked connection %s", user.id, connection.id)
     return '', 204

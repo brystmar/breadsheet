@@ -12,17 +12,20 @@ v2 bakes (breadsheet#31): start (optionally partway through), read, change, chec
   its wait drops out and later steps re-project. A mid-bake skip doesn't start a bake on its own.
 - Bakes are private: every endpoint is owner-only, and other people get 404.
 - Writes lock the bake's row, so simultaneous check-offs can't race.
+- Fancy alerts need a paired Home Assistant (M3). HA polls `GET /bakes?status=active&alert=fancy`; idle polls are
+  answered from the cache without Postgres, with an ETag and a suggested poll interval (breadsheet#33).
 """
 import logging
-from backend import events
+from backend import events, poll_cache
 from backend.api_v2 import ApiError, api_v2, json_body
 from backend.database import db
-from backend.models import Bake, BakeStep, User, utc_now
+from backend.devices import bearer_token, hash_secret
+from backend.models import Bake, BakeStep, Connection, User, utc_now
 from backend.recipe_routes_v2 import MAX_WAIT_SECONDS, require_user, visible_recipe_or_404
 from backend.slugs import is_public_suffix, new_public_suffix
 from datetime import datetime, timedelta
-from flask import request
-from sqlalchemy import select
+from flask import make_response, request
+from sqlalchemy import exists, select
 from sqlalchemy.exc import IntegrityError
 from uuid import UUID
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
@@ -35,6 +38,10 @@ ANCHOR_TYPES = ('start', 'finish')
 ALERT_MODES = ('simple', 'fancy')
 MAX_IDEMPOTENCY_KEY = 200
 CLOCK_SKEW = timedelta(minutes=5)
+# Suggested seconds until HA's next poll (X-Breadsheet-Poll-Interval): every minute while a Fancy bake is
+# active, every 15 minutes otherwise (spec: HA integration, Polling)
+POLL_ACTIVE = 60
+POLL_IDLE = 900
 
 
 ## Parsing ##
@@ -60,15 +67,21 @@ def valid_time_zone(value) -> bool:
     return True
 
 
-def check_alert_mode(value, problems: dict) -> str | None:
+def has_home_assistant(user: User) -> bool:
+    """Whether the user has paired a Home Assistant that's still connected."""
+    return bool(db.session.scalar(select(exists().where(Connection.user_id == user.id,
+                                                        Connection.revoked_at.is_(None)))))
+
+
+def check_alert_mode(value, problems: dict, user: User) -> str | None:
     if value is None:
         return None
     if value not in ALERT_MODES:
         problems['alert_mode'] = f"Must be one of: {', '.join(ALERT_MODES)}."
         return None
-    if value == 'fancy':
-        raise ApiError(409, 'fancy_requires_ha', "Fancy alerts need Home Assistant, which isn't available yet. "
-                                                 "Use simple alerts for now.")
+    if value == 'fancy' and not has_home_assistant(user):
+        raise ApiError(409, 'fancy_requires_ha', "Fancy alerts need Home Assistant. Pair it from your profile on "
+                                                 "breadsheet.com, or use simple alerts.")
     return value
 
 
@@ -196,7 +209,7 @@ def start_bake():
     if not recipe.steps:
         raise ApiError(400, 'recipe_has_no_steps', "That recipe has no steps to bake.")
 
-    alert_mode = check_alert_mode(data.get('alert_mode'), problems) or 'simple'
+    alert_mode = check_alert_mode(data.get('alert_mode'), problems, user) or 'simple'
     anchor_type, anchor_time = parse_anchor(data, problems, required=True)
     time_zone = data.get('time_zone')
     if not valid_time_zone(time_zone):
@@ -241,26 +254,68 @@ def start_bake():
             raise
         return respond(existing)
 
+    if bake.alert_mode == 'fancy':
+        poll_cache.fancy_changed(user.id)  # after the commit, so a racing idle poll can't hide this bake
     logger.info("User %s started bake %s from recipe %s", user.id, bake.id, recipe.id)
     return respond(bake, 201)
 
 
+def bake_list(body: dict, poll_interval: int | None):
+    """A bake list with an ETag (304 for a matching If-None-Match) and, for active bakes, the suggested poll interval."""
+    response = make_response(body, 200)
+    if poll_interval is not None:
+        response.headers['X-Breadsheet-Poll-Interval'] = str(poll_interval)
+    response.add_etag()
+    return response.make_conditional(request)
+
+
+def idle_poll(alert: str | None):
+    """
+    HA's idle poll, answered from the cache without touching Postgres: a device token the cache remembers,
+    asking for active Fancy bakes, from a user the cache says has none. None when the database has to answer.
+    """
+    token = bearer_token()
+    if token is None or alert != 'fancy':
+        return None
+    cached = poll_cache.cached_token(hash_secret(token))
+    if cached is None or 'bakes:read' not in cached.scopes or not poll_cache.has_no_fancy(cached.user_id):
+        return None
+    return bake_list({'bakes': []}, POLL_IDLE)
+
+
 @api_v2.get('/bakes')
 def list_bakes():
-    """The caller's active bakes (default), or their newest completed ones (`status=completed`), with schedules."""
-    user = require_user('bakes:read')
+    """
+    The caller's active bakes (default), or their newest completed ones (`status=completed`), with schedules.
+    `alert` limits either list to one alert mode; Home Assistant polls `status=active&alert=fancy`.
+    """
     status = request.args.get('status', 'active')
     if status not in ('active', 'completed'):
         raise ApiError(400, 'status_invalid', "Pick a status: active or completed.")
+    alert = request.args.get('alert')
+    if alert is not None and alert not in ALERT_MODES:
+        raise ApiError(400, 'alert_invalid', "Pick an alert mode: simple or fancy.")
+    if status == 'active' and (cached := idle_poll(alert)) is not None:
+        return cached
 
+    user = require_user('bakes:read')
+    # Read before querying: if a Fancy bake starts meanwhile, the generation moves on and this note is ignored
+    generation = poll_cache.fancy_generation(user.id) if status == 'active' else None
     active = refreshed(list(db.session.scalars(
         select(Bake).where(Bake.user_id == user.id, Bake.status != 'completed').order_by(Bake.started_at, Bake.id))))
+    active = [bake for bake in active if bake.is_active]
+    has_fancy = any(bake.alert_mode == 'fancy' for bake in active)
     if status == 'active':
-        bakes = [bake for bake in active if bake.is_active]
+        bakes = active
+        if not has_fancy:
+            poll_cache.note_no_fancy(user.id, generation)
     else:
         bakes = db.session.scalars(select(Bake).where(Bake.user_id == user.id, Bake.status == 'completed')
                                    .order_by(Bake.completed_at.desc(), Bake.id).limit(COMPLETED_LIMIT))
-    return {'bakes': [bake.to_v2_dict() for bake in bakes]}, 200
+    if alert is not None:
+        bakes = [bake for bake in bakes if bake.alert_mode == alert]
+    body = {'bakes': [bake.to_v2_dict() for bake in bakes]}
+    return bake_list(body, (POLL_ACTIVE if has_fancy else POLL_IDLE) if status == 'active' else None)
 
 
 @api_v2.get('/bakes/<bake_id>')
@@ -289,7 +344,7 @@ def update_bake(bake_id):
 
     data = json_body()
     problems = {}
-    alert_mode = check_alert_mode(data.get('alert_mode'), problems)
+    alert_mode = check_alert_mode(data.get('alert_mode'), problems, user)
     anchor_type, anchor_time = parse_anchor(data, problems, required=False)
     waits = parse_waits(data.get('waits'), {step.position for step in bake.steps}, problems)
     raise_if(problems)
@@ -304,12 +359,15 @@ def update_bake(bake_id):
     for step in bake.steps:
         if step.position in waits:
             step.wait_chosen = waits[step.position]
+    became_fancy = alert_mode == 'fancy' and bake.alert_mode != 'fancy'
     if alert_mode is not None:
         bake.alert_mode = alert_mode
 
     bake.project()
     refuse_if_over(bake)
     db.session.commit()
+    if became_fancy:
+        poll_cache.fancy_changed(user.id)  # after the commit, so a racing idle poll can't hide this bake
     logger.info("User %s updated bake %s", user.id, bake.id)
     return respond(bake)
 
