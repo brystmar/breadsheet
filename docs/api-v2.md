@@ -282,7 +282,7 @@ Your active bakes (default), or your 50 most recently completed (`status=complet
 
 Polling (M3, breadsheet#33). Home Assistant polls `status=active&alert=fancy`.
 - **ETag.** Every response has an `ETag`. Send it back as `If-None-Match`; if nothing changed, the answer is 304 with no body.
-- **Poll interval.** Active lists carry `X-Breadsheet-Poll-Interval`, the suggested seconds until the next poll: 60 while you have an active Fancy bake, otherwise 900. It's on 304s too.
+- **Poll interval.** Active lists carry `X-Breadsheet-Poll-Interval`, the suggested seconds until the next poll: 60 while you have an active Fancy bake, otherwise 120. It's on 304s too.
 - **Idle polls.** A device token's poll for Fancy bakes, from a user with none, may be answered from a cache without checking the database. So for up to a day after its connection is revoked, a token can still get an empty list there instead of `token_invalid`; every other request refuses it at once.
 
 ### `POST /api/v2/bakes`

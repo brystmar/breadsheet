@@ -87,13 +87,13 @@ class TestAlertFilter:
 
 class TestEtagsAndPollInterval:
     def test_the_interval_is_a_minute_while_a_fancy_bake_is_active(self, device, baker, loaf):
-        assert device().headers['X-Breadsheet-Poll-Interval'] == '900'
+        assert device().headers['X-Breadsheet-Poll-Interval'] == '120'
         started(baker, loaf['id'], alert_mode='fancy')
         assert device().headers['X-Breadsheet-Poll-Interval'] == '60'
 
     def test_simple_bakes_dont_speed_up_polling(self, device, baker, loaf):
         started(baker, loaf['id'])
-        assert device().headers['X-Breadsheet-Poll-Interval'] == '900'
+        assert device().headers['X-Breadsheet-Poll-Interval'] == '120'
 
     def test_completed_lists_have_no_interval(self, baker):
         assert 'X-Breadsheet-Poll-Interval' not in baker.get('/api/v2/bakes?status=completed').headers

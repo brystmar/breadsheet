@@ -39,9 +39,9 @@ ALERT_MODES = ('simple', 'fancy')
 MAX_IDEMPOTENCY_KEY = 200
 CLOCK_SKEW = timedelta(minutes=5)
 # Suggested seconds until HA's next poll (X-Breadsheet-Poll-Interval): every minute while a Fancy bake is
-# active, every 15 minutes otherwise (spec: HA integration, Polling)
+# active, every 2 minutes otherwise (spec: HA integration, Polling)
 POLL_ACTIVE = 60
-POLL_IDLE = 900
+POLL_IDLE = 120
 
 
 ## Parsing ##
