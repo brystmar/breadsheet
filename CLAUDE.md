@@ -609,9 +609,11 @@ docker compose up -d breadsheet-db   # local Postgres 18 on port 5433 (data in t
   default recipes at `/admin/recipes`
 - Admin users, key reset, rename, and metrics (breadsheet#87, breadsheet-ui#66) live since 2026-11-09, at
   `/admin/users` and `/admin/metrics`; no migration
-- App Engine versions use an `m3` prefix from M3 on. `m3d` serves all traffic (since 2026-11-09) and is
-  the only version: every older one, including `py314` (the DynamoDB version), was deleted on 2026-11-09
-  because their uploads included local secrets. There's no rollback version; a fix is a new deploy
+- `POST /api/v2/devices` returns the paired `user` (breadsheet#90, for breadsheet-hass#1) since 2026-11-09;
+  no migration
+- App Engine versions use an `m3` prefix from M3 on. `m3e` serves all traffic (since 2026-11-09); `m3d` is
+  kept as the rollback. Every version before `m3d`, including `py314` (the DynamoDB version), was deleted on
+  2026-11-09 because their uploads included local secrets. Keep the previous version as the rollback
 - Deploys honor `.gitignore` since 2026-11-09 (`.gcloudignore` had `!include:.gitignore` instead of
   `#!include:.gitignore`, so `.env`, `env_variables.yaml`, `.aws/` and other local files were uploaded).
   Check with `gcloud meta list-files-for-upload` after changing either ignore file
