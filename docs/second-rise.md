@@ -1,6 +1,6 @@
 # Breadsheet Second Rise: Spec & Backlog
 
-Nov 1, 2026 · updated Nov 5, 2026 · @Thomas
+Nov 1, 2026 · updated Nov 9, 2026 · @Thomas
 
 ## Overview
 
@@ -54,7 +54,7 @@ Every question raised during scoping is settled; these are the answers the rest 
 | Recipe import | Agents import recipes (from pasted text, a photo, or a URL) through the Breadsheet LLM API's `import_recipe` tool. Imports are saved as drafts the owner reviews and saves before use. |
 | Schedule fitting | Out of scope. Agents try anchors and waits with `preview_schedule` and pick one themselves. Server-side fitting is parked. |
 | HA integration shape | Custom integration in its own repo (`breadsheet-hass`), distributed via the Home Assistant Marketplace (built-in successor to HACS as of HA 2026.11). Not an add-on. |
-| Data flow | HA polls breadsheet (outbound only). No webhooks, and breadsheet never connects to HA. Agent access to HA requires the user's HA to be reachable from the internet (Home Assistant Cloud or equivalent); that is the user's choice and is documented. Local-only users still get everything else, and can use Assist with a local model. |
+| Data flow | HA pulls everything from breadsheet with its device token. Breadsheet's only connection to HA is a webhook nudge with no content, saying "poll now", sent when a Fancy bake changes, so a bake started on breadsheet.com reaches the phone in seconds. It works when HA can be reached from the internet (Home Assistant Cloud or the user's own setup); otherwise HA's regular polling covers it. Agent access to HA requires the user's HA to be reachable from the internet (Home Assistant Cloud or equivalent); that is the user's choice and is documented. Local-only users still get everything else, and can use Assist with a local model. |
 | Identity | Username (display handle) + generated secret key. No passwords. No self-service recovery; an admin can reset a key for someone they can verify. |
 | Admin | A flag on user accounts (`is_admin`), granted only by a server-side command. Admins use their normal sign-in; the admin key stays for scripts. |
 | Recipe ownership | Admin-owned defaults visible to all. Personal recipes belong to their user; published ones also appear in the community library. Users copy defaults or community recipes into independent personal recipes. Anyone can bake any recipe they can see, without copying it first, using that recipe's waits; changing waits or ranges means copying it first ("Make it mine"). Deleting a recipe keeps its bakes. |
@@ -145,7 +145,7 @@ Nine Postgres tables replace every DynamoDB model (`Recipe`, `Step`, and `Replac
 | Table | Key columns | Notes |
 | --- | --- | --- |
 | `users` | id, username (unique, case-insensitive), key\_hash, is\_admin (default false), created\_at, last\_seen\_at | M2; `is_admin` M3. Store only hashes. |
-| `connections` | id, user\_id, label, scopes, token\_hash, created\_at, last\_used\_at, revoked\_at | M3. One row per paired HA instance. Tokens don't expire; they're revoked. |
+| `connections` | id, user\_id, label, scopes, token\_hash, created\_at, last\_used\_at, revoked\_at, webhook\_url | M3. One row per paired HA instance. Tokens don't expire; they're revoked. `webhook_url` is where nudges go (null for none); it's a secret, never logged or returned. |
 | `pairing_codes` | code\_hash, user\_id, expires\_at, used\_at | M3. HA pairing. Short-lived, single use. Only the code's SHA-256 is stored, like keys and tokens. |
 | `recipes` | id, public\_suffix (null for defaults), slug, owner\_id (null = default), source\_recipe\_id, name, author, source, url, difficulty, category (bread or prep), detail\_level (simple or detailed), is\_draft, published\_at (nullable), archived\_at, timestamps | M1 with v1 columns; the rest in M2. `archived_at` set hides a recipe from every recipe list, v1 and v2, though it still opens by id or URL. v1 recipe endpoints only ever return default recipes: personal and draft recipes never appear in v1 lists or open by id there. `source_recipe_id` records where a copy came from; no live link. `is_draft` marks agent imports awaiting review. `published_at` set means the recipe is in the community library. |
 | `recipe_steps` | id, recipe\_id, position, text, note, then\_wait (nullable), wait\_min, wait\_max, active\_seconds (nullable), needs\_presence (nullable) | M1, with `then_wait` and the detail columns in M2. `then_wait` is the step's Then Wait, the timing a bake runs on; `wait_min` and `wait_max` are the range around it. Existing steps migrate as simple: `then_wait = wait_min = wait_max` = the v1 `then_wait`, detail fields null. |
@@ -251,13 +251,20 @@ All new functionality lives under `/api/v2` on `api.breadsheet.com`. Each milest
 | `POST /api/v2/devices` | Exchange pairing code for device token | HA | M3 |
 | `GET /api/v2/connections` | List the user's paired HA instances | Browser | M3 |
 | `DELETE /api/v2/connections/<id>` | Revoke an HA instance, and every agent behind it | Browser | M3 |
+| `PUT/DELETE /api/v2/device/webhook` | Set or clear where this HA instance gets nudges (the calling device token's own connection) | HA | M3 |
 | `POST /api/v2/panel-tokens` | Short-lived token for the HA panel URL | HA | M3 |
 | `POST /api/v2/recipes/import` | Create a draft personal recipe from structured input; returns the draft, validation results, and a review link | HA | M4 |
 | `POST /api/v2/schedules/preview` | Project a recipe's full schedule for an anchor, time zone, and chosen waits, without saving anything. Returns each step's time, hands-on window, and whether it's estimated | Browser, HA | M4 |
 
 **Errors.** Every v2 error returns a JSON body with a stable `code` (such as `bake_limit_reached`, `wait_out_of_range`, `recipe_is_draft`, `fancy_requires_ha`, `scope_missing`, `completed_at_invalid`, `skipped_at_invalid`, `service_unavailable`) and a plain-language `message` that says what to do next, so a client or agent can recover without guessing. `service_unavailable` comes with HTTP 503 and a `Retry-After` header.
 
-**Polling support (M3).** `GET /api/v2/bakes?status=active&alert=fancy` returns an ETag and a suggested next poll interval. When the user has no active Fancy bakes, the server answers from a cache without querying Postgres, so idle polls never wake the Neon database.
+**Polling support (M3).** `GET /api/v2/bakes?status=active&alert=fancy` returns an ETag and a suggested next poll interval: 60 seconds while the user has an active Fancy bake, 2 minutes otherwise. When the user has no active Fancy bakes, the server answers from a cache without querying Postgres, so idle polls never wake the Neon database.
+
+**Webhook nudges (M3).** Polling alone means a bake started on breadsheet.com takes up to 2 minutes to reach HA. So each HA instance can register a webhook (`PUT /api/v2/device/webhook`), and breadsheet nudges it right after saving any change to a Fancy bake: starting one, switching a bake to or from Fancy, changing the schedule, and check-offs, skips, completing and canceling from the browser. Calls made with that HA's own device token don't nudge it.
+- **No content.** The nudge is an empty POST. HA then polls as usual with its device token, so a webhook URL can't be used to feed HA data, and anyone who learns it can at most make HA poll early.
+- **Best effort.** Sent with a short timeout once the change is saved; a slow or failing webhook never delays or fails the change. Nothing is retried: the regular poll catches anything missed. A `404` or `410` clears the stored URL.
+- **Safe to call.** Breadsheet only calls `https` URLs on port 443 whose host resolves to public addresses only, checked at send time, without following redirects, and with no credentials in the URL. Anything else is refused when it's registered.
+- **Secret.** A webhook URL works like a password (Home Assistant Cloud's cloudhook URLs are long and random), so it's stored only on the connection, never logged, and never returned by the API. Revoking a connection drops it.
 
 **Cache.** App Engine's shared memcache, the free tier of the bundled memcache service (dedicated memcache is billed per GB-hour and not needed). Capacity is best-effort with no guarantees, which is fine: the cache only holds data that can be rebuilt. It stores the rate-limit counters (from M2) and each user's "no active Fancy bakes" flag (from M3, cleared when a Fancy bake starts or a bake switches to Fancy). A missing entry costs at most one Postgres wake-up or a reset rate-limit count. It requires the `appengine-python-standard` SDK, which pins `urllib3<2`, plus the bundled-services setting in `app.yaml`. Google's docs show both `app_engine_apis: true` and `app_engine_bundled_services: [memcache]`, so confirm which one applies to `python314` when setting it up in [breadsheet#26](https://github.com/brystmar/breadsheet/issues/26).
 
@@ -279,7 +286,7 @@ Each bake picks its alerts when it starts, with two radio options on the Start b
 
 ## HA integration (breadsheet-hass)
 
-Arrives in M3, with agent tools added in M4. The integration pulls active Fancy bakes from breadsheet and exposes them as HA entities; a bundled blueprint turns those into notifications and Live Activities. Simple bakes never appear in HA. Breadsheet never connects to the user's HA.
+Arrives in M3, with agent tools added in M4. The integration pulls active Fancy bakes from breadsheet and exposes them as HA entities; a bundled blueprint turns those into notifications and Live Activities. Simple bakes never appear in HA. Breadsheet's only connection to the user's HA is the webhook nudge (see API v2, Webhook nudges).
 
 **Distribution.** Starting with HA 2026.11, HACS is built into Home Assistant as the Marketplace (Settings → Marketplace). Implications for breadsheet-hass:
 
@@ -290,7 +297,9 @@ Arrives in M3, with agent tools added in M4. The integration pulls active Fancy 
 
 **Setup.** A config flow asks for the pairing code from breadsheet, exchanges it for a device token, and stores the token in the config entry.
 
-**Polling.** Every 60 seconds while a Fancy bake is active; every 15 to 30 minutes otherwise, honoring the server's suggested interval, ETag, and any `Retry-After`.
+**Polling.** Every 60 seconds while a Fancy bake is active; every 2 minutes otherwise, honoring the server's suggested interval, ETag, and any `Retry-After`.
+
+**Webhook.** At setup the integration registers an HA webhook and sends its URL with `PUT /api/v2/device/webhook`: a Home Assistant Cloud cloudhook when the user has one, otherwise HA's external URL, and nothing when HA has no external URL (polling covers it). A nudge asks the coordinator for a refresh through its debouncer, so a burst of nudges costs at most one extra poll every few seconds. Removing the integration clears the webhook. Verify HA's webhook and cloudhook helpers against current HA when building this.
 
 **Outage behavior.** A failed poll must not take entities down. By default HA's `DataUpdateCoordinator` marks entities unavailable when an update fails, which would silence calendar triggers and notifications mid-bake. The coordinator keeps serving the last successful data, exposes its age as a "last synced" attribute, and logs failures without marking entities unavailable until data is clearly stale (past the bake's projected end). `breadsheet.complete_step` records `completed_at` when called, queues the call if breadsheet is unreachable, and retries with backoff; the local schedule re-projects immediately so notifications stay correct.
 
@@ -499,6 +508,7 @@ Second Rise breaks into seven epics across four milestones. Rows are in rough bu
 | [breadsheet#33](https://github.com/brystmar/breadsheet/issues/33) | Idle-poll cache (using the memcache from [breadsheet#26](https://github.com/brystmar/breadsheet/issues/26)), suggested poll interval, and the `alert=fancy` filter | Recipes and bakes | M3 |
 | [breadsheet-hass#1](https://github.com/brystmar/breadsheet-hass/issues/1) | Repo scaffold, Marketplace manifest, release-asset packaging, config flow with pairing | HA integration | M3 |
 | [breadsheet-hass#2](https://github.com/brystmar/breadsheet-hass/issues/2) | Adaptive polling coordinator that keeps serving last good data on failed polls, honors `Retry-After`, and exposes last-synced time | HA integration | M3 |
+| [breadsheet#93](https://github.com/brystmar/breadsheet/issues/93), [breadsheet-hass#13](https://github.com/brystmar/breadsheet-hass/issues/13) | Webhook nudges: `PUT/DELETE /api/v2/device/webhook`, `connections.webhook_url`, and nudges after Fancy bake changes (breadsheet); register a webhook or cloudhook at setup and refresh on a nudge (breadsheet-hass) | HA integration | M3 |
 | [breadsheet-hass#3](https://github.com/brystmar/breadsheet-hass/issues/3) | Calendar entity and bake sensors that stay available through outages | HA integration | M3 |
 | [breadsheet-hass#4](https://github.com/brystmar/breadsheet-hass/issues/4) | `complete_step` action with client-supplied `completed_at`, a retry queue, and immediate local re-projection | HA integration | M3 |
 | [breadsheet-hass#5](https://github.com/brystmar/breadsheet-hass/issues/5) | Sidebar panel with panel tokens | HA integration | M3 |
