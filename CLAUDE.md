@@ -597,10 +597,13 @@ docker compose up -d breadsheet-db   # local Postgres 18 on port 5433 (data in t
   `test-dev-01`–`05` and `test-prod-01`–`05` exist, keys with Thomas
 - Username availability check and stricter username rules (breadsheet#83) live since 2026-11-08
 - M3 started. HA pairing codes, device tokens with scopes, and connections (breadsheet#27) live since
-  2026-11-08; production Postgres is at migration `0011`. No pairing UI yet (breadsheet-ui#29)
-- App Engine versions use an `m3` prefix from M3 on. `m3a` serves all traffic (since 2026-11-08); `m2p` is
-  the rollback target (same API without the pairing, device, and connection endpoints; the `0011` tables
-  are new, so it runs fine on them). `m2o` and older predate the username rules.
+  2026-11-08. The pairing UI on `/profile` (breadsheet-ui#29) is live since 2026-11-09
+- Admin flag (breadsheet#86) live since 2026-11-09; production Postgres is at migration `0012`. Admins in
+  production: `admin`, `brystmar`, `rak`, `tberg` (keys with Thomas). The admin UI (breadsheet-ui#65) curates
+  default recipes at `/admin/recipes`
+- App Engine versions use an `m3` prefix from M3 on. `m3b` serves all traffic (since 2026-11-09); `m3a` is
+  the rollback target (no admin sessions or admin recipe list, but the admin key works and it ignores
+  `is_admin`). `m2p` predates pairing; `m2o` and older predate the username rules.
   `py314` (the DynamoDB version) is kept until DynamoDB is retired
 
 ## Second Rise spec
