@@ -55,7 +55,8 @@ Every question raised during scoping is settled; these are the answers the rest 
 | Schedule fitting | Out of scope. Agents try anchors and waits with `preview_schedule` and pick one themselves. Server-side fitting is parked. |
 | HA integration shape | Custom integration in its own repo (`breadsheet-hass`), distributed via the Home Assistant Marketplace (built-in successor to HACS as of HA 2026.11). Not an add-on. |
 | Data flow | HA polls breadsheet (outbound only). No webhooks, and breadsheet never connects to HA. Agent access to HA requires the user's HA to be reachable from the internet (Home Assistant Cloud or equivalent); that is the user's choice and is documented. Local-only users still get everything else, and can use Assist with a local model. |
-| Identity | Username (display handle) + generated secret key. No passwords, no recovery in v1. |
+| Identity | Username (display handle) + generated secret key. No passwords. No self-service recovery; an admin can reset a key for someone they can verify. |
+| Admin | A flag on user accounts (`is_admin`), granted only by a server-side command. Admins use their normal sign-in; the admin key stays for scripts. |
 | Recipe ownership | Admin-owned defaults visible to all. Personal recipes belong to their user; published ones also appear in the community library. Users copy defaults or community recipes into independent personal recipes. Anyone can bake any recipe they can see, without copying it first, using that recipe's waits; changing waits or ranges means copying it first ("Make it mine"). Deleting a recipe keeps its bakes. |
 | Step timing | Each step stores a min and max wait; bakes store the chosen value. Out-of-range allowed, flagged. |
 | Recipe detail | Optional, in one schema. **Simple** (the default): one wait per step, as today. **Detailed:** adds wait ranges, hands-on time, and a "needs you home" flag. A recipe can switch at any time. Missing detail means *unknown*, never zero. |
@@ -88,7 +89,7 @@ Every question raised during scoping is settled; these are the answers the rest 
 
 ## Identity and ownership
 
-A user is a username plus a secret key; whoever holds the key is that user. There are no passwords and, in v1, no recovery.
+A user is a username plus a secret key; whoever holds the key is that user. There are no passwords and no self-service recovery; an admin can reset a key (see Admin).
 
 **Signup**
 
@@ -128,7 +129,12 @@ A user is a username plus a secret key; whoever holds the key is that user. Ther
 - **Personal:** created from scratch or copied from any recipe the user can see (a default, a community recipe, or a shared personal recipe). Copies are fully independent of their source. This is the default for new recipes; there shouldn't be a visible option that indicates otherwise. Anyone with the link can view a personal recipe read-only and copy it; only the owner can edit. A copy becomes the copier's own personal recipe, with its own URL suffix, fully editable.
 - **Community:** a personal recipe its owner has published. It's listed in the community library for everyone, including incognito, and anyone can copy it into their own collection, exactly like a default. Only the owner can edit it, and edits show in the community version right away. The owner can unpublish at any time; copies people already made are unaffected. Drafts can't be published, and a recipe must pass validation to be published. The admin key can unpublish any recipe.
 
-**Admin.** Defaults are managed with a separate admin key in server config, not a user role. The same key can unpublish community recipes.
+**Admin.** Admins are ordinary users with `is_admin` set ([breadsheet#86](https://github.com/brystmar/breadsheet/issues/86)). They sign in like anyone else; there's no separate admin password.
+
+- **Granting** is only by a server-side command (`flask --app main admins grant|revoke|list`), run like a migration. No API grants admin, so it can't be granted from the website. `admins create` makes a user directly (for names signup refuses, like `admin`) and writes the key to a file.
+- **Access.** Every `/api/v2/admin/*` route accepts a signed-in admin's session. Device tokens never carry admin power, even an admin's own Home Assistant's. The admin key in server config (only its hash is stored) keeps working for scripts such as `etc/admin_recipes.py`.
+- **What admins can do:** curate default recipes (create, edit, archive) and unpublish any community recipe (phase 1); list users, with activity (phase 2); reset a user's key and rename a user (phase 3); and read the usage metrics (phase 4). Phases 2 to 4 are [breadsheet#87](https://github.com/brystmar/breadsheet/issues/87).
+- **Key reset policy.** Only for someone the admin can verify personally. It issues a new key, shown once to the admin to hand over; the old key stops working and every session for that user ends (the cookie's key fingerprint no longer matches). Each reset records a `key_reset` event.
 
 **Groundwork for later.** Store `last_seen_at` per user so abandoned-username reclamation can become a policy rather than a migration.
 
@@ -138,7 +144,7 @@ Nine Postgres tables replace every DynamoDB model (`Recipe`, `Step`, and `Replac
 
 | Table | Key columns | Notes |
 | --- | --- | --- |
-| `users` | id, username (unique, case-insensitive), key\_hash, created\_at, last\_seen\_at | M2. Store only hashes. |
+| `users` | id, username (unique, case-insensitive), key\_hash, is\_admin (default false), created\_at, last\_seen\_at | M2; `is_admin` M3. Store only hashes. |
 | `connections` | id, user\_id, label, scopes, token\_hash, created\_at, last\_used\_at, revoked\_at | M3. One row per paired HA instance. Tokens don't expire; they're revoked. |
 | `pairing_codes` | code\_hash, user\_id, expires\_at, used\_at | M3. HA pairing. Short-lived, single use. Only the code's SHA-256 is stored, like keys and tokens. |
 | `recipes` | id, public\_suffix (null for defaults), slug, owner\_id (null = default), source\_recipe\_id, name, author, source, url, difficulty, category (bread or prep), detail\_level (simple or detailed), is\_draft, published\_at (nullable), archived\_at, timestamps | M1 with v1 columns; the rest in M2. `archived_at` set hides a recipe from every recipe list, v1 and v2, though it still opens by id or URL. v1 recipe endpoints only ever return default recipes: personal and draft recipes never appear in v1 lists or open by id there. `source_recipe_id` records where a copy came from; no live link. `is_draft` marks agent imports awaiting review. `published_at` set means the recipe is in the community library. |
@@ -233,9 +239,14 @@ All new functionality lives under `/api/v2` on `api.breadsheet.com`. Each milest
 | `POST /api/v2/bakes/<id>/steps/<pos>/complete` | Check off a step at the client-supplied `completed_at`; idempotent, first write wins | All | M2 |
 | `POST /api/v2/bakes/<id>/steps/<pos>/skip` | Skip a step that isn't done, at the client-supplied `skipped_at`; idempotent, first write wins | All | M2 |
 | `POST /api/v2/events` | Record a product event that happens only in the browser, from an allow-list (M2: `ics_exported` for one of the caller's bakes) | Browser | M2 |
-| `POST /api/v2/admin/recipes` | Create a default recipe (admin key) | Admin | M2 |
-| `PUT/DELETE /api/v2/admin/recipes/<id>` | Edit or archive a default recipe (admin key); slug never changes | Admin | M2 |
-| `DELETE /api/v2/admin/recipes/<id>/publish` | Unpublish any community recipe (admin key) | Admin | M2 |
+| `GET /api/v2/admin/recipes` | Every default recipe, archived ones included, for curation | Admin | M3 |
+| `POST /api/v2/admin/recipes` | Create a default recipe | Admin | M2 |
+| `PUT/DELETE /api/v2/admin/recipes/<id>` | Edit or archive a default recipe; slug never changes | Admin | M2 |
+| `DELETE /api/v2/admin/recipes/<id>/publish` | Unpublish any community recipe | Admin | M2 |
+| `GET /api/v2/admin/users` | Users with joined, last seen, and recipe and bake counts; filters for active and test users | Admin | M3 |
+| `POST /api/v2/admin/users/<id>/key` | Reset a user's key; returns the new key once | Admin | M3 |
+| `PATCH /api/v2/admin/users/<id>` | Rename a user | Admin | M3 |
+| `GET /api/v2/admin/metrics` | The usage metrics, test users excluded | Admin | M3 |
 | `POST /api/v2/pairing-codes` | Issue a short-lived HA pairing code | Browser | M3 |
 | `POST /api/v2/devices` | Exchange pairing code for device token | HA | M3 |
 | `GET /api/v2/connections` | List the user's paired HA instances | Browser | M3 |
@@ -383,6 +394,7 @@ The current schedule table stays nearly untouched; new information goes into sep
 - **Active bake bar (M2):** under the header on every page except the bake view, so it follows the baker around. It shows the bake's name, the step in progress with a progress bar and its time run and left, and the next step with its length (`15m`, `2h30m`). Clicking it opens the bake view; its own "Done, start next" button checks off the next step without leaving the page.
 - **Identity flows:** pick username (with the rules as a live checklist and an availability check about half a second after typing stops and on blur: "Checking…", then "Available" or the server's reason; Register is disabled only once the answer is "not available," so a check still running never swallows a click and a failed check never blocks; signup has the final say), save-your-key screen (copy, QR, link), and a profile page (`/profile`, opened from the username in the header) showing who's signed in, with a Devices section on using breadsheet elsewhere (M2); pair Home Assistant (pairing code) and a connections list of paired HA instances with revoke (M3). Revoking notes that it also disconnects any assistants using that Home Assistant.
 - **Active bakes list (M2):** up to three, above the recipe list on the home page, each linking to its bake view.
+- **Admin (M3):** for admins only (everyone else sees nothing new, and `/admin` sends them home). An "Admin" link on the profile and an "Edit default" button on default recipes. `/admin/recipes` lists every default (archived ones marked) with Edit, New default, and Archive, using the regular recipe editor without the draft option ([breadsheet-ui#65](https://github.com/brystmar/breadsheet-ui/issues/65)). Later: `/admin/users` (list, activity, key reset that shows the new key on the save-your-key screen, rename) and `/admin/metrics` ([breadsheet-ui#66](https://github.com/brystmar/breadsheet-ui/issues/66)).
 
 The plan, start bake, and bake views were mocked up at phone and desktop sizes before implementation ([breadsheet-ui#30](https://github.com/brystmar/breadsheet-ui/issues/30)); the choices above came from that review.
 
@@ -494,6 +506,10 @@ Second Rise breaks into seven epics across four milestones. Rows are in rough bu
 | [breadsheet-hass#7](https://github.com/brystmar/breadsheet-hass/issues/7) | Live Activities in blueprint (opt-in) | HA integration | M3 |
 | [breadsheet-hass#8](https://github.com/brystmar/breadsheet-hass/issues/8) | README and Marketplace submission | HA integration | M3 |
 | [breadsheet-ui#40](https://github.com/brystmar/breadsheet-ui/issues/40) | Enable the Fancy option at bake start; route to HA pairing when no HA is paired | UI | M3 |
+| [breadsheet#86](https://github.com/brystmar/breadsheet/issues/86) | Admin flag on users (`admins` command), admin access by session, `is_admin` on the user object, admin list of defaults | Identity | M3 |
+| [breadsheet-ui#65](https://github.com/brystmar/breadsheet-ui/issues/65) | Admin: curate default recipes with the recipe editor | UI | M3 |
+| [breadsheet#87](https://github.com/brystmar/breadsheet/issues/87) | Admin: users list, key reset, rename, and metrics endpoints | Identity | M3 |
+| [breadsheet-ui#66](https://github.com/brystmar/breadsheet-ui/issues/66) | Admin: users, key reset, rename, and metrics pages | UI | M3 |
 | [breadsheet#45](https://github.com/brystmar/breadsheet/issues/45) | Schedule preview endpoint (no save), with hands-on windows and estimated flags | Recipes and bakes | M4 |
 | [breadsheet-hass#9](https://github.com/brystmar/breadsheet-hass/issues/9) | Breadsheet LLM API: register with HA; tools for search, get, import, preview, start, list, get bake, update, complete, cancel; agent-friendly descriptions; attribution headers; verify MCP Server exposure and hint support | AI agents | M4 |
 | [breadsheet#50](https://github.com/brystmar/breadsheet/issues/50) | Recipe import endpoint: import schema, validation, draft creation, review link | AI agents | M4 |
@@ -504,7 +520,7 @@ Second Rise breaks into seven epics across four milestones. Rows are in rough bu
 - Public remote MCP server for non-HA users, with breadsheet as its own OAuth authorization server. Replaced in M4 by the Breadsheet LLM API in `breadsheet-hass`. [breadsheet#53](https://github.com/brystmar/breadsheet/issues/53)
 - Live calendar feed: a private per-user ICS subscription URL that updates as bakes change, with rotate and revoke. Deferred when Simple alerts became a per-bake export.
 - Community moderation beyond admin unpublish: a report button and a review queue, if the library sees abuse.
-- Username recovery. [breadsheet#37](https://github.com/brystmar/breadsheet/issues/37)
+- Self-service username recovery (admin key reset covers the personal cases). [breadsheet#37](https://github.com/brystmar/breadsheet/issues/37)
 - Abandoned username reclamation using `last_seen_at`. [breadsheet#38](https://github.com/brystmar/breadsheet/issues/38)
 - Dough Not Disturb (reserved name): a plan-view warning when a step lands in a user-defined sleep window. Muting stays with the phone. [breadsheet#39](https://github.com/brystmar/breadsheet/issues/39)
 - Check-off directly from a Live Activity, once the companion app supports actions on activities. [breadsheet#40](https://github.com/brystmar/breadsheet/issues/40)
