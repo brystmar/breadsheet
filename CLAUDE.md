@@ -607,9 +607,11 @@ docker compose up -d breadsheet-db   # local Postgres 18 on port 5433 (data in t
 - Admin flag (breadsheet#86) live since 2026-11-09; production Postgres is at migration `0012`. Admins in
   production: `admin`, `brystmar`, `rak`, `tberg` (keys with Thomas). The admin UI (breadsheet-ui#65) curates
   default recipes at `/admin/recipes`
-- App Engine versions use an `m3` prefix from M3 on. `m3b` serves all traffic (since 2026-11-09); `m3a` is
-  the rollback target (no admin sessions or admin recipe list, but the admin key works and it ignores
-  `is_admin`). `m2p` predates pairing; `m2o` and older predate the username rules.
+- Admin users, key reset, rename, and metrics (breadsheet#87, breadsheet-ui#66) live since 2026-11-09, at
+  `/admin/users` and `/admin/metrics`; no migration
+- App Engine versions use an `m3` prefix from M3 on. `m3c` serves all traffic (since 2026-11-09); `m3b` is
+  the rollback target (same API without the admin users and metrics endpoints). `m3a` predates admin
+  sessions; `m2p` predates pairing; `m2o` and older predate the username rules.
   `py314` (the DynamoDB version) is kept until DynamoDB is retired
 
 ## Second Rise spec
