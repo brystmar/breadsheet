@@ -1,7 +1,7 @@
 """
 Idle Home Assistant polls without Postgres (breadsheet#33).
 
-HA polls `GET /api/v2/bakes?status=active&alert=fancy` every 15 to 30 minutes even when nothing is baking. If
+HA polls `GET /api/v2/bakes?status=active&alert=fancy` every 2 minutes even when nothing is baking. If
 each poll queried Postgres, Neon would never suspend. So two things live in the shared cache:
 
 - **Device tokens.** After a token checks out against Postgres, its user and scopes are remembered for a day,

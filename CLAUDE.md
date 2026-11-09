@@ -298,7 +298,7 @@ Changes from the DynamoDB version: GET requests never write, and recipe writes a
 | `DELETE /api/v2/admin/recipes/<id>` | Archive a default (admin key); 204, and archiving again keeps the time. No unarchive endpoint |
 | `DELETE /api/v2/admin/recipes/<id>/publish` | Unpublish anyone's recipe (admin key) |
 | `POST /api/v2/bakes` | Start a bake: `recipe_id`, `anchor_type`, `anchor_time` (ISO 8601 with offset), `time_zone`, optional `alert_mode`, `waits` ([{position, wait_chosen}]) and `start_at_step` (start partway through; earlier steps are skipped). Honors `Idempotency-Key` (a repeat returns the original, 200) |
-| `GET /api/v2/bakes?status=active\|completed&alert=simple\|fancy` | The caller's active bakes (default) or newest 50 completed, with schedules; `alert` filters by alert mode (400 `alert_invalid`). ETag with 304s, and `X-Breadsheet-Poll-Interval` (60 with an active Fancy bake, else 900) on active lists. HA's idle polls are answered from the cache (see Idle polls) |
+| `GET /api/v2/bakes?status=active\|completed&alert=simple\|fancy` | The caller's active bakes (default) or newest 50 completed, with schedules; `alert` filters by alert mode (400 `alert_invalid`). ETag with 304s, and `X-Breadsheet-Poll-Interval` (60 with an active Fancy bake, else 120) on active lists. HA's idle polls are answered from the cache (see Idle polls) |
 | `GET /api/v2/bakes/<id>`, `/bakes/by-suffix/<suffix>` | One bake (owner only; others get 404) |
 | `PATCH /api/v2/bakes/<id>` | Change waits or alert mode; the anchor only before the first check-off (409 `bake_in_progress`) |
 | `POST /api/v2/bakes/<id>/complete` | Finish it: remaining steps are checked off at `completed_at` (default now); outcome `finished`. Repeating changes nothing |
@@ -405,7 +405,7 @@ per 15 minutes, 5 signups per hour, and 60 username checks per minute, returning
 `X-Appengine-User-Ip` (`api.breadsheet.com` is DNS-only in Cloudflare). Counters live in
 `backend/cache.py`; if the cache fails, requests go through.
 
-**Idle polls** (`backend/poll_cache.py`, breadsheet#33): HA polls `status=active&alert=fancy` every 15 minutes
+**Idle polls** (`backend/poll_cache.py`, breadsheet#33): HA polls `status=active&alert=fancy` every 2 minutes
 even with nothing baking, and those polls must not wake Neon. A device token that passed the Postgres check is
 cached for a day (keyed on its hash; revoking deletes it), and a poll that finds no active Fancy bakes leaves a
 note tagged with the user's Fancy generation, a random value replaced after a Fancy bake starts or a bake switches
