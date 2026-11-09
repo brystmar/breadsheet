@@ -1,10 +1,10 @@
 """Pairing Home Assistant and managing its connections: /api/v2/pairing-codes, /devices, /connections (breadsheet#27)."""
 import logging
-from backend import poll_cache, rate_limits
+from backend import nudges, poll_cache, rate_limits
 from backend.api_v2 import ApiError, api_v2, json_body
 from backend.database import db
 from backend.devices import (CODE_LIFETIME, DEVICE_SCOPES, clean_label, hash_secret, new_device_token,
-                             new_pairing_code, normalized_code)
+                             new_pairing_code, normalized_code, request_connection)
 from backend.models import Connection, PairingCode, utc_now
 from backend.recipe_routes_v2 import require_user
 from sqlalchemy import delete, select
@@ -87,7 +87,41 @@ def revoke_connection(connection_id):
     if connection is None or connection.revoked_at is not None:
         raise ApiError(404, 'not_found', "That connection doesn't exist.")
     connection.revoked_at = utc_now()
+    connection.webhook_url = None
     db.session.commit()
     poll_cache.forget_token(connection.token_hash)  # so idle polls stop answering for it too
     logger.info("User %s revoked connection %s", user.id, connection.id)
+    return '', 204
+
+
+def calling_connection():
+    """The connection whose device token made this request; browser sessions can't set webhooks."""
+    require_user('bakes:read')
+    connection = request_connection()
+    if connection is None:
+        raise ApiError(403, 'scope_missing', "Only Home Assistant can set its webhook, with its device token.")
+    return connection
+
+
+@api_v2.put('/device/webhook')
+def set_webhook():
+    """Where this Home Assistant gets "poll now" nudges (breadsheet#93). The URL is a secret: never logged or returned."""
+    connection = calling_connection()
+    url = json_body().get('url')
+    problem = nudges.url_problem(url)
+    if problem is not None:
+        raise ApiError(400, 'webhook_url_invalid', problem)
+    connection.webhook_url = url
+    db.session.commit()
+    logger.info("Connection %s set its webhook", connection.id)
+    return '', 204
+
+
+@api_v2.delete('/device/webhook')
+def clear_webhook():
+    """Stop nudging this Home Assistant; it still polls."""
+    connection = calling_connection()
+    connection.webhook_url = None
+    db.session.commit()
+    logger.info("Connection %s cleared its webhook", connection.id)
     return '', 204

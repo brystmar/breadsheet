@@ -87,6 +87,7 @@ Every error is JSON with a stable `code` and a plain-language `message` that say
 | `username_invalid` | 400 | Usernames are 3 to 30 letters, digits, `_` or `-`, starting with a letter, not reserved, and not refused by the word filter |
 | `username_taken` | 409 | Someone has that username, ignoring case and treating `-` and `_` as the same |
 | `wait_out_of_range` | 400 | A wait isn't 0 seconds to 30 days |
+| `webhook_url_invalid` | 400 | A webhook isn't an https URL on port 443 at a public address, or has credentials in it |
 
 ## Objects
 
@@ -323,6 +324,12 @@ Your paired Home Assistant instances, newest first; revoked ones are left out. *
 
 ### `DELETE /api/v2/connections/<connection_id>`
 Revoke a connection: its token stops working at once, along with every agent calling through it. **Auth:** session; owner. **204.** **Errors:** `not_found` (including one already revoked), `not_signed_in`.
+
+### `PUT /api/v2/device/webhook`
+Set where this Home Assistant gets "poll now" nudges (M3, breadsheet#93): right after any saved change to one of the user's Fancy bakes (starting one, switching a bake to or from Fancy, schedule changes, check-offs, skips, completing, canceling), breadsheet POSTs `{}` to it, with a 2-second timeout and no retries; a `404` or `410` clears it. Calls made with this connection's own token don't nudge it. The nudge carries no data: HA polls `GET /api/v2/bakes` as usual. The URL must be `https` on port 443, without credentials, and resolve only to public addresses (checked now and before each nudge); redirects aren't followed. It's a secret: never logged or returned. Revoking the connection clears it. **Auth:** device token with `bakes:read` (browser sessions get 403 `scope_missing`). **Body:** `url`. **204.** **Errors:** `webhook_url_invalid`, `body_invalid`, `scope_missing`, `token_invalid`.
+
+### `DELETE /api/v2/device/webhook`
+Stop nudging this Home Assistant; it keeps polling. **Auth:** device token with `bakes:read`. **204.** **Errors:** `scope_missing`, `token_invalid`.
 
 ### `GET /api/v2/admin/recipes`
 Every default recipe for curation, archived ones included (last), by name. **Auth:** admin. **200:** `{"recipes": [recipe summary]}`. **Errors:** `admin_key_invalid`, `admin_required`, `not_signed_in`, `scope_missing`, `rate_limited`.
