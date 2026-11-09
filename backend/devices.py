@@ -6,6 +6,7 @@ that user and carrying all four scopes. Codes and tokens are random, so SHA-256 
 keys); only hashes are stored. Tokens don't expire; they're revoked.
 """
 import re
+from backend import poll_cache
 from backend.api_v2 import ApiError
 from backend.database import db
 from backend.models import Connection, utc_now
@@ -70,6 +71,9 @@ def bearer_token() -> str | None:
 
 def device_connection(token: str) -> Connection:
     """The live connection for a device token, remembered for the request; 401 `token_invalid` if none."""
+    # Keyed on the token too: Flask's test client can keep one app context (and `g`) across requests
+    if g.get('connection_token') != token:
+        g.pop('connection', None)
     if 'connection' not in g:
         connection = db.session.scalar(select(Connection).where(Connection.token_hash == hash_secret(token)))
         if connection is None or connection.revoked_at is not None:
@@ -78,7 +82,9 @@ def device_connection(token: str) -> Connection:
         if connection.last_used_at is None or now - connection.last_used_at >= LAST_USED_RESOLUTION:
             connection.last_used_at = now
             db.session.commit()
-        g.connection = connection
+        # Lets HA's idle polls skip Postgres for a day (breadsheet#33); revoking forgets it
+        poll_cache.remember_token(connection.token_hash, connection.user_id, connection.scopes)
+        g.connection, g.connection_token = connection, token
     return g.connection
 
 

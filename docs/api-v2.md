@@ -49,6 +49,7 @@ Every error is JSON with a stable `code` and a plain-language `message` that say
 | --- | --- | --- |
 | `admin_key_invalid` | 401 | Missing or wrong admin key |
 | `admin_required` | 403 | Signed in, but not an admin |
+| `alert_invalid` | 400 | Unknown `alert` filter |
 | `bake_already_over` | 400 | The schedule would already be over |
 | `bake_completed` | 409 | The bake has ended, so it can't change |
 | `bake_id_invalid` | 400 | An event needs a `bake_id` |
@@ -61,7 +62,7 @@ Every error is JSON with a stable `code` and a plain-language `message` that say
 | `completed_at_invalid` | 400 | `completed_at` is missing, malformed, in the future, or before the bake started |
 | `default_read_only` | 403 | Default recipes can't be changed by users |
 | `event_type_invalid` | 400 | The event type isn't on the allow-list |
-| `fancy_requires_ha` | 409 | Fancy alerts need Home Assistant (M3) |
+| `fancy_requires_ha` | 409 | Fancy alerts need a paired Home Assistant that hasn't been revoked |
 | `http_error` | varies | Any other HTTP error |
 | `idempotency_key_invalid` | 400 | `Idempotency-Key` is empty or too long |
 | `internal_error` | 500 | Something unexpected went wrong |
@@ -277,10 +278,15 @@ Published recipes, newest first, up to 200. **Auth:** none (a device token needs
 **Recipe body** (create and update): `name` (required unless a draft, up to 200 characters), `author`, `source` (up to 200), `url` (http or https, up to 2000), `difficulty`, `detail_level`, `is_draft`, `category`, `prerequisites` (recipe ids: prep recipes you can see, up to 10, only on bread recipes), and `steps` (up to 100), each with `id` (to keep an existing step), `text` (required unless a draft, up to 1000), `note` (up to 5000), `then_wait`, `wait_min`, `wait_max` (seconds, 0 to 30 days; min ≤ max), `active_seconds`, and `needs_presence`. Missing fields mean simple, not a draft, and unknown.
 
 ### `GET /api/v2/bakes`
-Your active bakes (default), or your 50 most recently completed (`status=completed`). **Auth:** session, or device token with `bakes:read`. **Query:** `status` (`active` or `completed`). **200:** `{"bakes": [bake]}`. **Errors:** `status_invalid`, `not_signed_in`.
+Your active bakes (default), or your 50 most recently completed (`status=completed`). **Auth:** session, or device token with `bakes:read`. **Query:** `status` (`active` or `completed`); `alert` (`simple` or `fancy`, M3) keeps only bakes with that alert mode. **200:** `{"bakes": [bake]}`. **Errors:** `status_invalid`, `alert_invalid`, `not_signed_in`.
+
+Polling (M3, breadsheet#33). Home Assistant polls `status=active&alert=fancy`.
+- **ETag.** Every response has an `ETag`. Send it back as `If-None-Match`; if nothing changed, the answer is 304 with no body.
+- **Poll interval.** Active lists carry `X-Breadsheet-Poll-Interval`, the suggested seconds until the next poll: 60 while you have an active Fancy bake, otherwise 900. It's on 304s too.
+- **Idle polls.** A device token's poll for Fancy bakes, from a user with none, may be answered from a cache without checking the database. So for up to a day after its connection is revoked, a token can still get an empty list there instead of `token_invalid`; every other request refuses it at once.
 
 ### `POST /api/v2/bakes`
-Start a bake from any recipe you can see. Up to three active at once. **Auth:** session, or device token with `bakes:write` (the bake records `created_via: ha`). **Headers:** optional `Idempotency-Key`. **Body:** `recipe_id`, `anchor_type`, `anchor_time`, `time_zone` (required); `alert_mode` (default `simple`), `waits` (`[{"position", "wait_chosen"}]`, overrides), `start_at_step` (a position; earlier steps are skipped and the bake starts in progress). **201:** `{"bake"}` (200 for a repeated `Idempotency-Key`). **Errors:** `bake_invalid`, `wait_out_of_range`, `bake_already_over`, `bake_limit_reached`, `recipe_is_draft`, `recipe_has_no_steps`, `fancy_requires_ha`, `idempotency_key_invalid`, `not_found`, `not_signed_in`.
+Start a bake from any recipe you can see. Up to three active at once. **Auth:** session, or device token with `bakes:write` (the bake records `created_via: ha`). **Headers:** optional `Idempotency-Key`. **Body:** `recipe_id`, `anchor_type`, `anchor_time`, `time_zone` (required); `alert_mode` (default `simple`; `fancy` needs a paired Home Assistant), `waits` (`[{"position", "wait_chosen"}]`, overrides), `start_at_step` (a position; earlier steps are skipped and the bake starts in progress). **201:** `{"bake"}` (200 for a repeated `Idempotency-Key`). **Errors:** `bake_invalid`, `wait_out_of_range`, `bake_already_over`, `bake_limit_reached`, `recipe_is_draft`, `recipe_has_no_steps`, `fancy_requires_ha`, `idempotency_key_invalid`, `not_found`, `not_signed_in`.
 
 ### `GET /api/v2/bakes/<bake_id>`
 One of your bakes. **Auth:** session or device token with `bakes:read`; owner. **200:** `{"bake"}`. **Errors:** `not_found`, `not_signed_in`.
