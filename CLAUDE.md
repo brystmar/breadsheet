@@ -609,10 +609,12 @@ docker compose up -d breadsheet-db   # local Postgres 18 on port 5433 (data in t
   default recipes at `/admin/recipes`
 - Admin users, key reset, rename, and metrics (breadsheet#87, breadsheet-ui#66) live since 2026-11-09, at
   `/admin/users` and `/admin/metrics`; no migration
-- App Engine versions use an `m3` prefix from M3 on. `m3c` serves all traffic (since 2026-11-09); `m3b` is
-  the rollback target (same API without the admin users and metrics endpoints). `m3a` predates admin
-  sessions; `m2p` predates pairing; `m2o` and older predate the username rules.
-  `py314` (the DynamoDB version) is kept until DynamoDB is retired
+- App Engine versions use an `m3` prefix from M3 on. `m3d` serves all traffic (since 2026-11-09) and is
+  the only version: every older one, including `py314` (the DynamoDB version), was deleted on 2026-11-09
+  because their uploads included local secrets. There's no rollback version; a fix is a new deploy
+- Deploys honor `.gitignore` since 2026-11-09 (`.gcloudignore` had `!include:.gitignore` instead of
+  `#!include:.gitignore`, so `.env`, `env_variables.yaml`, `.aws/` and other local files were uploaded).
+  Check with `gcloud meta list-files-for-upload` after changing either ignore file
 
 ## Second Rise spec
 The source of truth is `./docs/second-rise.md`, in this repo. Read it before planning or executing any Second Rise work. If it needs changes, say so and stop.
