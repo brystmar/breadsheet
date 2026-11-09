@@ -1,7 +1,7 @@
 .gcloudignore
 .git
 .gitignore
-!include:.gitignore
+#!include:.gitignore
 
 # Virtual environments
 .venv
