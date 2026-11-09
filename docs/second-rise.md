@@ -305,17 +305,21 @@ Arrives in M3, with agent tools added in M4. The integration pulls active Fancy 
 
 **Entities**
 
-- **Calendar:** one event per bake step at its scheduled time. Built-in calendar triggers with offsets handle "2 minutes before" and "now".
-- **Sensors:** per active bake, the current step, next step, next step time, and progress.
+- **Calendar:** one event per bake step at its scheduled time, lasting the step's hands-on time, for viewing and for the user's own automations. Not for step alerts: HA's calendar triggers read events in 15-minute windows and never re-read them, so they miss steps that move after a check-off and new bakes that start inside the current window.
+- **Devices and sensors:** one device per active bake, removed when it ends, with sensors for the current step (the last one checked off), the next step, the next step's time, and progress. Every entity carries `bake_id` and its last-synced time.
+- **Step events:** the integration times these itself from the current schedule and re-times them whenever the schedule changes (a poll, a webhook nudge, or a local re-projection after `complete_step`). Each carries the bake id and name, the step's position, text and time, the step after it, and steps done and total. Steps already done don't fire; same-minute steps fire separately, in step order.
+  - `breadsheet_step_upcoming`: a lead time before each step. The lead time is an integration option (default 2 minutes).
+  - `breadsheet_step_due`: when the step is due.
+  - `breadsheet_step_late`: once, 5 minutes after it's due, if it still isn't done.
 - **Action:** `breadsheet.complete_step` (bake id, step position), calling the API and refreshing immediately.
 - **Event:** `breadsheet_bake_ended` (with `bake_id`, plus `outcome` when known). The coordinator fires it when a bake disappears from the active Fancy list for any reason: completed, canceled, expired, or switched to Simple. Without it, a finished bake's entities just vanish and the blueprint has nothing to trigger on. The coordinator persists the last known set of active bake ids (HA `Store`), so a bake that ends while HA is restarting still fires the event on the next successful poll.
 
 **Sidebar panel.** Registered at `/breadsheet`. It embeds the breadsheet bake view using a short-lived panel token in the URL. Live Activity taps open `/breadsheet/<bake_id>`.
 
-**Blueprint.** Inputs: notify targets, lead time (default 2 min), Live Activities on or off.
+**Blueprint.** Inputs: notify targets, Live Activities on or off. It triggers on the step events, so the lead time comes from the integration's option.
 
-- Sends a notification before and at each step, with a "Done" action that calls `breadsheet.complete_step`.
-- Sends one late reminder at +5 minutes, then nothing.
+- Sends a notification before and at each step (`breadsheet_step_upcoming`, `breadsheet_step_due`), with a "Done" action that calls `breadsheet.complete_step`.
+- Sends one late reminder at +5 minutes (`breadsheet_step_late`), then nothing.
 - Sends same-minute steps as separate notifications, 1 to 2 seconds apart.
 
 **Live Activities and Live Updates (working name: Proof of Life; opt-in).** Driven by the blueprint through the companion app's `live_update` payload.
@@ -509,10 +513,10 @@ Second Rise breaks into seven epics across four milestones. Rows are in rough bu
 | [breadsheet-hass#1](https://github.com/brystmar/breadsheet-hass/issues/1) | Repo scaffold, Marketplace manifest, release-asset packaging, config flow with pairing | HA integration | M3 |
 | [breadsheet-hass#2](https://github.com/brystmar/breadsheet-hass/issues/2) | Adaptive polling coordinator that keeps serving last good data on failed polls, honors `Retry-After`, and exposes last-synced time | HA integration | M3 |
 | [breadsheet#93](https://github.com/brystmar/breadsheet/issues/93), [breadsheet-hass#13](https://github.com/brystmar/breadsheet-hass/issues/13) | Webhook nudges: `PUT/DELETE /api/v2/device/webhook`, `connections.webhook_url`, and nudges after Fancy bake changes (breadsheet); register a webhook or cloudhook at setup and refresh on a nudge (breadsheet-hass) | HA integration | M3 |
-| [breadsheet-hass#3](https://github.com/brystmar/breadsheet-hass/issues/3) | Calendar entity and bake sensors that stay available through outages | HA integration | M3 |
+| [breadsheet-hass#3](https://github.com/brystmar/breadsheet-hass/issues/3) | Calendar entity, bake devices and sensors that stay available through outages, and step events (upcoming, due, late) with the lead-time option | HA integration | M3 |
 | [breadsheet-hass#4](https://github.com/brystmar/breadsheet-hass/issues/4) | `complete_step` action with client-supplied `completed_at`, a retry queue, and immediate local re-projection | HA integration | M3 |
 | [breadsheet-hass#5](https://github.com/brystmar/breadsheet-hass/issues/5) | Sidebar panel with panel tokens | HA integration | M3 |
-| [breadsheet-hass#6](https://github.com/brystmar/breadsheet-hass/issues/6) | Notification blueprint (lead time, Done action, late nag) | HA integration | M3 |
+| [breadsheet-hass#6](https://github.com/brystmar/breadsheet-hass/issues/6) | Notification blueprint on the step events (Done action, late nag) | HA integration | M3 |
 | [breadsheet-hass#7](https://github.com/brystmar/breadsheet-hass/issues/7) | Live Activities in blueprint (opt-in) | HA integration | M3 |
 | [breadsheet-hass#8](https://github.com/brystmar/breadsheet-hass/issues/8) | README and Marketplace submission | HA integration | M3 |
 | [breadsheet-ui#40](https://github.com/brystmar/breadsheet-ui/issues/40) | Enable the Fancy option at bake start; route to HA pairing when no HA is paired | UI | M3 |
