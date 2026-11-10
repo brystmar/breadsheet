@@ -248,6 +248,7 @@ first-write-wins repeat records nothing). No IP addresses, user agents, or free 
 | `connections.scopes` | text[] | All four at pairing: `recipes:read`, `recipes:write`, `bakes:read`, `bakes:write` |
 | `connections.token_hash` | bytea(32) | SHA-256 of the 256-bit device token, unique; the token is shown once |
 | `connections.created_at`, `last_used_at`, `revoked_at` | timestamptz | `last_used_at` written at most daily; revoked tokens stop working at once |
+| `panel_tokens` | table | Home Assistant's sidebar panel (migration `0014`, breadsheet-hass#5): `token_hash` (SHA-256), `connection_id` (cascade), `created_at`, `expires_at` (12 hours). Bakes scopes only; dies with the connection |
 | `connections.webhook_url` | text | Where this HA gets "poll now" nudges (migration `0013`, breadsheet#93); null for none. A secret: never log or return it. Cleared on revoke |
 | `pairing_codes.code_hash` | bytea(32) | Primary key: SHA-256 of the normalized code (8 Crockford base32 characters, shown `XXXX-XXXX`) |
 | `pairing_codes.user_id`, `expires_at`, `used_at` | uuid, timestamptz | Ten minutes, single use; issuing a new code deletes the user's unused ones |
@@ -312,6 +313,7 @@ Changes from the DynamoDB version: GET requests never write, and recipe writes a
 | `POST /api/v2/devices` | HA's config flow: `{code, label?}` → 201 `{token, connection, user}` (the user, since a token can't call `GET /session`). Bad, used, or expired codes → 400 `pairing_code_invalid`; 5 failures per 15 minutes per IP → 429 |
 | `GET /api/v2/connections` | Browser session: the user's live connections, newest first |
 | `DELETE /api/v2/connections/<id>` | Browser session: revoke (204); unknown, someone else's, or already revoked → 404 |
+| `POST /api/v2/panel-tokens` | Device token only: `{bake_id?}` → 201 `{token, expires_at, url}`, where `url` is `Config.WEB_URL` + `/panel[/<bake_id>]#t=<token>`. Panel tokens act as the connection's user with `bakes:read`/`bakes:write` only (`devices.token_access`); they don't set `g.connection`, so their changes nudge HA like the website's |
 | `PUT`/`DELETE /api/v2/device/webhook` | Device token only: set (`{url}`) or clear this HA's nudge webhook (204). Bad URLs → 400 `webhook_url_invalid`; browser sessions → 403 `scope_missing` |
 
 Bake errors: drafts → 409 `recipe_is_draft`; no steps → 400 `recipe_has_no_steps`; a 4th active bake →

@@ -26,6 +26,7 @@ Nothing that has shipped is renamed, removed, or changes meaning. Clients must i
   - *Session:* browsers send the `breadsheet_session` cookie, set by signing up or signing in (credentialed CORS from `breadsheet.com` origins only).
   - *Admin* (breadsheet#86): a session for a user with `is_admin`, or the admin key (`Authorization: Bearer <admin key>`) for scripts. Admin endpoints say **Auth:** admin. A signed-in non-admin gets 403 `admin_required`; a device token gets 403 `scope_missing`, even an admin's own; a wrong key gets 401 `admin_key_invalid`.
   - *None:* readable by anyone; a session, if present, adds the caller's own recipes and `is_mine`.
+  - *Panel token* (M3, breadsheet-hass#5): Home Assistant's sidebar panel shows the website's bake view in a frame, where cookies don't work, so the page sends `Authorization: Bearer <panel token>` from `POST /api/v2/panel-tokens`. It acts as the connection's user with `bakes:read` and `bakes:write` only, for 12 hours, and stops working when the connection is revoked. Its changes nudge Home Assistant like the website's.
   - *Device token* (M3, breadsheet#27): Home Assistant sends `Authorization: Bearer <device token>`, from pairing. A token acts as its user and carries scopes (`recipes:read`, `recipes:write`, `bakes:read`, `bakes:write`; pairing grants all four). Each endpoint's **Auth** names the scope a token needs; endpoints whose Auth is a session alone are browser-only, and a token there gets 403 `scope_missing`. A revoked or unknown token gets 401 `token_invalid`. A token wins over any session cookie.
 - **Agent attribution.** Calls made for an agent send `X-Breadsheet-Via: agent`, plus `X-Breadsheet-Agent: <name>` when known. Used only for metrics.
 - **Idempotency.** `POST /api/v2/bakes` honors `Idempotency-Key` (1 to 200 characters, unique per user): a repeat returns the original bake with 200 instead of 201.
@@ -330,6 +331,9 @@ Set where this Home Assistant gets "poll now" nudges (M3, breadsheet#93): right 
 
 ### `DELETE /api/v2/device/webhook`
 Stop nudging this Home Assistant; it keeps polling. **Auth:** device token with `bakes:read`. **204.** **Errors:** `scope_missing`, `token_invalid`.
+
+### `POST /api/v2/panel-tokens`
+A token and the page for Home Assistant's sidebar panel (M3, breadsheet-hass#5). `url` is the website's panel page (`https://www.breadsheet.com/panel`, or `/panel/<bake_id>`) with the token in its fragment, so no server sees it. The token works like the caller's device token but only for bakes (`bakes:read`, `bakes:write`), for 12 hours; revoking the connection stops it. Only its hash is stored. **Auth:** device token with `bakes:read` (browser sessions and panel tokens get 403 `scope_missing`). **Body:** optional `bake_id` (one of yours). **201:** `{"token", "expires_at", "url"}`. **Errors:** `not_found`, `scope_missing`, `token_invalid`.
 
 ### `GET /api/v2/admin/recipes`
 Every default recipe for curation, archived ones included (last), by name. **Auth:** admin. **200:** `{"recipes": [recipe summary]}`. **Errors:** `admin_key_invalid`, `admin_required`, `not_signed_in`, `scope_missing`, `rate_limited`.

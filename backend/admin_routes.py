@@ -15,7 +15,7 @@ import logging
 from backend import rate_limits
 from backend.api_v2 import ApiError, api_v2, json_body
 from backend.database import db
-from backend.devices import bearer_token, device_connection
+from backend.devices import bearer_token, token_access
 from backend.identity import current_user, hash_key
 from backend.models import Recipe, User, utc_now
 from sqlalchemy import select
@@ -66,11 +66,11 @@ def require_admin() -> User | None:
     if key is not None and expected is not None and hmac.compare_digest(hash_key(key), expected):
         return None
 
-    # A device token is never an admin, even an admin's own Home Assistant
+    # A device or panel token is never an admin, even an admin's own Home Assistant
     try:
         if key is None:  # a malformed Authorization header counts as a wrong key
             raise ApiError(401, 'admin_key_invalid', KEY_INVALID)
-        device_connection(key)
+        token_access(key)
     except ApiError:
         rate_limits.record(rate_limits.ADMIN_FAILURES)
         if expected is None:

@@ -723,6 +723,21 @@ class Connection(UuidPrimaryKey, db.Model):
         return f'<Connection | id: {self.id}, user: {self.user_id}, revoked: {self.revoked_at is not None}>'
 
 
+class PanelToken(UuidPrimaryKey, db.Model):
+    """
+    A short-lived token for Home Assistant's sidebar panel (breadsheet-hass#5): the panel embeds the bake view,
+    where third-party cookies don't work, so the token rides in the page's URL fragment. It acts as the
+    connection's user, for bakes only, for 12 hours, and dies with the connection. Only its SHA-256 is stored.
+    """
+    __tablename__ = 'panel_tokens'
+
+    token_hash: Mapped[bytes] = mapped_column(LargeBinary(32), unique=True)
+    connection_id: Mapped[UUID] = mapped_column(ForeignKey('connections.id', ondelete='CASCADE'), index=True)
+    connection: Mapped[Connection] = relationship()
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, server_default=func.now())
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+
+
 class PairingCode(db.Model):
     """
     A short-lived code for pairing Home Assistant (breadsheet#27): 8 Crockford base32 characters, shown as

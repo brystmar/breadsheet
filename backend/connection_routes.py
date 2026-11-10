@@ -3,10 +3,11 @@ import logging
 from backend import nudges, poll_cache, rate_limits
 from backend.api_v2 import ApiError, api_v2, json_body
 from backend.database import db
-from backend.devices import (CODE_LIFETIME, DEVICE_SCOPES, clean_label, hash_secret, new_device_token,
-                             new_pairing_code, normalized_code, request_connection)
-from backend.models import Connection, PairingCode, utc_now
+from backend.devices import (CODE_LIFETIME, DEVICE_SCOPES, PANEL_TOKEN_LIFETIME, clean_label, hash_secret,
+                             new_device_token, new_pairing_code, normalized_code, request_connection)
+from backend.models import Bake, Connection, PairingCode, PanelToken, utc_now
 from backend.recipe_routes_v2 import require_user
+from flask import current_app
 from sqlalchemy import delete, select
 from sqlalchemy.exc import IntegrityError
 from uuid import UUID
@@ -95,11 +96,11 @@ def revoke_connection(connection_id):
 
 
 def calling_connection():
-    """The connection whose device token made this request; browser sessions can't set webhooks."""
+    """The connection whose device token made this request; browser sessions and panel tokens get 403."""
     require_user('bakes:read')
     connection = request_connection()
     if connection is None:
-        raise ApiError(403, 'scope_missing', "Only Home Assistant can set its webhook, with its device token.")
+        raise ApiError(403, 'scope_missing', "Only Home Assistant can do that, with its device token.")
     return connection
 
 
@@ -125,3 +126,35 @@ def clear_webhook():
     db.session.commit()
     logger.info("Connection %s cleared its webhook", connection.id)
     return '', 204
+
+
+@api_v2.post('/panel-tokens')
+def issue_panel_token():
+    """
+    A token for Home Assistant's sidebar panel (breadsheet-hass#5), with the URL to show: the website's panel
+    page, the token in its fragment (never sent to any server). Bakes only, 12 hours, dies with the connection.
+    Optional `bake_id` opens that bake. Only its hash is stored.
+    """
+    connection = calling_connection()
+    bake_id = json_body().get('bake_id')
+    if bake_id is not None:
+        try:
+            bake = db.session.scalar(select(Bake).where(Bake.id == UUID(str(bake_id)),
+                                                        Bake.user_id == connection.user_id))
+        except ValueError:
+            bake = None
+        if bake is None:
+            raise ApiError(404, 'not_found', "That bake doesn't exist.")
+    now = utc_now()
+    # Tidy up as we go: this connection's expired tokens are no use to anyone
+    db.session.execute(delete(PanelToken).where(PanelToken.connection_id == connection.id,
+                                                PanelToken.expires_at <= now))
+    token = new_device_token()
+    panel = PanelToken(token_hash=hash_secret(token), connection_id=connection.id,
+                       expires_at=now + PANEL_TOKEN_LIFETIME)
+    db.session.add(panel)
+    db.session.commit()
+    path = f"/panel/{bake_id}" if bake_id else "/panel"
+    logger.info("Connection %s got a panel token", connection.id)
+    return {'token': token, 'expires_at': panel.expires_at.isoformat(),
+            'url': f"{current_app.config['WEB_URL']}{path}#t={token}"}, 201
