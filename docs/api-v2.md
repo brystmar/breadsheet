@@ -69,6 +69,7 @@ Every error is JSON with a stable `code` and a plain-language `message` that say
 | `internal_error` | 500 | Something unexpected went wrong |
 | `json_required` | 415 | A state-changing request without `Content-Type: application/json` |
 | `key_invalid` | 401 | No account has that key |
+| `label_invalid` | 400 | A connection's name must be 1 to 60 characters |
 | `method_not_allowed` | 405 | The path doesn't take that method; see `Allow` |
 | `not_found` | 404 | No such path, recipe, bake, or step (or not visible to the caller) |
 | `not_owner` | 403 | Only the recipe's owner can change it |
@@ -322,6 +323,9 @@ Home Assistant exchanges a pairing code for a device token, shown this once and 
 
 ### `GET /api/v2/connections`
 Your paired Home Assistant instances, newest first; revoked ones are left out. **Auth:** session. **200:** `{"connections": [connection]}`. **Errors:** `not_signed_in`.
+
+### `PATCH /api/v2/connections/<connection_id>`
+Rename one of your connections (M3, breadsheet#97). Home Assistant sets the name when pairing, and this changes only what breadsheet shows. **Auth:** session; owner. **Body:** `{"label"}`, 1 to 60 characters after trimming spaces (runs of spaces inside become one). **200:** `{"connection"}`. **Errors:** `label_invalid`, `body_invalid`, `not_found` (including one already revoked), `not_signed_in`.
 
 ### `DELETE /api/v2/connections/<connection_id>`
 Revoke a connection: its token stops working at once, along with every agent calling through it. **Auth:** session; owner. **204.** **Errors:** `not_found` (including one already revoked), `not_signed_in`.
