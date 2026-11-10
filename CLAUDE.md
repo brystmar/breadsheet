@@ -640,8 +640,9 @@ docker compose up -d breadsheet-db   # local Postgres 18 on port 5433 (data in t
   first breadsheet-hass release
 - Panel tokens for Home Assistant's sidebar panel (breadsheet#95) live since 2026-11-09; production Postgres is
   at migration `0014`
-- App Engine versions use an `m3` prefix from M3 on. `m3i` serves all traffic (since 2026-11-09); `m3h` is
-  kept as the rollback (`m3d` to `m3g` are still deployed too). Every version before `m3d`, including `py314` (the DynamoDB version), was deleted on
+- Renaming connections (`PATCH /api/v2/connections/<id>`, breadsheet#97) live since 2026-11-10; no migration
+- App Engine versions use an `m3` prefix from M3 on. `m3j` serves all traffic (since 2026-11-10); `m3i` is
+  kept as the rollback (`m3d` to `m3h` are still deployed too). Every version before `m3d`, including `py314` (the DynamoDB version), was deleted on
   2026-11-09 because their uploads included local secrets. Keep the previous version as the rollback
 - Deploys honor `.gitignore` since 2026-11-09 (`.gcloudignore` had `!include:.gitignore` instead of
   `#!include:.gitignore`, so `.env`, `env_variables.yaml`, `.aws/` and other local files were uploaded).
