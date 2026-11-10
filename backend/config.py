@@ -22,6 +22,9 @@ class Config(object):
     BOUND_PORT = environ.get('BOUND_PORT')
     DOMAIN_URL = environ.get('DOMAIN_URL')
 
+    # The website, for links the API hands out (Home Assistant's panel URL): the Vite dev server locally
+    WEB_URL = 'http://localhost:3000' if local else 'https://www.breadsheet.com'
+
     # Credentialed CORS: only these origins may call /api/*, and wildcards are never allowed
     CORS_ORIGINS = ['https://breadsheet.com', 'https://www.breadsheet.com']
     if local:

@@ -7,7 +7,7 @@ passwords). Browsers stay signed in with Flask's signed session cookie, which ho
 a short fingerprint of the key hash, so a future key reset would end every existing session.
 """
 from backend.database import db
-from backend.devices import bearer_token, device_connection, require_scope
+from backend.devices import bearer_token, require_scope, token_access
 from backend.models import User, normalized_username, utc_now
 from backend.username_words import has_blocked_word
 from datetime import timedelta
@@ -113,15 +113,15 @@ def end_session():
 
 def current_user(scope: str | None = None) -> User | None:
     """
-    The user this request acts for, or None. A device token (`Authorization: Bearer`, breadsheet#27) wins over
-    the session cookie and must carry `scope`; with no scope given, the call is browser-only and tokens are
+    The user this request acts for, or None. A device or panel token (`Authorization: Bearer`, breadsheet#27,
+    breadsheet-hass#5) wins over the session cookie and must carry `scope`; with no scope given, the call is browser-only and tokens are
     refused. Sessions that no longer match a user's key are cleared.
     """
     token = bearer_token()
     if token is not None:
-        connection = device_connection(token)
-        require_scope(connection, scope)
-        return connection.user
+        user, scopes = token_access(token)
+        require_scope(scopes, scope)
+        return user
 
     uid, fingerprint = session.get('uid'), session.get('kf')
     if not uid or not fingerprint:
