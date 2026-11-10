@@ -171,6 +171,56 @@ class TestConnections:
         assert other.get('/api/v2/connections').json['connections'] == []
         assert other.delete(f'/api/v2/connections/{connection_id}', json={}).status_code == 404
         assert other.delete('/api/v2/connections/not-a-uuid', json={}).status_code == 404
+        assert other.patch(f'/api/v2/connections/{connection_id}', json={'label': 'Mine'}).status_code == 404
+        assert other.patch('/api/v2/connections/not-a-uuid', json={'label': 'Mine'}).status_code == 404
+
+
+class TestRename:
+    """Renaming a connection (breadsheet#97)."""
+
+    def connection_id(self, app, baker) -> str:
+        paired_token(app, baker)
+        return baker.get('/api/v2/connections').json['connections'][0]['id']
+
+    def test_rename(self, app, baker):
+        connection_id = self.connection_id(app, baker)
+        response = baker.patch(f'/api/v2/connections/{connection_id}', json={'label': '  Cabin \t HA  '})
+        assert response.status_code == 200, response.json
+        assert response.json['connection']['label'] == 'Cabin HA'
+        assert set(response.json['connection']) == {'id', 'label', 'scopes', 'created_at', 'last_used_at'}
+        assert baker.get('/api/v2/connections').json['connections'][0]['label'] == 'Cabin HA'
+
+    def test_sixty_characters_is_the_limit(self, app, baker):
+        connection_id = self.connection_id(app, baker)
+        assert baker.patch(f'/api/v2/connections/{connection_id}', json={'label': 'x' * 60}).status_code == 200
+        for label in ['', '   ', 'x' * 61]:
+            response = baker.patch(f'/api/v2/connections/{connection_id}', json={'label': label})
+            assert (response.status_code, response.json['code']) == (400, 'label_invalid'), label
+        assert baker.get('/api/v2/connections').json['connections'][0]['label'] == 'x' * 60
+
+    def test_a_label_must_be_text(self, app, baker):
+        connection_id = self.connection_id(app, baker)
+        for body in [{}, {'label': None}, {'label': 7}]:
+            response = baker.patch(f'/api/v2/connections/{connection_id}', json=body)
+            assert (response.status_code, response.json['code']) == (400, 'body_invalid'), body
+
+    def test_revoked_connections_cant_be_renamed(self, app, baker):
+        connection_id = self.connection_id(app, baker)
+        baker.delete(f'/api/v2/connections/{connection_id}', json={})
+        response = baker.patch(f'/api/v2/connections/{connection_id}', json={'label': 'Gone'})
+        assert (response.status_code, response.json['code']) == (404, 'not_found')
+
+    def test_only_a_browser_can_rename(self, app, baker):
+        token = paired_token(app, baker)
+        connection_id = baker.get('/api/v2/connections').json['connections'][0]['id']
+        device, headers = as_device(app, token)
+        response = device.patch(f'/api/v2/connections/{connection_id}', headers=headers, json={'label': 'Sneaky'})
+        assert (response.status_code, response.json['code']) == (403, 'scope_missing')
+
+    def test_signed_out(self, app, baker):
+        connection_id = self.connection_id(app, baker)
+        response = app.test_client().patch(f'/api/v2/connections/{connection_id}', json={'label': 'Nope'})
+        assert (response.status_code, response.json['code']) == (401, 'not_signed_in')
 
     def test_deleting_a_user_removes_their_connections(self, app, client):
         user = register(client, 'pairer')

@@ -3,8 +3,8 @@ import logging
 from backend import nudges, poll_cache, rate_limits
 from backend.api_v2 import ApiError, api_v2, json_body
 from backend.database import db
-from backend.devices import (CODE_LIFETIME, DEVICE_SCOPES, PANEL_TOKEN_LIFETIME, clean_label, hash_secret,
-                             new_device_token, new_pairing_code, normalized_code, request_connection)
+from backend.devices import (CODE_LIFETIME, DEVICE_SCOPES, MAX_LABEL, PANEL_TOKEN_LIFETIME, clean_label,
+                             hash_secret, new_device_token, new_pairing_code, normalized_code, request_connection)
 from backend.models import Bake, Connection, PairingCode, PanelToken, utc_now
 from backend.recipe_routes_v2 import require_user
 from flask import current_app
@@ -76,10 +76,8 @@ def list_connections():
     return {'connections': [connection.to_v2_dict() for connection in connections]}, 200
 
 
-@api_v2.delete('/connections/<connection_id>')
-def revoke_connection(connection_id):
-    """Revoke a connection: its token stops working at once, along with every agent calling through it."""
-    user = require_user()
+def own_live_connection(user, connection_id) -> Connection:
+    """One of the user's connections that isn't revoked; 404 for anything else, so others' ids reveal nothing."""
     try:
         connection = db.session.scalar(select(Connection).where(Connection.id == UUID(connection_id),
                                                                 Connection.user_id == user.id))
@@ -87,6 +85,35 @@ def revoke_connection(connection_id):
         connection = None
     if connection is None or connection.revoked_at is not None:
         raise ApiError(404, 'not_found', "That connection doesn't exist.")
+    return connection
+
+
+@api_v2.patch('/connections/<connection_id>')
+def rename_connection(connection_id):
+    """
+    Rename a connection (breadsheet#97). HA names it at pairing; this changes only what breadsheet shows. Unlike
+    pairing, which quietly falls back to a default, a name the user typed is never trimmed to fit or replaced.
+    """
+    user = require_user()
+    data = json_body()
+    label = data.get('label')
+    if not isinstance(label, str):
+        raise ApiError(400, 'body_invalid', "Send the connection's new name as label.")
+    label = ' '.join(label.split())
+    if not 1 <= len(label) <= MAX_LABEL:
+        raise ApiError(400, 'label_invalid', f"A connection's name must be 1 to {MAX_LABEL} characters.")
+    connection = own_live_connection(user, connection_id)
+    connection.label = label
+    db.session.commit()
+    logger.info("User %s renamed connection %s", user.id, connection.id)
+    return {'connection': connection.to_v2_dict()}, 200
+
+
+@api_v2.delete('/connections/<connection_id>')
+def revoke_connection(connection_id):
+    """Revoke a connection: its token stops working at once, along with every agent calling through it."""
+    user = require_user()
+    connection = own_live_connection(user, connection_id)
     connection.revoked_at = utc_now()
     connection.webhook_url = None
     db.session.commit()

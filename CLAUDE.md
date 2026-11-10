@@ -312,6 +312,7 @@ Changes from the DynamoDB version: GET requests never write, and recipe writes a
 | `POST /api/v2/pairing-codes` | Browser session: a new HA pairing code `{code, expires_at}` (201); voids the user's unused codes |
 | `POST /api/v2/devices` | HA's config flow: `{code, label?}` → 201 `{token, connection, user}` (the user, since a token can't call `GET /session`). Bad, used, or expired codes → 400 `pairing_code_invalid`; 5 failures per 15 minutes per IP → 429 |
 | `GET /api/v2/connections` | Browser session: the user's live connections, newest first |
+| `PATCH /api/v2/connections/<id>` | Browser session: rename with `{label}` (breadsheet#97); 1–60 characters after trimming, else 400 `label_invalid`; unknown, someone else's, or revoked → 404 |
 | `DELETE /api/v2/connections/<id>` | Browser session: revoke (204); unknown, someone else's, or already revoked → 404 |
 | `POST /api/v2/panel-tokens` | Device token only: `{bake_id?}` → 201 `{token, expires_at, url}`, where `url` is `Config.WEB_URL` + `/panel[/<bake_id>]#t=<token>`. Panel tokens act as the connection's user with `bakes:read`/`bakes:write` only (`devices.token_access`); they don't set `g.connection`, so their changes nudge HA like the website's |
 | `PUT`/`DELETE /api/v2/device/webhook` | Device token only: set (`{url}`) or clear this HA's nudge webhook (204). Bad URLs → 400 `webhook_url_invalid`; browser sessions → 403 `scope_missing` |
