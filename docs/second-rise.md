@@ -1,6 +1,6 @@
 # Breadsheet Second Rise: Spec & Backlog
 
-Nov 1, 2026 · updated Nov 9, 2026 · @Thomas
+Nov 1, 2026 · updated Nov 10, 2026 · @Thomas
 
 ## Overview
 
@@ -252,6 +252,7 @@ All new functionality lives under `/api/v2` on `api.breadsheet.com`. Each milest
 | `POST /api/v2/devices` | Exchange pairing code for device token | HA | M3 |
 | `GET /api/v2/connections` | List the user's paired HA instances | Browser | M3 |
 | `DELETE /api/v2/connections/<id>` | Revoke an HA instance, and every agent behind it | Browser | M3 |
+| `PATCH /api/v2/connections/<id>` | Rename a paired HA instance | Browser | M3 |
 | `PUT/DELETE /api/v2/device/webhook` | Set or clear where this HA instance gets nudges (the calling device token's own connection) | HA | M3 |
 | `POST /api/v2/panel-tokens` | Short-lived token for the HA panel URL | HA | M3 |
 | `POST /api/v2/recipes/import` | Create a draft personal recipe from structured input; returns the draft, validation results, and a review link | HA | M4 |
@@ -407,7 +408,7 @@ The current schedule table stays nearly untouched; new information goes into sep
   - **End the bake:** Cancel bake (red) on the left and Complete (green) on the right. Complete with steps left asks to confirm, with Keep baking on the left and Complete bake (green) on the right. Cancel asks to confirm too.
   - In-tab browser notifications while it's open. Keeps running from its last fetched schedule if breadsheet is unreachable; Done and Skip taps record their time, queue, and retry, showing "Saved, will sync" until confirmed.
 - **Active bake bar (M2):** under the header on every page except the bake view, so it follows the baker around. It shows the bake's name, the step in progress with a progress bar and its time run and left, and the next step with its length (`15m`, `2h30m`). Clicking it opens the bake view; its own "Done, start next" button checks off the next step without leaving the page.
-- **Identity flows:** pick username (with the rules as a live checklist and an availability check about half a second after typing stops and on blur: "Checking…", then "Available" or the server's reason; Register is disabled only once the answer is "not available," so a check still running never swallows a click and a failed check never blocks; signup has the final say), save-your-key screen (copy, QR, link), and a profile page (`/profile`, opened from the username in the header) showing who's signed in, with a Devices section on using breadsheet elsewhere (M2); pair Home Assistant (pairing code) and a connections list of paired HA instances with revoke (M3). Revoking notes that it also disconnects any assistants using that Home Assistant.
+- **Identity flows:** pick username (with the rules as a live checklist and an availability check about half a second after typing stops and on blur: "Checking…", then "Available" or the server's reason; Register is disabled only once the answer is "not available," so a check still running never swallows a click and a failed check never blocks; signup has the final say), save-your-key screen (copy, QR, link), and a profile page (`/profile`, opened from the username in the header) showing who's signed in, with a Devices section on using breadsheet elsewhere (M2); pair Home Assistant (pairing code) and a connections list of paired HA instances with rename and revoke (M3). Each connection starts with Home Assistant's own name, which the user can change. Revoking notes that it also disconnects any assistants using that Home Assistant.
 - **Active bakes list (M2):** up to three, above the recipe list on the home page, each linking to its bake view.
 - **Admin (M3):** for admins only (everyone else sees nothing new, and `/admin` sends them home). An "Admin" link on the profile and an "Edit default" button on default recipes. `/admin/recipes` lists every default (archived ones marked) with Edit, New default, and Archive, using the regular recipe editor without the draft option ([breadsheet-ui#65](https://github.com/brystmar/breadsheet-ui/issues/65)). Later: `/admin/users` (list, activity, key reset that shows the new key on the save-your-key screen, rename) and `/admin/metrics` ([breadsheet-ui#66](https://github.com/brystmar/breadsheet-ui/issues/66)).
 
