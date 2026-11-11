@@ -44,7 +44,7 @@ Every question raised during scoping is settled; these are the answers the rest 
 | --- | --- |
 | Milestones | M1 database migration, M2 collections, community, and Simple alerts, M3 Home Assistant, M4 AI agents. Each is shippable on its own. Agents come last, once the foundation they call is in place. |
 | Audience and scale | Thomas, friends, and the HA community; a few hundred monthly active users would be a big win. Prefer the simpler, lower-maintenance option over the scalable one. |
-| Alerts | Chosen per bake at start, with radio options. **Simple** (default): a checkbox to export the bake's steps as an ICS file, generated in the browser. **Fancy:** Home Assistant notifications and Live Activities; shown but disabled with a "Coming soon!" tooltip until M3. In-tab browser alerts as a cheap extra. A live calendar feed and Web Push are parked. |
+| Alerts | Chosen per bake at start, with radio options. **Simple:** a checkbox to export the bake's steps as an ICS file, generated in the browser. **Fancy:** Home Assistant notifications and Live Activities; shown but disabled with a "Coming soon!" tooltip until M3. Fancy is preselected when the user has a paired Home Assistant, Simple otherwise. In-tab browser alerts (silent) as a cheap extra. A live calendar feed and Web Push are parked. |
 | Community recipes | Users can publish a personal recipe to the community library. Anyone can browse it and copy a recipe into their own collection, exactly like a default. Only the publisher edits it. The admin can unpublish any recipe. |
 | AI agents | HA users only. `breadsheet-hass` registers a Breadsheet LLM API with Home Assistant; HA's MCP Server integration exposes it to Claude, ChatGPT, and other MCP clients, and HA's Assist conversation agents can use it directly. Breadsheet runs no MCP server of its own. A public MCP server for non-HA users is parked. |
 | Agent auth | Breadsheet implements no OAuth. Agents authenticate to the user's Home Assistant through HA's own OAuth; the integration then calls `/api/v2` with its device token. The user's key never reaches HA or an agent. |
@@ -69,7 +69,7 @@ Every question raised during scoping is settled; these are the answers the rest 
 | Abandonment | A bake auto-completes an hour after its latest projected end time, computed when read rather than by a scheduled job. |
 | Concurrent bakes | Allowed, soft cap of 3 active (not started or in progress) per user. |
 | Quiet hours | Out of scope. Phone-level Do Not Disturb and companion app settings already handle muting. |
-| Live Activities / Live Updates | Opt-in, step level, on iOS (Live Activities) and Android 16+ (Live Updates) from one payload. One activity is updated across consecutive steps and ended for waits over 4 hours. It is always cleared when a bake ends. |
+| Live Activities / Live Updates | On by default in the blueprint (users can turn them off), step level, on iOS (Live Activities) and Android 16+ (Live Updates) from one payload. One activity is updated across consecutive steps and ended for waits over 4 hours. It is always cleared when a bake ends. |
 | Resilience | A running bake must survive a breadsheet outage of minutes to an hour. Clients keep running the bake from their last good copy and queue check-offs. Offline recipe editing is out of scope. |
 | Deploys | Versioned App Engine deploys without promotion, smoke-tested, then traffic migrated; rollback by moving traffic back. Alembic migrations are expand-then-contract, so the previous version always works against the current schema. No maintenance mode. |
 | Release | Trunk-based: each issue merges to `main` and ships when ready. The UI hides unfinished milestones behind a browser-only toggle in the footer (`m1` default, then `m2`, …); releasing a milestone means changing the default level. No milestone branches. |
@@ -189,7 +189,7 @@ A bake is a snapshot of a recipe with a schedule anchored to a start or finish t
 - Either way the bake becomes completed and all notifications stop.
 - **Deleted recipes.** Deleting a recipe never blocks and never deletes its bakes. They keep running from their snapshot, with `recipe_id` set to null. The bake view shows the snapshot name with "This recipe was deleted" instead of a link, and "Bake again" and "Make it mine" aren't available. If the person deleting has bakes of their own from that recipe that aren't completed, the confirm dialog says how many keep running. Other people's bakes carry on, and they aren't notified. Unpublishing a community recipe doesn't affect any bakes.
 - **Check-off.** Any step can be marked done at any time, including early. The client sends `completed_at`, the moment the user marked it done; the server rejects times more than five minutes in the future or before the bake was created. All later steps re-project from that time. Checking off a step that's already done returns the existing result unchanged: the first write wins.
-- **The step in progress.** The UI shows the latest checked-off step as the step in progress: its wait is running. "Done, start next" checks off the next step that isn't skipped, at that moment, which makes it the step in progress. Checking off the last step finishes the bake, so when only one step is left the button reads "Done, finish bake".
+- **The step in progress.** The UI shows the latest checked-off step as the step in progress: its wait is running. "Done With This Step" checks off the next step that isn't skipped, at that moment, which makes it the step in progress. Checking off the last step finishes the bake, so when only one step is left the button reads "Finish Recipe".
 - **Skip.** Any step that isn't done (checked off or skipped) can be skipped mid-bake; the step in progress can't, since it's already checked off. The client sends `skipped_at`, validated like `completed_at`; skipping a step that's already done returns the existing result unchanged. The step gets no scheduled time, notifications, or calendar events, its wait drops out, and later steps re-project. Skipping doesn't start a bake on its own; on a finish-anchored bake with nothing checked off yet, the finish stays put and the start moves later. Once every step is checked off or skipped, the bake finishes, at the latest check-off or skip. There's no undo.
 - **Out-of-range waits.** Allowed; the UI flags them. No hard block.
 - **Late.** If a step passes its scheduled time unchecked, one reminder fires at +5 minutes (Fancy). After that, silence. The schedule does not shift on its own.
@@ -272,9 +272,9 @@ All new functionality lives under `/api/v2` on `api.breadsheet.com`. Each milest
 
 ## Alerts
 
-Each bake picks its alerts when it starts, with two radio options on the Start bake screen. A bake uses one mode at a time; the mode can be changed from the bake view.
+Each bake picks its alerts when it starts, with two radio options on the Start Recipe screen. A bake uses one mode at a time; the mode can be changed from the bake view.
 
-**Simple (M2, the default).** Selected by default, with a checkbox beside it: "Export calendar events as ICS". When checked, starting the bake downloads an `.ics` file, built in the browser from the schedule it already has. No server endpoint is involved in building it; the browser records each export as an `ics_exported` event for Usage metrics.
+**Simple (M2).** Selected by default unless the user has a paired Home Assistant, with a checkbox beside it: "Export ICS calendar events". When checked, starting the bake downloads an `.ics` file, built in the browser from the schedule it already has. No server endpoint is involved in building it; the browser records each export as an `ics_exported` event for Usage metrics.
 
 - One event per step, titled with the bake and step (for example "Country Sourdough · Fold #2"), starting at the step's scheduled time, with a reminder at the start.
 - Each event lasts for the step's hands-on time (10 minutes when unknown), so a busy calendar shows when you're actually tied up.
@@ -319,13 +319,13 @@ Arrives in M3, with agent tools added in M4. The integration pulls active Fancy 
 
 **Sidebar panel.** Registered at `/breadsheet`. It embeds the breadsheet bake view using a short-lived panel token in the URL. Live Activity taps open `/breadsheet/<bake_id>`.
 
-**Blueprint.** Inputs: notify targets, Live Activities on or off. It triggers on the step events, so the lead time comes from the integration's option.
+**Blueprint.** Inputs: notify targets, warn before each step (off by default), remind when late (on), Live Activities (on). It triggers on the step events, so the lead time comes from the integration's option.
 
-- Sends a notification before and at each step (`breadsheet_step_upcoming`, `breadsheet_step_due`), with a "Done" action that calls `breadsheet.complete_step`.
+- Sends a notification at each step (`breadsheet_step_due`), and before it when warnings are on (`breadsheet_step_upcoming`), with a "Done" action that calls `breadsheet.complete_step`.
 - Sends one late reminder at +5 minutes (`breadsheet_step_late`), then nothing.
 - Sends same-minute steps as separate notifications, 1 to 2 seconds apart.
 
-**Live Activities and Live Updates (working name: Proof of Life; opt-in).** Driven by the blueprint through the companion app's `live_update` payload.
+**Live Activities and Live Updates (working name: Proof of Life; on by default).** Driven by the blueprint through the companion app's `live_update` payload.
 
 - **`tag`:** `breadsheet_<bake id>`, so concurrent bakes each get their own card. Tags may contain only letters, numbers, hyphens, and underscores, up to 64 characters. Bake ids are UUIDs (36 characters, letters, digits and hyphens), so tags are 47 characters.
 - **`title`:** the recipe name (fixed for the life of the activity).
@@ -383,30 +383,30 @@ Tool descriptions spell out the units (seconds), the time zone handling, the "un
 The current schedule table stays nearly untouched; new information goes into separate views so the mobile layout isn't crowded.
 
 - **My recipes (M2):** the signed-in user's collection: personal recipes, plus the defaults to browse and copy, filterable by category. Incognito shows the defaults only.
-- **Community library (M2):** browse and search published recipes, each showing its name, publisher's username, category, and detail level, with a "Make it mine" copy button and a category filter. Visible to everyone, including incognito.
-- **Recipe view (M2):** edit the template. Visited rarely, so it can carry more density. Defaults, community recipes, and other users' shared recipes show a "Make it mine" copy button instead of edit controls.
+- **Community library (M2):** browse and search published recipes, each showing its name, publisher's username, category, and detail level, with a "Make It Mine" copy button and a category filter. Visible to everyone, including incognito.
+- **Recipe view (M2):** edit the template. Visited rarely, so it can carry more density. Defaults, community recipes, and other users' shared recipes show a "Make It Mine" copy button instead of edit controls.
   - A **category** picker (Bread or Prep), and for non-prep recipes a **prerequisites** picker listing the prep recipes the user can see. Prerequisites show as "Before you start", with a link to each.
   - A **Simple / Detailed** toggle per recipe. Simple (the default) shows one Then Wait per step, as today. Detailed reveals each step's wait range (min and max) around its Then Wait, hands-on time, and a "needs you home" checkbox.
   - A **Publish to community** control on the user's own recipes, with Unpublish once published. Publishing is blocked, with the validation messages shown, until the recipe passes validation.
   - A failed save keeps the user's unsaved changes in the form and says so; the user retries.
   - Imported drafts (M4) open here with a banner ("Imported by your assistant. Review and save.") and inline validation; Save takes the draft live.
 - **Plan view (M2):** today's screen, with these changes.
-  - **Start at / Finish at.** The toggle button and the date box sit side by side, with Start bake right after them. Under the toggle, in smaller text, is the other end of the bake ("Finish at:" when the toggle says "Start at:", and the reverse), with its date and time lined up under the date box. The whole UI says "Start at" and "Finish at" (never "starts" or "ends") and uses one date format, for example `Nov 14, 2026 10:00`.
+  - **Start at / Finish at.** The toggle button and the date box sit side by side, with Start Recipe (green) right after them. Under the toggle, in smaller text, is the other end of the bake ("Finish at:" when the toggle says "Start at:", and the reverse), with its date and time lined up under the date box. The whole UI says "Start at" and "Finish at" (never "starts" or "ends") and uses one date format, for example `Nov 14, 2026 10:00`.
   - **Then Wait** is a single `hh:mm` text box. Entries up to `99:59` are allowed and never turned into days; extra minutes carry into hours (`01:68` becomes `02:08`); a bare number is minutes. The up and down arrow keys change it by one minute; on desktop widths (1024 px and up), small up and down buttons beside it do the same.
   - **Range column** (wider than phone width), right of Then Wait: the step's shortest and longest wait, each a single `hh:mm` box with the same rules. A shortest wait longer than the longest is flagged. On phones, the range shows as a small caption under Then Wait instead.
   - **Out of range.** A Then Wait outside its range gets an amber border and fill, with an "Outside range" tooltip on hover or focus. No other message.
   - **Saving.** On the user's own recipe, Then Wait and range changes save to the recipe as they're made, with "Changes save to your copy of this recipe." below the table. On a default, community, or someone else's shared recipe, those boxes are grayed out, and a note above the table offers "Make it mine" to copy it first.
-- **Start bake (M2):** anchor and time zone confirmation, an optional "begin at step" picker for starting partway through, then the alert options as two radio buttons.
+- **Start Recipe (M2):** anchor and time zone confirmation, an optional "begin at step" picker for starting partway through, then the alert options as two radio buttons.
   - A recipe with prerequisites shows a reminder first (for example, "You'll need an active starter at peak strength when this bake starts"), linking to each prerequisite so the user can plan it.
-  - **Simple** is selected by default and deliberately plain-jane: default system font, thin gray border, no color, no icon. Beside it, the "Export calendar events as ICS" checkbox.
+  - **Simple** is selected by default when the user has no paired Home Assistant (otherwise Fancy is) and is deliberately plain-jane: default system font, thin gray border, no color, no icon. Beside it, the "Export ICS calendar events" checkbox.
   - **Fancy** gets a little sparkle: a ✨ next to the title and a soft gradient border with a slow shimmer, a few twinkles on hover. In M2 it's disabled, shown dimmed and without animation, with a "Coming soon!" tooltip on hover, focus, or tap. In M3 it's enabled, and choosing it without a paired HA instance leads to the pairing flow. All animation stops under `prefers-reduced-motion`.
 - **Bake view (M2):** the mid-bake phone screen. No edit fields.
-  - **In progress:** the step in progress, its note, a progress bar with how long it's run and how long is left, and a large "Done, start next" button.
+  - **In progress:** the step in progress, its note, a progress bar with how long it's run and how long is left, and a large "Done With This Step" button.
   - **Up next:** the next step, when it starts and how long it lasts, a countdown to its start (`hh:mm`, for example `00:10`), and "Skip this step". The text and countdown are centered vertically.
   - **Timeline:** every step with its time, marked done, in progress, skipped, or with its length. Steps skipped at the start show the bake's start time; steps skipped mid-bake show when they were skipped. On desktop, each upcoming step has its own Skip button.
   - **Alerts:** a section heading, then Simple and Fancy as radio buttons side by side, each with a tooltip on hover, focus, or tap: "Optional ICS calendar alerts" and "Lock-screen updates on your phone through Home Assistant" (plus "Coming soon!" until M3). Below them, "Export again" with "Calendar events do not update after export."
   - **End the bake:** Cancel bake (red) on the left and Complete (green) on the right. Complete with steps left asks to confirm, with Keep baking on the left and Complete bake (green) on the right. Cancel asks to confirm too.
-  - In-tab browser notifications while it's open. Keeps running from its last fetched schedule if breadsheet is unreachable; Done and Skip taps record their time, queue, and retry, showing "Saved, will sync" until confirmed.
+  - In-tab browser notifications while it's open, without sound. Keeps running from its last fetched schedule if breadsheet is unreachable; Done and Skip taps record their time, queue, and retry, showing "Saved, will sync" until confirmed.
 - **Active bake bar (M2):** under the header on every page except the bake view, so it follows the baker around. It shows the bake's name, the step in progress with a progress bar and its time run and left, and the next step with its length (`15m`, `2h30m`). Clicking it opens the bake view; its own "Done, start next" button checks off the next step without leaving the page.
 - **Identity flows:** pick username (with the rules as a live checklist and an availability check about half a second after typing stops and on blur: "Checking…", then "Available" or the server's reason; Register is disabled only once the answer is "not available," so a check still running never swallows a click and a failed check never blocks; signup has the final say), save-your-key screen (copy, QR, link), and a profile page (`/profile`, opened from the username in the header) showing who's signed in, with a Devices section on using breadsheet elsewhere (M2); pair Home Assistant (pairing code) and a connections list of paired HA instances with rename and revoke (M3). Each connection starts with Home Assistant's own name, which the user can change. Revoking notes that it also disconnects any assistants using that Home Assistant.
 - **Active bakes list (M2):** up to three, above the recipe list on the home page, each linking to its bake view.
